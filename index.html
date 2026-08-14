@@ -118,7 +118,7 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
 .scanbtn:active{background:var(--hot);color:#1a1005}
 
 /* Cook: recipes lead, the house sits beside them */
-.cooklayout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+.cooklayout{display:grid;grid-template-columns:284px minmax(0,1fr);gap:16px;align-items:start}
 @media(max-width:900px){.cooklayout{grid-template-columns:minmax(0,1fr)}}
 .side{position:sticky;top:62px;max-height:calc(100vh - 130px);overflow:auto;padding:12px}
 .side::-webkit-scrollbar{width:8px}
@@ -221,7 +221,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.4'
+  VER: '1.5'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -2112,15 +2112,30 @@ function viewCook(){
       el('input',{type:'text',id:'searchBox',value:UI.q,
         placeholder:'Search — “beef”, “short ribs”, “fried rice”…',
         oninput:e=>{UI.q=e.target.value;refreshMatches();}}),
-      el('button',{class:'btn',onclick:()=>{UI.q='';const b=$('#searchBox');if(b)b.value='';refreshMatches();}},'Clear'))));
+      el('button',{class:'btn',onclick:()=>{UI.q='';const b=$('#searchBox');if(b)b.value='';refreshMatches();}},'Clear'),
+      el('button',{class:'btn pri',id:'randomBtn',title:'pick something we can make right now',
+        onclick:randomRecipe},'Random Recipe'))));
   main.append(el('div',{id:'matchHost'}));
-  wrap.append(main);
 
-  /* the house sits beside them */
+  /* the house on the left, the recipes filling the rest */
   wrap.append(el('aside',{class:'card side',id:'pantrySide'}));
+  wrap.append(main);
 
   setTimeout(()=>{ renderPantrySide(); refreshMatches(); },0);
   return wrap;
+}
+
+/* Random Recipe — prefers something we can cook with nothing bought, and
+   respects whatever filters and search are currently applied. */
+function randomRecipe(){
+  let ranked=rankRecipes(UI.selected,{q:UI.q});
+  if(UI.selected.length)
+    ranked=ranked.filter(x=>UI.selected.every(s=>x.recipe.ingredients.some(i=>sameThing(i.item,s))));
+  if(!ranked.length)return toast('Nothing matches to pick from.');
+  const now=ranked.filter(x=>x.missing.length===0);
+  const src=now.length?now:ranked;
+  const p=src[Math.floor(Math.random()*src.length)];
+  if(p)openRecipe(p.recipe);
 }
 
 /* press and hold — the touch equivalent of hovering to reveal the ×.
@@ -2247,16 +2262,6 @@ function refreshMatches(){
     list.slice(0,limit||12).forEach(x=>grid.append(recipeCard(x)));
     host.append(grid);
   };
-
-  host.append(el('div',{class:'row',style:'margin:2px 0 6px'},
-    el('button',{class:'btn pri',onclick:()=>{
-      const src=now.length?now:ranked;
-      const p=src[Math.floor(Math.random()*src.length)];
-      if(p)openRecipe(p.recipe);
-    }},now.length?'Just pick one of the '+now.length:'Just pick one'),
-    h('span','small dim',now.length
-      ? 'Nothing to buy for '+now.length+' of these.'
-      : 'Nothing is fully covered right now — the next section shows what a swap would fix.')));
 
   band('Make it right now','nothing to buy',now,12);
   band('One swap away','we have a stand-in for everything missing',swap,9);
