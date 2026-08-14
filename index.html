@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen</title>
+<style>
+:root{
+  --bg:#12100e; --panel:#1b1815; --panel2:#232019; --line:#332e26;
+  --ink:#f2ece2; --ink2:#b8ae9e; --ink3:#7d7466;
+  --hot:#e0703a; --hot2:#f0a06a; --ok:#7fa86a; --warn:#d9a441; --bad:#c05646;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.5 ui-sans-serif,-apple-system,"SF Pro Text",Segoe UI,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--hot2)}
+h1,h2,h3,h4{margin:0 0 .4em;font-weight:600;letter-spacing:-.01em}
+h1{font-size:19px}
+h2{font-size:17px}
+h3{font-size:15px}
+.muted{color:var(--ink2)}
+.dim{color:var(--ink3)}
+.small{font-size:13px}
+.tiny{font-size:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.grow{flex:1}
+.right{margin-left:auto}
+.hide{display:none !important}
+
+/* shell */
+header{
+  position:sticky;top:0;z-index:20;background:rgba(18,16,14,.93);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+}
+.hwrap{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center}
+.brand{font-weight:700;letter-spacing:-.02em;font-size:17px;white-space:nowrap}
+.brand span{color:var(--hot)}
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  background:none;border:0;padding:7px 11px;border-radius:8px;color:var(--ink2);
+  cursor:pointer;white-space:nowrap;font-size:14px
+}
+nav button:hover{background:var(--panel2);color:var(--ink)}
+nav button.on{background:var(--hot);color:#1a1005;font-weight:600}
+main{max-width:1120px;margin:0 auto;padding:18px 16px 90px}
+
+/* bits */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card+.card{margin-top:12px}
+.btn{
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;cursor:pointer;color:var(--ink);white-space:nowrap
+}
+.btn:hover{border-color:#4a4236;background:#2b271f}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.pri{background:var(--hot);border-color:var(--hot);color:#1a1005;font-weight:600}
+.btn.pri:hover{background:var(--hot2);border-color:var(--hot2)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn.danger{color:var(--bad);border-color:#4a2e28}
+input[type=text],input[type=date],input[type=number],input[type=password],select,textarea{
+  background:#0e0c0a;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%
+}
+textarea{resize:vertical;line-height:1.55}
+input:focus,textarea:focus,select:focus{outline:0;border-color:var(--hot)}
+label.f{display:block;margin-bottom:12px}
+label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer;
+  font-size:13px;user-select:none
+}
+.chip:hover{border-color:#4a4236}
+.chip.on{background:var(--hot);border-color:var(--hot);color:#1a1005;font-weight:600}
+.chip.out{opacity:.4;text-decoration:line-through}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-block;background:#2a2419;border:1px solid var(--line);border-radius:5px;
+  padding:1px 7px;font-size:11.5px;color:var(--ink2);margin:0 4px 4px 0}
+.bar{height:5px;background:#2a251d;border-radius:3px;overflow:hidden;min-width:60px}
+.bar>i{display:block;height:100%;background:var(--hot)}
+.pill{border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.pill.ok{background:#25331e;color:#a8d18d}
+.pill.warn{background:#3a2f14;color:#e6c268}
+.pill.bad{background:#3a201b;color:#e08b78}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px}
+.kv b{color:var(--ink2);font-weight:400}
+ul.clean{list-style:none;margin:0;padding:0}
+ul.clean li{padding:5px 0;border-bottom:1px solid #26221c}
+ul.clean li:last-child{border-bottom:0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.split{grid-template-columns:1fr}.hwrap{flex-wrap:wrap}}
+
+/* status */
+#status{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel2);
+  border-top:1px solid var(--line);padding:7px 16px;font-size:13px;display:flex;gap:10px;align-items:center}
+#status .dot{width:8px;height:8px;border-radius:50%;background:var(--ink3);flex:none}
+#status.busy .dot{background:var(--warn)}
+#status.good .dot{background:var(--ok)}
+#status.err .dot{background:var(--bad)}
+#toast{position:fixed;bottom:46px;left:50%;transform:translateX(-50%);z-index:40;
+  background:#2c2720;border:1px solid var(--line);border-radius:8px;padding:9px 16px;
+  box-shadow:0 8px 24px #0008;opacity:0;transition:opacity .18s;pointer-events:none;max-width:90vw}
+#toast.on{opacity:1}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:#000a;display:flex;align-items:flex-start;
+  justify-content:center;padding:24px 12px;overflow:auto}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  width:min(860px,100%);padding:18px}
+
+/* diff */
+.diff{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;white-space:pre-wrap;
+  background:#0e0c0a;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;max-height:320px}
+.diff .del{color:#e08b78;background:#3a201b55;text-decoration:line-through}
+.diff .add{color:#a8d18d;background:#25331e55}
+.step-ref{color:var(--hot2);font-weight:600;cursor:help;border-bottom:1px dotted var(--hot2)}
+.miss{color:var(--warn)}
+.sub{color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand">Kitchen<span>.</span></div>
+    <nav id="nav"></nav>
+    <div class="right row">
+      <button class="btn sm" id="btnSync">Sync</button>
+      <button class="btn sm pri hide" id="btnSignin">Connect Drive</button>
+    </div>
+  </div>
+</header>
+<main id="view"></main>
+<div id="status"><span class="dot"></span><span id="statusText">Starting…</span>
+  <span class="right dim tiny" id="statusMeta"></span></div>
+<div id="toast"></div>
+<div id="modalHost"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ============================================================
+   Kitchen — local-first recipe system backed by Google Drive
+   Everything lives as plain text .md files in your Drive folder.
+   This app is just a lens on those files. Delete it and your data
+   is still perfectly readable.
+   ============================================================ */
+
+const APP = {
+  FOLDER: 'Recipes',            // top-level folder name in My Drive
+  DINNER_HOUR: 18,              // used for thaw math
+  VER: '1.0'
+};
+
+/* ---------- tiny store (degrades if storage is blocked) ---------- */
+const LS = (()=>{
+  let mem = {};
+  let ok = true;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch(e){ ok=false; }
+  return {
+    get(k,d){ try{ const v = ok?localStorage.getItem(k):mem[k]; return v==null?d:JSON.parse(v);}catch(e){return d;} },
+    set(k,v){ const s=JSON.stringify(v); try{ ok?localStorage.setItem(k,s):(mem[k]=s);}catch(e){mem[k]=s;} },
+    del(k){ try{ ok?localStorage.removeItem(k):delete mem[k];}catch(e){} }
+  };
+})();
+
+/* ---------- helpers ---------- */
+const $ = s=>document.querySelector(s);
+const el=(t,a={},...kids)=>{const n=document.createElement(t);
+  for(const k in a){ if(k==='class')n.className=a[k]; else if(k==='html')n.innerHTML=a[k];
+    else if(k.startsWith('on'))n.addEventListener(k.slice(2),a[k]); else if(a[k]!=null)n.setAttribute(k,a[k]); }
+  kids.flat().forEach(c=>{ if(c==null||c===false)return; n.append(c.nodeType?c:document.createTextNode(c)); });
+  return n;};
+const esc = s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slug = s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70)||'recipe';
+const uniq = a=>[...new Set(a)];
+const todayISO = ()=>fmtDate(new Date());
+function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseDate(s){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim()); if(!m)return null;
+  return new Date(+m[1],+m[2]-1,+m[3],12,0,0); }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function dayDiff(a,b){ return Math.round((parseDate(b)-parseDate(a))/864e5); }
+function weekday(iso){ const d=parseDate(iso); return d?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:''; }
+function niceDate(iso){ const d=parseDate(iso); if(!d)return iso;
+  return weekday(iso)+' '+(d.getMonth()+1)+'/'+d.getDate(); }
+function niceTime(d){ let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0');
+  const ap=h<12?'am':'pm'; h=h%12||12; return h+(m==='00'?'':':'+m)+ap; }
+
+function toast(msg,ms=2600){ const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),ms); }
+function status(text,kind=''){ $('#statusText').textContent=text; $('#status').className=kind; }
+
+/* ============================================================
+   TEXT FORMAT — parsers and serializers
+   These define the file format. Keep them tolerant: a human typing
+   into Drive on a phone should never be able to "break" a file.
+   ============================================================ */
+
+/* split "## Section" blocks out of a markdown doc */
+function sections(text){
+  const out={_head:[]}; let cur='_head';
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    const m=/^##\s+(.+?)\s*$/.exec(line);
+    if(m){ cur=m[1].trim().toLowerCase(); out[cur]=out[cur]||[]; }
+    else (out[cur]=out[cur]||[]).push(line);
+  });
+  return out;
+}
+/* bullet lines only, comments and prose stripped */
+function bullets(lines){
+  return (lines||[]).map(l=>l.trim())
+    .filter(l=>/^[-*]\s+/.test(l))
+    .map(l=>l.replace(/^[-*]\s+/,'').trim())
+    .filter(l=>l && l!=='-');
+}
+
+/* ---------- units & ingredient normalisation ---------- */
+const UNIT_CANON={
+  teaspoon:'tsp',teaspoons:'tsp',tsp:'tsp',tsps:'tsp',
+  tablespoon:'tbsp',tablespoons:'tbsp',tbsp:'tbsp',tbsps:'tbsp',tbs:'tbsp',
+  cup:'cup',cups:'cup',c:'cup',
+  ounce:'oz',ounces:'oz',oz:'oz',
+  pound:'lb',pounds:'lb',lb:'lb',lbs:'lb',
+  gram:'g',grams:'g',g:'g',kilogram:'kg',kilograms:'kg',kg:'kg',
+  milliliter:'ml',milliliters:'ml',ml:'ml',liter:'l',liters:'l',l:'l',
+  clove:'clove',cloves:'clove',can:'can',cans:'can',pinch:'pinch',pinches:'pinch',
+  bunch:'bunch',bunches:'bunch',slice:'slice',slices:'slice',stick:'stick',sticks:'stick',
+  quart:'qt',quarts:'qt',qt:'qt',pint:'pint',pints:'pint',head:'head',heads:'head',
+  sprig:'sprig',sprigs:'sprig',piece:'piece',pieces:'piece',handful:'handful',
+  dash:'dash',dashes:'dash',package:'pkg',packages:'pkg',pkg:'pkg',package_:'pkg'
+};
+const VULGAR={'½':'1/2','¼':'1/4','¾':'3/4','⅓':'1/3','⅔':'2/3','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8'};
+function deVulgar(s){ return String(s).replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g,c=>' '+VULGAR[c]).replace(/\s+/g,' ').trim(); }
+
+/* words that describe prep, not identity — dropped when matching */
+const PREP=['fresh','freshly','chopped','finely','roughly','diced','minced','sliced','thinly','shredded',
+ 'grated','crushed','smashed','peeled','trimmed','rinsed','drained','packed','softened','melted','room',
+ 'temperature','large','small','medium','extra','ripe','optional','taste','cold','warm','hot','dry','dried?no',
+ 'boneless','bone-in','skin-on','skinless','whole','halved','quartered','cubed','julienned','beaten',
+ 'leftover','any','good','quality','plus','more','for','serving','garnish','divided','about','approximately'];
+const SYN={
+  'scallion':'green onion','scallions':'green onion','spring onion':'green onion',
+  'coriander leaf':'cilantro','yellow onion':'onion','white onion':'onion','red onion':'onion',
+  'all purpose flour':'flour','all-purpose flour':'flour','ap flour':'flour',
+  'kosher salt':'salt','sea salt':'salt','table salt':'salt','flaky salt':'salt',
+  'chicken thighs':'chicken thigh','chicken breasts':'chicken breast',
+  'short rib':'short ribs','beef short rib':'short ribs','beef short ribs':'short ribs',
+  'olive oil extra virgin':'olive oil','extra virgin olive oil':'olive oil',
+  'garlic clove':'garlic','cloves garlic':'garlic','garlic cloves':'garlic',
+  'chicken broth':'chicken stock','beef broth':'beef stock','vegetable broth':'vegetable stock',
+  'tomatoes canned':'canned tomatoes','crushed tomatoes':'canned tomatoes','diced tomatoes':'canned tomatoes',
+  'soy':'soy sauce','parmigiano reggiano':'parmesan','parmigiano':'parmesan'
+};
+function singular(w){
+  if(/(ss|us|is)$/.test(w))return w;
+  if(/ies$/.test(w))return w.slice(0,-3)+'y';
+  if(/(ches|shes|xes|sses)$/.test(w))return w.slice(0,-2);
+  if(/s$/.test(w)&&w.length>3)return w.slice(0,-1);
+  return w;
+}
+/* the canonical key used for all matching */
+function norm(s){
+  let t=deVulgar(String(s||'')).toLowerCase();
+  t=t.replace(/\([^)]*\)/g,' ');                       // drop parentheticals
+  t=t.replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
+  if(SYN[t])t=SYN[t];
+  let words=t.split(' ').filter(w=>w&&!PREP.includes(w));
+  words=words.map(singular);
+  t=words.join(' ').trim();
+  if(SYN[t])t=SYN[t];
+  return t;
+}
+/* words that make a different product, not just a described version of the same one.
+   "green onion" is not "onion"; "sesame oil" is not "oil"; "chicken stock" is not "stock". */
+const DISTINCT=new Set(['green','spring','sesame','olive','avocado','coconut','almond','soy','fish',
+ 'oyster','hoisin','tomato','chili','chilli','brown','powdered','confectioners','heavy','sour','rice',
+ 'apple','balsamic','red','white','peanut','sunflower','canola','vegetable','chicken','beef','pork',
+ 'lamb','wine','smoked','sweet','condensed','evaporated','buttermilk','almond','oat','goat','blue',
+ 'cream','corn','potato','sweet','bread','pastry','puff','self-raising','baking']);
+/* do two ingredient names refer to the same thing? */
+function sameThing(a,b){
+  const x=norm(a),y=norm(b);
+  if(!x||!y)return false;
+  if(x===y)return true;
+  const xs=x.split(' '),ys=y.split(' ');
+  const [shortS,longS]=xs.length<=ys.length?[xs,ys]:[ys,xs];
+  if(!longS.join(' ').includes(shortS.join(' ')))return false;
+  if(shortS[shortS.length-1]!==longS[longS.length-1])return false;   // must share the head noun
+  const extra=longS.filter(w=>!shortS.includes(w));
+  if(extra.some(w=>DISTINCT.has(w)))return false;                    // "green" onion / "sesame" oil
+  return true;
+}
+
+const QTY=/^\s*((?:\d+\s+\d+\/\d+)|(?:\d+\/\d+)|(?:\d+(?:\.\d+)?)(?:\s*[-–]\s*\d+(?:\.\d+)?)?)\s*/;
+function parseIngredient(raw){
+  const line=deVulgar(raw).trim();
+  let rest=line, qty=null, unit=null;
+  const m=QTY.exec(rest);
+  if(m){ qty=m[1].trim(); rest=rest.slice(m[0].length); }
+  const um=/^([a-zA-Z]+)\.?\s+/.exec(rest);
+  if(um && UNIT_CANON[um[1].toLowerCase()]){ unit=UNIT_CANON[um[1].toLowerCase()]; rest=rest.slice(um[0].length); }
+  rest=rest.replace(/^of\s+/i,'');                       // "3 cloves of garlic"
+  let note=null;
+  const ci=rest.indexOf(',');
+  if(ci>0){ note=rest.slice(ci+1).trim(); rest=rest.slice(0,ci); }
+  const item=rest.trim().replace(/\s+/g,' ');
+  return {raw:line,qty,unit,item,note,key:norm(item)};
+}
+const PLURAL_UNITS=new Set(['cup','clove','slice','stick','can','sprig','piece','bunch','head','pinch','dash','pkg','pint','handful']);
+function ingLine(i){
+  let u=i.unit;
+  if(u && PLURAL_UNITS.has(u)){ const n=fracToNum(i.qty); if(n&&n>1)u=u+'s'; }
+  return [i.qty,u,i.item].filter(Boolean).join(' ') + (i.note?', '+i.note:'');
+}
+
+/* ---------- recipe file <-> object ---------- */
+const META_KEYS=['tags','serves','time','active','source','status','rating','added','lastmade','times'];
+function parseRecipe(text,file){
+  const lines=String(text||'').split(/\r?\n/);
+  let name='Untitled';
+  const ti=lines.findIndex(l=>/^#\s+/.test(l));
+  if(ti>=0) name=lines[ti].replace(/^#\s+/,'').trim();
+  const S=sections(text);
+  const meta={};
+  (S._head||[]).forEach(l=>{
+    const m=/^([A-Za-z ]+):\s*(.*)$/.exec(l.trim());
+    if(m && META_KEYS.includes(m[1].trim().toLowerCase())) meta[m[1].trim().toLowerCase()]=m[2].trim();
+  });
+  const tags=(meta.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const ingredients=bullets(S['ingredients']).map(parseIngredient);
+  const steps=(S['steps']||[]).map(l=>l.trim())
+      .filter(l=>/^(\d+[.)]\s+|[-*]\s+)/.test(l))
+      .map(l=>l.replace(/^(\d+[.)]\s+|[-*]\s+)/,'').trim())
+      .filter(Boolean);
+  const notes=(S['notes']||[]).join('\n').trim();
+  return {
+    fileId:file&&file.id, fileName:file&&file.name, modifiedTime:file&&file.modifiedTime,
+    name, meta, tags, ingredients, steps, notes, raw:text,
+    slug:file&&file.name?file.name.replace(/\.md$/,''):slug(name)
+  };
+}
+function serializeRecipe(r){
+  const out=['# '+r.name,''];
+  const meta=Object.assign({},r.meta);
+  if(r.tags&&r.tags.length)meta.tags=r.tags.join(', ');
+  META_KEYS.forEach(k=>{ if(meta[k]!=null&&meta[k]!=='') out.push(k+': '+meta[k]); });
+  out.push('','## Ingredients');
+  r.ingredients.forEach(i=>out.push('- '+(i.raw&&!i.dirty?i.raw:ingLine(i))));
+  out.push('','## Steps');
+  r.steps.forEach((s,n)=>out.push((n+1)+'. '+s));
+  if(r.notes&&r.notes.trim()){ out.push('','## Notes',r.notes.trim()); }
+  return out.join('\n')+'\n';
+}
+
+/* ---------- house rules ---------- */
+function parseRules(text){
+  const S=sections(text);
+  const swap=bullets(S['swap']).map(l=>{
+    const p=l.split(/\s*->\s*/); return p.length>1?{from:p[0].trim(),to:p.slice(1).join('->').trim()}:null;
+  }).filter(Boolean);
+  const always=bullets(S['always']).map(l=>{
+    const m=/^when\s+(.+?)\s*->\s*(.+)$/i.exec(l);
+    return m?{trigger:m[1].trim(),do:m[2].trim()}:{trigger:'',do:l};
+  });
+  const thaw={};
+  bullets(S['thaw']).forEach(l=>{ const m=/^(.+?):\s*([\d.]+)/.exec(l); if(m)thaw[norm(m[1])]=parseFloat(m[2]); });
+  const portions={};
+  bullets(S['portions']).forEach(l=>{ const m=/^(.+?):\s*(.+)$/.exec(l); if(m)portions[m[1].trim().toLowerCase()]=m[2].trim(); });
+  return {
+    never:bullets(S['never']), swap, always,
+    prefer:bullets(S['prefer']), thaw, portions,
+    raw:text
+  };
+}
+
+/* ---------- pantry ---------- */
+function parsePantry(text){
+  const S=sections(text);
+  const groups=[];
+  Object.keys(S).forEach(k=>{
+    if(k==='_head')return;
+    const items=bullets(S[k]).map(l=>{
+      const out=/^!\s*/.test(l);
+      return {name:l.replace(/^!\s*/,'').trim(), out, key:norm(l.replace(/^!\s*/,''))};
+    }).filter(i=>i.name);
+    if(items.length)groups.push({name:k,items});
+  });
+  return {groups,raw:text};
+}
+function pantryAll(p){ return p.groups.flatMap(g=>g.items.map(i=>Object.assign({group:g.name},i))); }
+function pantryHave(p){ return pantryAll(p).filter(i=>!i.out); }
+function serializePantry(p){
+  const out=['# Pantry',''];
+  out.push('Put a `!` at the front of a line when we are OUT of it.','');
+  p.groups.forEach(g=>{
+    out.push('## '+g.name.replace(/\b\w/g,c=>c.toUpperCase()));
+    g.items.forEach(i=>out.push('- '+(i.out?'! ':'')+i.name));
+    out.push('');
+  });
+  return out.join('\n');
+}
+
+/* ---------- steps library ---------- */
+function parseSteps(text){
+  const map={}; let cur=null;
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    const h=/^###\s+(.+?)\s*$/.exec(line);
+    if(h){ cur=h[1].trim(); map[cur]={name:cur,text:'',matches:[]}; return; }
+    if(!cur)return;
+    const m=/^match:\s*(.+)$/i.exec(line.trim());
+    if(m){ map[cur].matches.push(m[1].trim().toLowerCase()); return; }
+    if(/^#/.test(line))return;
+    map[cur].text+=(map[cur].text?'\n':'')+line;
+  });
+  Object.values(map).forEach(s=>s.text=s.text.trim());
+  return {map,raw:text};
+}
+function serializeSteps(lib){
+  const out=['# Steps Library',''];
+  Object.values(lib.map).forEach(s=>{
+    out.push('### '+s.name, s.text);
+    s.matches.forEach(m=>out.push('match: '+m));
+    out.push('');
+  });
+  return out.join('\n');
+}
+
+/* ---------- meal plan ---------- */
+function parsePlan(text){
+  const S=sections(text);
+  const away=bullets(S['away']).map(l=>{
+    const m=/^(\d{4}-\d{2}-\d{2})\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2})\s*(.*)$/.exec(l);
+    return m?{from:m[1],to:m[2],label:m[3].trim()}:null;
+  }).filter(Boolean);
+  const skip=bullets(S['skip']).map(l=>{
+    const m=/^(\d{4}-\d{2}-\d{2})\s+(\w+)\s*(.*)$/.exec(l);
+    return m?{date:m[1],meal:m[2].toLowerCase(),reason:m[3].trim()}:null;
+  }).filter(Boolean);
+  const plan=bullets(S['plan']).map(l=>{
+    const m=/^(\d{4}-\d{2}-\d{2})\s+(\w+)\s*:\s*(.*)$/.exec(l);
+    return m?{date:m[1],meal:m[2].toLowerCase(),recipe:m[3].trim()}:null;
+  }).filter(Boolean);
+  return {away,skip,plan,raw:text};
+}
+function serializePlan(p,thaws){
+  const out=['# Meal Plan','','## Away','Written as:  YYYY-MM-DD to YYYY-MM-DD  label',''];
+  p.away.forEach(a=>out.push(`- ${a.from} to ${a.to}  ${a.label||''}`.trimEnd()));
+  out.push('','## Skip','Written as:  YYYY-MM-DD meal  reason','');
+  p.skip.forEach(s=>out.push(`- ${s.date} ${s.meal}  ${s.reason||''}`.trimEnd()));
+  out.push('','## Plan','Written as:  YYYY-MM-DD meal: recipe name','');
+  p.plan.slice().sort((a,b)=>a.date.localeCompare(b.date))
+    .forEach(s=>out.push(`- ${s.date} ${s.meal}: ${s.recipe}`));
+  out.push('','## Thaw','Auto-generated from the plan.','');
+  (thaws||[]).forEach(t=>out.push(`- ${t.when}  pull ${t.item} out for ${t.date} ${t.meal}`));
+  return out.join('\n')+'\n';
+}
+
+/* ---------- grocery ---------- */
+function parseGrocery(text){
+  const S=sections(text);
+  return {need:bullets(S['need']),manual:bullets(S['manual']),got:bullets(S['got']),raw:text};
+}
+function serializeGrocery(g){
+  const out=['# Grocery List','','## Need',''];
+  g.need.forEach(i=>out.push('- '+i));
+  out.push('','## Manual','Things you add yourself. The app never touches this section.','');
+  g.manual.forEach(i=>out.push('- '+i));
+  out.push('','## Got','');
+  g.got.forEach(i=>out.push('- '+i));
+  return out.join('\n')+'\n';
+}
+/* ============================================================
+   GOOGLE DRIVE LAYER
+   ============================================================ */
+const Drive = {
+  token:null, tokenExp:0, client:null, ready:false,
+
+  clientId(){ return LS.get('clientId','') || ''; },
+
+  init(){
+    const cid=this.clientId();
+    if(!cid || !window.google || !google.accounts) return false;
+    this.client = google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: 'https://www.googleapis.com/auth/drive',
+      callback: (resp)=>{
+        if(resp && resp.access_token){
+          Drive.token=resp.access_token;
+          Drive.tokenExp=Date.now()+((resp.expires_in||3600)-120)*1000;
+          LS.set('tok',{t:Drive.token,e:Drive.tokenExp});
+          if(Drive._resolve){ Drive._resolve(resp.access_token); Drive._resolve=null; }
+        }else if(Drive._reject){ Drive._reject(new Error('No token returned')); Drive._reject=null; }
+      },
+      error_callback: (e)=>{ if(Drive._reject){ Drive._reject(new Error(e&&e.type||'auth failed')); Drive._reject=null; } }
+    });
+    const cached=LS.get('tok',null);
+    if(cached && cached.e>Date.now()){ this.token=cached.t; this.tokenExp=cached.e; }
+    this.ready=true;
+    return true;
+  },
+
+  signedIn(){ return !!this.token && this.tokenExp>Date.now(); },
+
+  auth(interactive){
+    if(this.signedIn()) return Promise.resolve(this.token);
+    if(!this.client && !this.init()) return Promise.reject(new Error('Google sign-in not configured'));
+    return new Promise((res,rej)=>{
+      this._resolve=res; this._reject=rej;
+      try{ this.client.requestAccessToken({prompt: interactive?'consent':''}); }
+      catch(e){ rej(e); }
+    });
+  },
+
+  async req(url,opts={}){
+    const tok=await this.auth(false);
+    const o=Object.assign({},opts);
+    o.headers=Object.assign({Authorization:'Bearer '+tok},opts.headers||{});
+    let r=await fetch(url,o);
+    if(r.status===401){
+      this.token=null; LS.del('tok');
+      const t2=await this.auth(true);
+      o.headers.Authorization='Bearer '+t2;
+      r=await fetch(url,o);
+    }
+    if(!r.ok){ const t=await r.text(); throw new Error('Drive '+r.status+': '+t.slice(0,300)); }
+    return r;
+  },
+
+  async list(q,fields='files(id,name,mimeType,modifiedTime,size)'){
+    const url='https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)
+      +'&fields='+encodeURIComponent('nextPageToken,'+fields)+'&pageSize=200&orderBy=name';
+    const r=await this.req(url); const j=await r.json(); return j.files||[];
+  },
+
+  async findFolder(name,parent){
+    const q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+      + (parent?` and '${parent}' in parents`:'');
+    const f=await this.list(q); return f[0]||null;
+  },
+
+  async makeFolder(name,parent){
+    const r=await this.req('https://www.googleapis.com/drive/v3/files',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:parent?[parent]:undefined})
+    });
+    return r.json();
+  },
+
+  async ensureFolder(name,parent){
+    return (await this.findFolder(name,parent)) || (await this.makeFolder(name,parent));
+  },
+
+  async readText(file){
+    if(file.mimeType==='application/vnd.google-apps.document'){
+      const r=await this.req(`https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/plain`);
+      return r.text();
+    }
+    const r=await this.req(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
+    return r.text();
+  },
+
+  async create(name,parent,text,mime='text/markdown'){
+    const b='-----kitchen'+Math.random().toString(36).slice(2);
+    const meta={name,parents:parent?[parent]:undefined};
+    const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`
+      +JSON.stringify(meta)+`\r\n--${b}\r\nContent-Type: ${mime}; charset=UTF-8\r\n\r\n`+text+`\r\n--${b}--`;
+    const r=await this.req('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime',
+      {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body});
+    return r.json();
+  },
+
+  async write(fileId,text,mime='text/markdown'){
+    const r=await this.req(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&fields=id,name,modifiedTime`,
+      {method:'PATCH',headers:{'Content-Type':mime+'; charset=UTF-8'},body:text});
+    return r.json();
+  },
+
+  async meta(fileId){
+    const r=await this.req(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,modifiedTime`);
+    return r.json();
+  },
+
+  async move(fileId,addParent,removeParent){
+    const r=await this.req(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${addParent}&removeParents=${removeParent}&fields=id,parents`,
+      {method:'PATCH'});
+    return r.json();
+  },
+
+  async trash(fileId){
+    return this.req(`https://www.googleapis.com/drive/v3/files/${fileId}`,
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({trashed:true})});
+  }
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = {
+  ids:{root:null,library:null,inbox:null,done:null},
+  files:{},            // name -> drive file meta for the config files
+  rules:parseRules(''),
+  pantry:parsePantry(''),
+  steps:parseSteps(''),
+  plan:parsePlan(''),
+  grocery:parseGrocery(''),
+  recipes:[],
+  inbox:[],
+  loadedAt:null,
+  dirty:new Set(),
+  offline:false
+};
+
+const CONFIG_FILES=[
+  ['house-rules.md', t=>S.rules=parseRules(t)],
+  ['pantry.md',      t=>S.pantry=parsePantry(t)],
+  ['steps-library.md',t=>S.steps=parseSteps(t)],
+  ['meal-plan.md',   t=>S.plan=parsePlan(t)],
+  ['grocery-list.md',t=>S.grocery=parseGrocery(t)]
+];
+
+const SEED={
+'house-rules.md':`# House Rules
+
+## Never
+
+## Swap
+- shallot -> yellow onion
+- heavy cream -> half and half
+
+## Always
+- when braise -> sear hard and dry first, never crowd the pan
+
+## Prefer
+- cast iron for searing
+
+## Thaw
+- chicken breast: 10
+- chicken thigh: 10
+- ground beef: 12
+- steak: 12
+- short ribs: 24
+- pork shoulder: 36
+- fish: 6
+- shrimp: 4
+
+## Portions
+- serves: 2
+`,
+'pantry.md':`# Pantry
+
+Put a \`!\` at the front of a line when we are OUT of it.
+
+## Seasonings
+- salt
+- black pepper
+
+## Staples
+- olive oil
+
+## Fridge
+- eggs
+
+## Freezer
+`,
+'steps-library.md':`# Steps Library
+
+### sear-hard
+Pat dry, screaming hot pan, thin oil, 2-3 minutes a side. Do not crowd.
+match: sear the
+match: brown on all sides
+`,
+'meal-plan.md':`# Meal Plan
+
+## Away
+
+## Skip
+
+## Plan
+
+## Thaw
+`,
+'grocery-list.md':`# Grocery List
+
+## Need
+
+## Manual
+
+## Got
+`
+};
+
+/* cache so the app opens instantly and works offline (read-only) */
+function saveCache(){
+  LS.set('cache',{
+    at:Date.now(), ids:S.ids,
+    files:Object.fromEntries(Object.entries(S.files).map(([k,v])=>[k,{id:v.id,modifiedTime:v.modifiedTime}])),
+    raw:{
+      rules:S.rules.raw,pantry:S.pantry.raw,steps:S.steps.raw,plan:S.plan.raw,grocery:S.grocery.raw
+    },
+    recipes:S.recipes.map(r=>({fileId:r.fileId,fileName:r.fileName,modifiedTime:r.modifiedTime,raw:r.raw}))
+  });
+}
+function loadCache(){
+  const c=LS.get('cache',null); if(!c)return false;
+  S.ids=c.ids||S.ids;
+  S.files=c.files||{};
+  S.rules=parseRules(c.raw.rules); S.pantry=parsePantry(c.raw.pantry);
+  S.steps=parseSteps(c.raw.steps); S.plan=parsePlan(c.raw.plan); S.grocery=parseGrocery(c.raw.grocery);
+  S.recipes=(c.recipes||[]).map(r=>parseRecipe(r.raw,{id:r.fileId,name:r.fileName,modifiedTime:r.modifiedTime}));
+  S.loadedAt=c.at;
+  return true;
+}
+
+async function syncAll(){
+  if(!Drive.clientId()){ status('Not configured — open Settings','err'); return false; }
+  status('Syncing with Drive…','busy');
+  try{
+    await Drive.auth(false);
+    S.ids.root=(await Drive.ensureFolder(LS.get('folderName',APP.FOLDER),null)).id;
+    S.ids.library=(await Drive.ensureFolder('library',S.ids.root)).id;
+    S.ids.inbox=(await Drive.ensureFolder('_inbox',S.ids.root)).id;
+    S.ids.done=(await Drive.ensureFolder('done',S.ids.inbox)).id;
+
+    const rootFiles=await Drive.list(`'${S.ids.root}' in parents and trashed=false`);
+    for(const [name,apply] of CONFIG_FILES){
+      let f=rootFiles.find(x=>x.name===name);
+      if(!f) f=await Drive.create(name,S.ids.root,SEED[name]);
+      S.files[name]=f;
+      apply(await Drive.readText(f));
+    }
+    const libFiles=(await Drive.list(`'${S.ids.library}' in parents and trashed=false`))
+      .filter(f=>/\.(md|txt)$/i.test(f.name));
+    const recipes=[];
+    for(const f of libFiles){ recipes.push(parseRecipe(await Drive.readText(f),f)); }
+    S.recipes=recipes;
+
+    S.inbox=(await Drive.list(`'${S.ids.inbox}' in parents and trashed=false`))
+      .filter(f=>f.mimeType!=='application/vnd.google-apps.folder');
+
+    S.loadedAt=Date.now(); S.offline=false;
+    saveCache();
+    status(`${S.recipes.length} recipes · synced ${niceTime(new Date())}`,'good');
+    $('#statusMeta').textContent=S.inbox.length?`${S.inbox.length} in inbox`:'';
+    return true;
+  }catch(e){
+    console.error(e);
+    S.offline=true;
+    status('Offline — showing last synced copy. '+(e.message||''),'err');
+    return false;
+  }
+}
+
+async function saveFile(name,text){
+  const f=S.files[name];
+  if(!f) throw new Error('Unknown file '+name);
+  const m=await Drive.meta(f.id);
+  if(f.modifiedTime && m.modifiedTime!==f.modifiedTime){
+    const go=confirm(`${name} was changed in Drive since this app loaded it (probably the other computer).\n\nOK = overwrite with what's on this screen.\nCancel = stop, hit Sync, and redo your change.`);
+    if(!go) throw new Error('save cancelled');
+  }
+  const res=await Drive.write(f.id,text);
+  S.files[name]=Object.assign({},f,{modifiedTime:res.modifiedTime});
+  saveCache();
+  return res;
+}
+async function saveRecipe(r){
+  const text=typeof r==='string'?r:serializeRecipe(r);
+  if(r.fileId){
+    const res=await Drive.write(r.fileId,text);
+    r.modifiedTime=res.modifiedTime; r.raw=text;
+  }else{
+    const name=(r.slug||slug(r.name))+'.md';
+    const res=await Drive.create(name,S.ids.library,text);
+    r.fileId=res.id; r.fileName=res.name; r.modifiedTime=res.modifiedTime; r.raw=text;
+    if(!S.recipes.includes(r))S.recipes.push(r);
+  }
+  saveCache();
+  return r;
+}
+/* ============================================================
+   ENGINES
+   ============================================================ */
+
+/* ---------- what can we cook ---------- */
+function haveKeys(extra){
+  const keys=pantryHave(S.pantry).map(i=>i.key);
+  return uniq(keys.concat(extra||[]));
+}
+function findSub(missingItem){
+  // house rule says "their thing -> our thing"; if we have our thing, suggest it
+  const have=pantryHave(S.pantry);
+  for(const sw of S.rules.swap){
+    if(sameThing(sw.from,missingItem)){
+      const target=sw.to.split(',')[0];
+      if(have.some(h=>sameThing(h.name,target))) return {to:sw.to,dir:'rule'};
+    }
+    if(sameThing(sw.to,missingItem) && have.some(h=>sameThing(h.name,sw.from))) return {to:sw.from,dir:'reverse'};
+  }
+  return null;
+}
+function scoreRecipe(r,selected,have){
+  const hv=have||haveKeys();
+  const sel=(selected||[]).map(norm).filter(Boolean);
+  let matched=0,usedSel=0;
+  const missing=[];
+  r.ingredients.forEach(i=>{
+    if(!i.key)return;
+    const inSel=sel.some(s=>sameThing(s,i.item));
+    const inPantry=hv.some(k=>sameThing(k,i.item));
+    if(inSel)usedSel++;
+    if(inSel||inPantry)matched++;
+    else missing.push(i);
+  });
+  const total=r.ingredients.filter(i=>i.key).length||1;
+  const selHits=sel.filter(s=>r.ingredients.some(i=>sameThing(s,i.item))).length;
+  const coverage=matched/total;
+  const rating=parseFloat(r.meta.rating||0)||0;
+  const never=S.rules.never.filter(n=>r.ingredients.some(i=>sameThing(n,i.item)));
+  const subs=missing.map(m=>({ing:m,sub:findSub(m.item)}));
+  const shoppable=subs.filter(s=>!s.sub).length;
+  let score = coverage*100 + selHits*40 - shoppable*7 + rating*2;
+  if(sel.length && selHits<sel.length) score -= (sel.length-selHits)*35;
+  return {recipe:r,coverage,matched,total,missing,subs,selHits,never,score};
+}
+function rankRecipes(selected,opts={}){
+  const have=haveKeys();
+  let list=S.recipes.map(r=>scoreRecipe(r,selected,have));
+  if(opts.tag) list=list.filter(x=>x.recipe.tags.some(t=>t.toLowerCase().includes(opts.tag.toLowerCase())));
+  if(opts.q){ const q=opts.q.toLowerCase();
+    list=list.filter(x=>x.recipe.name.toLowerCase().includes(q)
+      ||x.recipe.tags.join(' ').toLowerCase().includes(q)
+      ||x.recipe.ingredients.some(i=>i.item.toLowerCase().includes(q))); }
+  if(opts.maxMissing!=null) list=list.filter(x=>x.missing.filter(m=>!findSub(m.item)).length<=opts.maxMissing);
+  list.sort((a,b)=>b.score-a.score);
+  return list;
+}
+
+/* ---------- planner ---------- */
+function isAway(iso){ return S.plan.away.some(a=>iso>=a.from&&iso<=a.to); }
+function nextTrip(fromISO){
+  const t=S.plan.away.filter(a=>a.from>=fromISO).sort((a,b)=>a.from.localeCompare(b.from));
+  return t[0]||null;
+}
+function isSkipped(iso,meal){ return S.plan.skip.some(s=>s.date===iso&&s.meal===meal); }
+function skipReason(iso,meal){ const s=S.plan.skip.find(s=>s.date===iso&&s.meal===meal); return s?s.reason:''; }
+function recipeByName(name){
+  if(!name)return null;
+  const n=name.toLowerCase().trim();
+  return S.recipes.find(r=>r.name.toLowerCase()===n)
+      || S.recipes.find(r=>r.name.toLowerCase().includes(n)||n.includes(r.name.toLowerCase()))
+      || null;
+}
+function perishScore(r){
+  // how much of this recipe leans on stuff that goes bad — used to burn down the fridge before a trip
+  const fridge=S.pantry.groups.filter(g=>/fridge|produce|veg/.test(g.name)).flatMap(g=>g.items);
+  const freezer=S.pantry.groups.filter(g=>/freezer/.test(g.name)).flatMap(g=>g.items);
+  let s=0;
+  r.ingredients.forEach(i=>{
+    if(fridge.some(f=>sameThing(f.name,i.item)))s+=2;
+    if(freezer.some(f=>sameThing(f.name,i.item)))s+=1;
+  });
+  if(r.tags.some(t=>/use it up|flexible|clean/i.test(t)))s+=4;
+  return s;
+}
+function buildPlan(startISO,days,opts={}){
+  const out=[];
+  const used=new Set();
+  const trip=nextTrip(startISO);
+  const have=haveKeys();
+  for(let d=0;d<days;d++){
+    const iso=fmtDate(addDays(parseDate(startISO),d));
+    if(isAway(iso)){ out.push({date:iso,meal:'dinner',away:true,
+      reason:(S.plan.away.find(a=>iso>=a.from&&iso<=a.to)||{}).label||'away'}); continue; }
+    if(isSkipped(iso,'dinner')){ out.push({date:iso,meal:'dinner',skip:true,reason:skipReason(iso,'dinner')}); continue; }
+    const existing=S.plan.plan.find(p=>p.date===iso&&p.meal==='dinner');
+    if(existing && !opts.replace){
+      out.push({date:iso,meal:'dinner',recipe:recipeByName(existing.recipe),name:existing.recipe,pinned:true});
+      used.add((recipeByName(existing.recipe)||{}).fileId); continue;
+    }
+    const daysToTrip = trip?dayDiff(iso,trip.from):999;
+    let pool=S.recipes.filter(r=>!used.has(r.fileId));
+    if(!pool.length){ used.clear(); pool=S.recipes.slice(); }   // small library — start the rotation over
+    const cands=pool.map(r=>{
+      const sc=scoreRecipe(r,[],have);
+      let s=sc.score;
+      if(daysToTrip<=2 && daysToTrip>=0){ s+=perishScore(r)*6; s-=sc.missing.length*10; }   // burn the fridge down, buy nothing
+      else if(daysToTrip<=4) s+=perishScore(r)*2;
+      s+=Math.random()*3;                                            // a little shuffle so it isn't the same week forever
+      return {r,s,sc,daysToTrip};
+    }).sort((a,b)=>b.s-a.s);
+    const pick=cands[0];
+    out.push({date:iso,meal:'dinner',recipe:pick?pick.r:null,name:pick?pick.r.name:'',
+      score:pick?pick.sc:null,
+      reason: daysToTrip<=2&&daysToTrip>=0 ? `${daysToTrip===0?'leaving today':'before '+(trip.label||'the trip')} — uses what's here`:''});
+    if(pick)used.add(pick.r.fileId);
+  }
+  return out;
+}
+function thawFor(planRows){
+  const freezer=S.pantry.groups.filter(g=>/freezer/.test(g.name)).flatMap(g=>g.items);
+  const out=[];
+  planRows.forEach(row=>{
+    if(!row.recipe)return;
+    row.recipe.ingredients.forEach(i=>{
+      const hit=freezer.find(f=>sameThing(f.name,i.item));
+      if(!hit)return;
+      let hours=null;
+      Object.keys(S.rules.thaw).forEach(k=>{ if(sameThing(k,i.item)&&(hours==null||S.rules.thaw[k]>hours))hours=S.rules.thaw[k]; });
+      if(hours==null)hours=12;
+      const dinner=parseDate(row.date); dinner.setHours(APP.DINNER_HOUR,0,0,0);
+      const when=new Date(dinner.getTime()-hours*3600e3);
+      out.push({item:hit.name,recipeItem:i.item,date:row.date,meal:row.meal,hours,late:when<new Date(),
+        when:fmtDate(when)+' '+String(when.getHours()).padStart(2,'0')+':00',
+        whenD:when,recipe:row.recipe.name});
+    });
+  });
+  out.sort((a,b)=>a.whenD-b.whenD);
+  return out;
+}
+
+/* ---------- grocery ---------- */
+function buildGrocery(planRows){
+  const have=pantryHave(S.pantry);
+  const bucket=new Map();
+  planRows.forEach(row=>{
+    if(!row.recipe)return;
+    row.recipe.ingredients.forEach(i=>{
+      if(!i.key)return;
+      if(have.some(h=>sameThing(h.name,i.item)))return;
+      const k=i.key;
+      if(!bucket.has(k))bucket.set(k,{item:i.item,parts:[],forr:new Set()});
+      const b=bucket.get(k);
+      b.parts.push({qty:i.qty,unit:i.unit});
+      b.forr.add(row.recipe.name);
+    });
+  });
+  const list=[...bucket.values()].map(b=>{
+    const byUnit={};
+    let unparsed=false;
+    b.parts.forEach(p=>{
+      if(!p.qty){unparsed=true;return;}
+      const n=fracToNum(p.qty); if(n==null){unparsed=true;return;}
+      const u=p.unit||'';
+      byUnit[u]=(byUnit[u]||0)+n;
+    });
+    const amt=Object.keys(byUnit).map(u=>trimNum(byUnit[u])+(u?' '+u:'')).join(' + ');
+    return {text:(amt?amt+' ':'')+b.item, item:b.item, forr:[...b.forr]};
+  });
+  const outOf=pantryAll(S.pantry).filter(i=>i.out).map(i=>({text:i.name,item:i.name,forr:['out of it']}));
+  return list.concat(outOf);
+}
+function fracToNum(q){
+  const s=String(q).trim();
+  let m=/^(\d+)\s+(\d+)\/(\d+)$/.exec(s); if(m)return +m[1]+ +m[2]/+m[3];
+  m=/^(\d+)\/(\d+)$/.exec(s); if(m)return +m[1]/+m[2];
+  m=/^(\d+(?:\.\d+)?)/.exec(s); if(m)return +m[1];
+  return null;
+}
+function trimNum(n){ return Math.round(n*100)/100; }
+
+/* ============================================================
+   REFACTOR — the part that makes somebody else's recipe into ours
+   ============================================================ */
+const PASSES=[
+  {id:'units', name:'Tidy units', desc:'½ becomes 1/2, "tablespoons" becomes tbsp, spacing cleaned up.'},
+  {id:'swap',  name:'House swaps', desc:'Applies the Swap list in house-rules.md — shallot becomes yellow onion, and so on.'},
+  {id:'steps', name:'Link step library', desc:'Recognises steps you already have a house method for and replaces them with @references, so fixing the method once fixes every recipe.'},
+  {id:'always',name:'House technique', desc:'Adds the Always rules that apply to this recipe (salt the beef ahead, sear before braising…).'},
+  {id:'never', name:'Flag no-go ingredients', desc:'Marks anything on the Never list and removes it when it is only a garnish.'},
+  {id:'tags',  name:'Auto-tag', desc:'Adds protein / method / speed tags so the matcher and planner can find it.'},
+  {id:'meta',  name:'Fill in the blanks', desc:'Default serves, added date, status.'}
+];
+function enabledPasses(){ return LS.get('passes',PASSES.map(p=>p.id)); }
+
+function refactor(rec,passIds){
+  const on=new Set(passIds||enabledPasses());
+  const r=JSON.parse(JSON.stringify(rec));
+  const changes=[];
+  const push=(pass,before,after,why)=>{ if(before!==after)changes.push({pass,before,after,why}); };
+
+  if(on.has('units')){
+    r.ingredients.forEach((i,n)=>{
+      const before=i.raw||ingLine(i);
+      const p=parseIngredient(before);
+      const after=ingLine(p);
+      if(before!==after){ Object.assign(i,p,{raw:after,dirty:true}); push('units',before,after,'unit spelling / fractions'); }
+    });
+    r.steps.forEach((s,n)=>{ const a=deVulgar(s).replace(/\s+/g,' ').trim();
+      if(a!==s){ push('units',s,a,'fractions'); r.steps[n]=a; } });
+  }
+
+  if(on.has('swap')){
+    S.rules.swap.forEach(sw=>{
+      const target=sw.to.split(',')[0].trim();
+      r.ingredients.forEach(i=>{
+        // already the house version — don't swap it twice and re-append the note
+        if(norm(i.item)===norm(target) && norm(i.item)!==norm(sw.from))return;
+        if(sameThing(i.item,sw.from)){
+          const before=ingLine(i);
+          const parts=sw.to.split(',');
+          i.item=parts[0].trim();
+          if(parts.length>1) i.note=[i.note,parts.slice(1).join(',').trim()].filter(Boolean).join(', ');
+          i.key=norm(i.item); i.dirty=true; i.raw=ingLine(i);
+          push('swap',before,i.raw,'house rule: '+sw.from+' -> '+sw.to);
+        }
+      });
+      r.steps.forEach((s,n)=>{
+        const re=new RegExp('\\b'+sw.from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'s?\\b','ig');
+        if(re.test(s)){ const a=s.replace(re,target);
+          push('swap',s,a,'house rule in step text'); r.steps[n]=a; }
+      });
+    });
+  }
+
+  if(on.has('steps')){
+    const lib=Object.values(S.steps.map);
+    r.steps.forEach((s,n)=>{
+      if(/^@/.test(s.trim()))return;
+      const low=s.toLowerCase();
+      const hit=lib.find(L=>L.matches.some(m=>m&&low.includes(m)));
+      if(hit){ const a='@'+hit.name; push('steps',s,a,'we already have a house method for this'); r.steps[n]=a; }
+    });
+  }
+
+  if(on.has('always')){
+    const hay=(r.name+' '+r.tags.join(' ')+' '+r.ingredients.map(i=>i.item).join(' ')+' '+r.steps.join(' ')).toLowerCase();
+    S.rules.always.forEach(a=>{
+      if(!a.trigger)return;
+      if(!hay.includes(a.trigger.toLowerCase()))return;
+      const already=r.steps.some(s=>s.toLowerCase().includes(a.do.toLowerCase().slice(0,18)))
+        || (r.notes||'').toLowerCase().includes(a.do.toLowerCase().slice(0,18));
+      if(already)return;
+      r.steps.unshift(a.do.charAt(0).toUpperCase()+a.do.slice(1)+'.');
+      changes.push({pass:'always',before:'(nothing)',after:a.do,why:'house rule for '+a.trigger});
+    });
+  }
+
+  if(on.has('never')){
+    S.rules.never.forEach(n=>{
+      const idx=r.ingredients.findIndex(i=>sameThing(i.item,n));
+      if(idx<0)return;
+      const line=ingLine(r.ingredients[idx]);
+      const garnish=/garnish|to serve|topping|for serving/i.test(line+' '+(r.ingredients[idx].note||''));
+      if(garnish){ r.ingredients.splice(idx,1); changes.push({pass:'never',before:line,after:'(removed)',why:n+' is on the Never list and was only a garnish'}); }
+      else changes.push({pass:'never',before:line,after:line+'   <-- FLAG',why:n+' is on the Never list — decide what to do'});
+    });
+  }
+
+  if(on.has('tags')){
+    const hay=(r.name+' '+r.ingredients.map(i=>i.item).join(' ')+' '+r.steps.join(' ')).toLowerCase();
+    const add=[];
+    const PROTEIN={beef:['beef','short rib','steak','chuck','brisket','ground beef'],chicken:['chicken'],
+      pork:['pork','bacon','sausage','ham'],fish:['salmon','cod','fish','halibut','tuna'],
+      shrimp:['shrimp','prawn'],egg:['egg'],tofu:['tofu'],lamb:['lamb'],vegetarian:[]};
+    Object.keys(PROTEIN).forEach(k=>{ if(PROTEIN[k].some(w=>hay.includes(w)))add.push(k); });
+    const METHOD={braise:['braise','braised'],roast:['roast','oven'],grill:['grill'],fry:['fry','fried','wok'],
+      soup:['soup','stew','broth'],'sheet pan':['sheet pan'],'slow':['slow cook','3 hour','4 hour'],'one pan':['one pan','same pan']};
+    Object.keys(METHOD).forEach(k=>{ if(METHOD[k].some(w=>hay.includes(w)))add.push(k); });
+    const t=(r.meta.time||'');
+    const mins=(/(\d+)\s*h/.test(t)?parseInt(/(\d+)\s*h/.exec(t)[1])*60:0)+(/(\d+)\s*m/.test(t)?parseInt(/(\d+)\s*m/.exec(t)[1]):0);
+    if(mins&&mins<=35)add.push('fast'); if(mins&&mins>=150)add.push('long');
+    const before=r.tags.join(', ');
+    r.tags=uniq(r.tags.concat(add.filter(x=>x)));
+    push('tags',before,r.tags.join(', '),'derived from the ingredients and method');
+  }
+
+  if(on.has('meta')){
+    if(!r.meta.serves){ r.meta.serves=(S.rules.portions.serves||'2'); changes.push({pass:'meta',before:'(no serves)',after:'serves: '+r.meta.serves,why:'house default'}); }
+    if(!r.meta.added){ r.meta.added=todayISO(); changes.push({pass:'meta',before:'(no added date)',after:'added: '+r.meta.added,why:''}); }
+    if(!r.meta.status){ r.meta.status='untested'; changes.push({pass:'meta',before:'(no status)',after:'status: untested',why:'mark it tested once it works'}); }
+  }
+
+  return {result:r,changes};
+}
+
+/* ---------- turn a pasted blob into a recipe ---------- */
+const ING_HEAD=/^\s*#*\s*(ingredients|what you.ll need|shopping list)\s*:?\s*$/i;
+const STEP_HEAD=/^\s*#*\s*(instructions|directions|steps|method|preparation|how to make.*)\s*:?\s*$/i;
+const NOTE_HEAD=/^\s*#*\s*(notes?|tips?)\s*:?\s*$/i;
+function looksIngredient(l){
+  const s=l.trim();
+  if(!s||s.length>90)return false;
+  if(QTY.test(s))return true;
+  const w=s.toLowerCase().split(/[\s,]+/);
+  if(w.some(x=>UNIT_CANON[x]))return true;
+  if(w.length<=5 && !/[.!?]$/.test(s) && !/^(then|next|add|heat|cook|stir|place|remove|serve|preheat)/i.test(s))return true;
+  return false;
+}
+function captureParse(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n');
+  let name='', ing=[], steps=[], notes=[], mode='?';
+  let firstReal=lines.findIndex(l=>l.trim());
+  if(firstReal>=0) name=lines[firstReal].replace(/^#+\s*/,'').trim().slice(0,90);
+  for(let n=(firstReal<0?0:firstReal+1);n<lines.length;n++){
+    const l=lines[n], t=l.trim();
+    if(!t)continue;
+    if(ING_HEAD.test(t)){mode='i';continue;}
+    if(STEP_HEAD.test(t)){mode='s';continue;}
+    if(NOTE_HEAD.test(t)){mode='n';continue;}
+    const clean=t.replace(/^([-*•▢]|\d+[.)])\s*/,'').trim();
+    if(!clean)continue;
+    if(mode==='i'){
+      // "Kosher salt and freshly ground black pepper" is two ingredients, not one
+      const sp=/^(.*\bsalt)\s+and\s+(.*\bpepper.*)$/i.exec(clean);
+      if(sp){ ing.push(sp[1].trim()); ing.push(sp[2].trim()); } else ing.push(clean);
+    }
+    else if(mode==='s')steps.push(clean);
+    else if(mode==='n')notes.push(clean);
+    else { if(looksIngredient(clean))ing.push(clean); else steps.push(clean); }
+  }
+  // a pasted transcript often has no ingredient list at all — pull nouns out of the steps
+  if(!ing.length && steps.length){
+    const found=new Set();
+    const vocab=uniq(pantryAll(S.pantry).map(i=>i.name)
+      .concat(S.recipes.flatMap(r=>r.ingredients.map(i=>i.item))));
+    vocab.forEach(v=>{ const re=new RegExp('\\b'+norm(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'s?\\b','i');
+      if(re.test(steps.join(' ')))found.add(v); });
+    ing=[...found];
+  }
+  const r={name:name||'Untitled',meta:{source:'pasted'},tags:[],
+    ingredients:ing.map(parseIngredient),steps,notes:notes.join('\n'),raw:text};
+  r.slug=slug(r.name);
+  return r;
+}
+
+/* ---------- optional: let Claude do the adapting ---------- */
+async function aiAdapt(rawText){
+  const key=LS.get('anthropicKey','');
+  if(!key) throw new Error('No API key set');
+  const model=LS.get('anthropicModel','claude-sonnet-4-5');
+  const stepNames=Object.keys(S.steps.map);
+  const sys=`You convert recipes into one household's private recipe format. Output ONLY the markdown file, no preamble.
+
+FORMAT (exactly this shape):
+# Recipe Name
+
+tags: comma, separated
+serves: 2
+time: 45m
+source: where it came from
+status: untested
+
+## Ingredients
+- 2 lb thing
+- 1 tbsp other thing
+
+## Steps
+1. Step text.
+2. @named-step
+
+## Notes
+Anything worth remembering.
+
+RULES OF THIS HOUSE (apply them, do not just mention them):
+${S.rules.raw}
+
+STEP LIBRARY — if a step in the source recipe is one of these, replace the whole step with @name on its own line:
+${stepNames.map(n=>'@'+n+' — '+(S.steps.map[n].text.split('\n')[0])).join('\n')}
+
+WHAT THEY ALWAYS HAVE (do not add these to a shopping list, but do list them as ingredients):
+${pantryHave(S.pantry).map(i=>i.name).join(', ')}
+
+Rewrite quantities for the house serving size. Convert vague instructions into specific ones (temperatures, times, visual cues). Be concise and direct — these are notes for people who can cook, not a blog post.`;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-api-key':key,
+      'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model,max_tokens:3000,system:sys,
+      messages:[{role:'user',content:'Convert this into our format:\n\n'+rawText.slice(0,20000)}]})
+  });
+  if(!r.ok) throw new Error('Claude API '+r.status+': '+(await r.text()).slice(0,200));
+  const j=await r.json();
+  let out=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+  out=out.replace(/^```(?:markdown|md)?\s*/,'').replace(/```\s*$/,'');
+  return out;
+}
+async function aiModels(){
+  const key=LS.get('anthropicKey','');
+  const r=await fetch('https://api.anthropic.com/v1/models?limit=40',{
+    headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});
+  if(!r.ok)throw new Error('models '+r.status);
+  return (await r.json()).data.map(m=>m.id);
+}
+/* ============================================================
+   UI
+   ============================================================ */
+const TABS=[
+  ['cook','Cook'],['plan','Plan'],['grocery','Groceries'],['library','Library'],
+  ['add','Add'],['refactor','Refactor'],['files','Files'],['settings','Settings']
+];
+let TAB=LS.get('tab','cook');
+let UI={selected:[],q:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null};
+
+function renderNav(){
+  const nav=$('#nav'); nav.innerHTML='';
+  TABS.forEach(([id,label])=>{
+    nav.append(el('button',{class:id===TAB?'on':'',onclick:()=>go(id)},label));
+  });
+}
+function go(tab){ TAB=tab; LS.set('tab',tab); renderNav(); render(); window.scrollTo(0,0); }
+function render(){
+  const v=$('#view'); v.innerHTML='';
+  if(!Drive.clientId() && TAB!=='settings'){ v.append(viewFirstRun()); return; }
+  const VIEWS={cook:viewCook,plan:viewPlan,grocery:viewGrocery,library:viewLibrary,
+    add:viewAdd,refactor:viewRefactor,files:viewFiles,settings:viewSettings};
+  v.append((VIEWS[TAB]||viewCook)());
+}
+function h(tag,cls,...k){ return el(tag,{class:cls},...k); }
+
+function viewFirstRun(){
+  return h('div','card',
+    h('h1',null,'One thing to set up first'),
+    h('p','muted','This app talks straight to your Google Drive, so it needs a Google sign-in key of your own. It takes about four minutes, once, and then it works on every computer you open it on.'),
+    el('button',{class:'btn pri',onclick:()=>go('settings')},'Open Settings'));
+}
+
+/* ---------------- COOK ---------------- */
+function viewCook(){
+  const wrap=h('div');
+  const have=pantryHave(S.pantry);
+  const quick=uniq(have.filter(i=>/fridge|freezer|produce/.test(i.group)).map(i=>i.name))
+    .concat(uniq(S.recipes.flatMap(r=>r.ingredients.map(i=>i.item))
+      .filter(x=>!have.some(h=>sameThing(h.name,x)))).slice(0,26));
+
+  const chips=h('div','chips');
+  uniq(quick).slice(0,44).forEach(name=>{
+    const on=UI.selected.some(s=>sameThing(s,name));
+    chips.append(el('div',{class:'chip'+(on?' on':''),onclick:()=>{
+      UI.selected = on ? UI.selected.filter(s=>!sameThing(s,name)) : UI.selected.concat(name);
+      render();
+    }},name));
+  });
+
+  const custom=el('input',{type:'text',placeholder:'…or type something you have and hit enter',
+    onkeydown:e=>{ if(e.key==='Enter'&&e.target.value.trim()){ UI.selected.push(e.target.value.trim()); e.target.value=''; render(); } }});
+
+  wrap.append(h('div','card',
+    h('h2',null,"What's in the house?"),
+    h('p','small dim','Everything in your pantry file is assumed to be here already. Pick the things you specifically want to use up.'),
+    chips, h('div',null,custom),
+    UI.selected.length? h('div','row', h('span','small muted','Using: '+UI.selected.join(', ')),
+      el('button',{class:'btn sm',onclick:()=>{UI.selected=[];render();}},'Clear')):null
+  ));
+
+  const ranked=rankRecipes(UI.selected).slice(0,24);
+  const grid=h('div','grid');
+  ranked.forEach(x=>grid.append(recipeCard(x)));
+  wrap.append(h('div','card',
+    h('div','row', h('h2','grow',UI.selected.length?'Best matches':'Everything, best first'),
+      el('button',{class:'btn sm',onclick:()=>{
+        const pool=ranked.filter(x=>x.missing.length===0);
+        const pick=(pool.length?pool:ranked)[Math.floor(Math.random()*(pool.length?pool.length:ranked.length))];
+        if(pick)openRecipe(pick.recipe);
+      }},'Just pick one')),
+    ranked.length?grid:h('p','muted','No recipes yet. Add one from the Add tab.')));
+  return wrap;
+}
+function recipeCard(x){
+  const r=x.recipe;
+  const shoppable=x.missing.filter(m=>!findSub(m.item));
+  const pct=Math.round(x.coverage*100);
+  return h('div','card',
+    el('div',{class:'row',style:'align-items:flex-start'},
+      el('div',{class:'grow',style:'cursor:pointer',onclick:()=>openRecipe(r)},
+        h('h3',null,r.name),
+        h('div','tiny dim',[r.meta.time,r.meta.serves?'serves '+r.meta.serves:null,r.meta.rating?'★'+r.meta.rating:null].filter(Boolean).join(' · '))),
+      x.never.length?h('span','pill bad','contains '+x.never[0]):
+        (shoppable.length===0?h('span','pill ok','can make now'):
+         h('span','pill '+(shoppable.length<=2?'warn':'bad'),'need '+shoppable.length))),
+    el('div',{class:'bar',style:'margin:8px 0'},el('i',{style:'width:'+pct+'%'})),
+    r.tags.slice(0,5).map(t=>h('span','tag',t)),
+    x.missing.length?h('div','small',
+      h('span','miss','Missing: '),
+      x.missing.map((m,n)=>{
+        const s=findSub(m.item);
+        return el('span',{},(n?', ':''), m.item, s?el('span',{class:'sub'},' → use '+s.to):'');
+      })):null,
+    el('div',{class:'row',style:'margin-top:8px'},
+      el('button',{class:'btn sm',onclick:()=>openRecipe(r)},'Open'),
+      el('button',{class:'btn sm',onclick:()=>{tonight(r);}},'Cook tonight'))
+  );
+}
+async function tonight(r){
+  const iso=todayISO();
+  S.plan.plan=S.plan.plan.filter(p=>!(p.date===iso&&p.meal==='dinner')).concat({date:iso,meal:'dinner',recipe:r.name});
+  await persistPlan(); toast('Tonight: '+r.name);
+}
+
+/* recipe modal, with @steps expanded */
+function openRecipe(r){
+  if(!r)return;
+  const expand=s=>{
+    const m=/^@([a-z0-9-]+)/i.exec(s.trim());
+    if(m && S.steps.map[m[1]]) return el('span',{},
+      el('span',{class:'step-ref',title:'from the step library'},'@'+m[1]),' — ',S.steps.map[m[1]].text);
+    return document.createTextNode(s);
+  };
+  const box=h('div','box',
+    h('div','row', h('h1','grow',r.name),
+      el('button',{class:'btn sm',onclick:()=>editRecipeRaw(r)},'Edit text'),
+      el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('div','tiny dim',[r.meta.time&&('total '+r.meta.time),r.meta.active&&('hands-on '+r.meta.active),
+      r.meta.serves&&('serves '+r.meta.serves),r.meta.status,r.meta.source].filter(Boolean).join(' · ')),
+    h('div',null,r.tags.map(t=>h('span','tag',t))),
+    h('div','split',
+      h('div',null,h('h3',null,'Ingredients'),
+        el('ul',{class:'clean'},r.ingredients.map(i=>{
+          const got=pantryHave(S.pantry).some(hh=>sameThing(hh.name,i.item));
+          return el('li',{},el('span',{class:got?'':'miss'},ingLine(i)),
+            got?el('span',{class:'tiny dim'},'  have'):'');
+        }))),
+      h('div',null,h('h3',null,'Steps'),
+        el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
+    r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
+    el('div',{class:'row',style:'margin-top:14px'},
+      el('button',{class:'btn',onclick:()=>{tonight(r);closeModal();}},'Cook tonight'),
+      el('button',{class:'btn',onclick:()=>markMade(r)},'Made it'),
+      el('button',{class:'btn',onclick:()=>{closeModal();refactorOne(r);}},'Refactor this one'),
+      r.fileId?el('a',{class:'btn',href:'https://drive.google.com/file/d/'+r.fileId+'/view',target:'_blank'},'Open in Drive'):null)
+  );
+  showModal(box);
+}
+async function markMade(r){
+  r.meta.lastmade=todayISO();
+  r.meta.times=String((parseInt(r.meta.times||'0')||0)+1);
+  if(r.meta.status==='untested')r.meta.status='tested';
+  try{ await saveRecipe(r); toast('Logged.'); }catch(e){ toast(e.message); }
+}
+
+/* ---------------- PLAN ---------------- */
+function viewPlan(){
+  const wrap=h('div');
+  const trip=nextTrip(UI.planStart);
+  wrap.append(h('div','card',
+    h('h2',null,'Meal plan'),
+    h('div','row',
+      el('label',{class:'f',style:'margin:0'},el('span',{},'Start'),
+        el('input',{type:'date',value:UI.planStart,onchange:e=>{UI.planStart=e.target.value;UI.planRows=null;render();}})),
+      el('label',{class:'f',style:'margin:0;width:110px'},el('span',{},'Days'),
+        el('input',{type:'number',min:1,max:21,value:UI.planDays,onchange:e=>{UI.planDays=+e.target.value||7;UI.planRows=null;render();}})),
+      el('button',{class:'btn pri',onclick:()=>{UI.planRows=buildPlan(UI.planStart,UI.planDays,{replace:false});render();}},'Fill the gaps'),
+      el('button',{class:'btn',onclick:()=>{UI.planRows=buildPlan(UI.planStart,UI.planDays,{replace:true});render();}},'Redo it all'),
+      UI.planRows?el('button',{class:'btn pri',onclick:savePlanRows},'Save plan to Drive'):null),
+    trip?h('p','small muted',`Next trip: ${trip.label||'away'} ${niceDate(trip.from)}–${niceDate(trip.to)} · ${dayDiff(todayISO(),trip.from)} days out. The planner stops shopping and burns the fridge down before it.`):
+      h('p','small dim','No trips on the books. Add one below and the plan will work around it.')));
+
+  const rows=UI.planRows||buildPlan(UI.planStart,UI.planDays,{replace:false});
+  const list=h('div','card',h('h3',null,'Dinners'));
+  rows.forEach(row=>{
+    if(row.away){ list.append(h('div','row',h('b',null,niceDate(row.date)),h('span','dim','— away · '+row.reason))); return; }
+    if(row.skip){ list.append(h('div','row',h('b',null,niceDate(row.date)),h('span','dim','— out · '+row.reason))); return; }
+    const sel=el('select',{onchange:e=>{
+      const r=S.recipes.find(x=>x.fileId===e.target.value);
+      row.recipe=r; row.name=r?r.name:''; row.pinned=true; UI.planRows=rows; renderPlanSide();
+    }},
+      el('option',{value:''},'— nothing —'),
+      S.recipes.slice().sort((a,b)=>a.name.localeCompare(b.name))
+        .map(r=>el('option',{value:r.fileId,selected:row.recipe&&row.recipe.fileId===r.fileId?'selected':null},r.name)));
+    list.append(el('div',{class:'row',style:'border-bottom:1px solid #26221c;padding:7px 0'},
+      el('b',{style:'width:70px'},niceDate(row.date)),
+      el('div',{class:'grow'},sel),
+      row.reason?h('span','tiny warn',row.reason):null,
+      row.recipe?el('button',{class:'btn sm',onclick:()=>openRecipe(row.recipe)},'View'):null));
+  });
+  wrap.append(list);
+
+  const side=h('div',null); side.id='planSide';
+  wrap.append(side);
+  UI.planRows=rows;
+  setTimeout(renderPlanSide,0);
+
+  /* trips + skips editor */
+  wrap.append(h('div','card',
+    h('h3',null,'Trips and nights out'),
+    h('div','split',
+      h('div',null,h('h4',null,'Away'),
+        el('ul',{class:'clean'},S.plan.away.map((a,n)=>el('li',{class:'row'},
+          el('span',{class:'grow'},`${a.from} → ${a.to} ${a.label||''}`),
+          el('button',{class:'btn sm danger',onclick:async()=>{S.plan.away.splice(n,1);await persistPlan();render();}},'×')))),
+        h('div','row',
+          el('input',{type:'date',id:'awayFrom',style:'width:auto'}),
+          el('input',{type:'date',id:'awayTo',style:'width:auto'}),
+          el('input',{type:'text',id:'awayLabel',placeholder:'Seattle',style:'width:auto'}),
+          el('button',{class:'btn sm',onclick:async()=>{
+            const f=$('#awayFrom').value,t=$('#awayTo').value;
+            if(!f||!t)return toast('Need both dates');
+            S.plan.away.push({from:f,to:t,label:$('#awayLabel').value}); await persistPlan(); render();
+          }},'Add'))),
+      h('div',null,h('h4',null,'Skip a meal'),
+        el('ul',{class:'clean'},S.plan.skip.map((s,n)=>el('li',{class:'row'},
+          el('span',{class:'grow'},`${s.date} ${s.meal} — ${s.reason||''}`),
+          el('button',{class:'btn sm danger',onclick:async()=>{S.plan.skip.splice(n,1);await persistPlan();render();}},'×')))),
+        h('div','row',
+          el('input',{type:'date',id:'skipDate',style:'width:auto'}),
+          el('input',{type:'text',id:'skipWhy',placeholder:'out with friends',style:'width:auto'}),
+          el('button',{class:'btn sm',onclick:async()=>{
+            if(!$('#skipDate').value)return toast('Pick a date');
+            S.plan.skip.push({date:$('#skipDate').value,meal:'dinner',reason:$('#skipWhy').value});
+            await persistPlan(); render();
+          }},'Add'))))));
+  return wrap;
+}
+function renderPlanSide(){
+  const host=$('#planSide'); if(!host)return; host.innerHTML='';
+  const rows=UI.planRows||[];
+  const th=thawFor(rows);
+  if(th.length){
+    host.append(h('div','card',h('h3',null,'Take it out of the freezer'),
+      el('ul',{class:'clean'},th.map(t=>el('li',{},
+        el('b',{},niceDate(t.when.slice(0,10))+' '+niceTime(t.whenD)),
+        ' — ',t.item,el('span',{class:'dim'},'  ('+t.hours+'h, for '+t.recipe+')'),
+        t.late?el('span',{class:'miss'},'  — that time has passed, get it out now'):'')))));
+  }
+  const need=buildGrocery(rows);
+  host.append(h('div','card',
+    h('div','row',h('h3','grow','This plan needs '+need.length+' things'),
+      el('button',{class:'btn sm',onclick:()=>{pushToGrocery(need);}},'Send to grocery list')),
+    el('div',{class:'chips'},need.map(n=>h('span','tag',n.text)))));
+}
+async function savePlanRows(){
+  const rows=UI.planRows||[];
+  rows.forEach(row=>{
+    if(row.away||row.skip)return;
+    S.plan.plan=S.plan.plan.filter(p=>!(p.date===row.date&&p.meal===row.meal));
+    if(row.recipe)S.plan.plan.push({date:row.date,meal:row.meal,recipe:row.recipe.name});
+  });
+  await persistPlan(); toast('Plan saved to Drive.');
+}
+async function persistPlan(){
+  const text=serializePlan(S.plan,thawFor((UI.planRows||[]).filter(r=>r.recipe)));
+  S.plan.raw=text;
+  try{ await saveFile('meal-plan.md',text); }catch(e){ toast('Could not save: '+e.message); }
+}
+
+/* ---------------- GROCERY ---------------- */
+async function pushToGrocery(items){
+  const add=items.map(i=>i.text).filter(t=>!S.grocery.need.includes(t));
+  S.grocery.need=S.grocery.need.concat(add);
+  await persistGrocery(); toast('Added '+add.length+' items.'); go('grocery');
+}
+async function persistGrocery(){
+  const text=serializeGrocery(S.grocery); S.grocery.raw=text;
+  try{ await saveFile('grocery-list.md',text); }catch(e){ toast('Could not save: '+e.message); }
+}
+function viewGrocery(){
+  const wrap=h('div');
+  const section=(title,key,strike)=>h('div','card',
+    h('div','row',h('h3','grow',title),
+      key==='got'?el('button',{class:'btn sm',onclick:async()=>{S.grocery.got=[];await persistGrocery();render();}},'Clear'):null),
+    el('ul',{class:'clean'},S.grocery[key].map((t,n)=>el('li',{class:'row'},
+      el('span',{class:'grow'+(strike?' dim':''),style:strike?'text-decoration:line-through':''},t),
+      key!=='got'?el('button',{class:'btn sm',onclick:async()=>{
+        S.grocery[key].splice(n,1); S.grocery.got.push(t); await persistGrocery(); render();
+      }},'got it'):el('button',{class:'btn sm',onclick:async()=>{
+        S.grocery.got.splice(n,1); S.grocery.manual.push(t); await persistGrocery(); render();}},'put back'),
+      el('button',{class:'btn sm danger',onclick:async()=>{S.grocery[key].splice(n,1);await persistGrocery();render();}},'×')))),
+    key==='manual'?h('div','row',
+      el('input',{type:'text',id:'gAdd',placeholder:'add something',
+        onkeydown:async e=>{ if(e.key==='Enter'&&e.target.value.trim()){
+          S.grocery.manual.push(e.target.value.trim()); e.target.value=''; await persistGrocery(); render(); }}})):null);
+  wrap.append(h('div','card',h('h2',null,'Groceries'),
+    h('p','small dim','Both of you can edit grocery-list.md straight in Drive on a phone — this screen and that file are the same thing.')));
+  wrap.append(section('Needed for the plan','need',false));
+  wrap.append(section('Added by hand','manual',false));
+  wrap.append(section('Got','got',true));
+  wrap.append(h('div','card',h('h3',null,"We're out of…"),
+    h('p','small dim','Tap anything to flip it. Out-of-stock items stop counting as available and land on the list.'),
+    el('div',{class:'chips'},pantryAll(S.pantry).map(i=>
+      el('span',{class:'chip'+(i.out?' out':''),onclick:async()=>{
+        i.out=!i.out; const text=serializePantry(S.pantry); S.pantry.raw=text;
+        try{await saveFile('pantry.md',text);}catch(e){toast(e.message);} render();
+      }},i.name)))));
+  return wrap;
+}
+
+/* ---------------- LIBRARY ---------------- */
+function viewLibrary(){
+  const wrap=h('div');
+  const allTags=uniq(S.recipes.flatMap(r=>r.tags)).sort();
+  wrap.append(h('div','card',
+    h('div','row',
+      el('input',{type:'text',class:'grow',placeholder:'search recipes, ingredients, tags',value:UI.q,
+        oninput:e=>{UI.q=e.target.value;renderLibList();}}),
+      el('button',{class:'btn',onclick:()=>newRecipe()},'New recipe')),
+    el('div',{class:'chips',style:'margin-top:8px'},allTags.map(t=>
+      el('span',{class:'chip'+(UI.q===t?' on':''),onclick:()=>{UI.q=UI.q===t?'':t;render();}},t)))));
+  const list=h('div',null); list.id='libList'; wrap.append(list);
+  setTimeout(renderLibList,0);
+  return wrap;
+}
+function renderLibList(){
+  const host=$('#libList'); if(!host)return; host.innerHTML='';
+  const rows=rankRecipes([], {q:UI.q});
+  const grid=h('div','grid');
+  rows.forEach(x=>grid.append(recipeCard(x)));
+  host.append(h('div','card',h('h3',null,rows.length+' recipes'),rows.length?grid:h('p','muted','Nothing matches.')));
+}
+function newRecipe(){
+  const r={name:'New Recipe',meta:{},tags:[],ingredients:[],steps:[],notes:'',slug:''};
+  editRecipeRaw(r,true);
+}
+function editRecipeRaw(r,isNew){
+  const text=r.raw&&!isNew?r.raw:serializeRecipe(r);
+  const ta=el('textarea',{rows:26,class:'mono'},text);
+  const nameIn=el('input',{type:'text',value:(r.fileName||((r.slug||slug(r.name))+'.md'))});
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Edit as text'),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('p','small dim','This is exactly what lives in Drive. Anything you can type here, you can type there.'),
+    el('label',{class:'f'},el('span',{},'File name'),nameIn),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        try{
+          status('Saving…','busy');
+          const parsed=parseRecipe(ta.value,{id:r.fileId,name:nameIn.value,modifiedTime:r.modifiedTime});
+          parsed.slug=nameIn.value.replace(/\.md$/,'');
+          if(r.fileId){ await Drive.write(r.fileId,ta.value); Object.assign(r,parsed,{raw:ta.value}); }
+          else { const res=await Drive.create(nameIn.value.endsWith('.md')?nameIn.value:nameIn.value+'.md',S.ids.library,ta.value);
+                 parsed.fileId=res.id; parsed.fileName=res.name; parsed.raw=ta.value; S.recipes.push(parsed); }
+          saveCache(); closeModal(); status('Saved','good'); toast('Saved to Drive.'); render();
+        }catch(e){ status('Save failed','err'); toast(e.message); }
+      }},'Save to Drive'),
+      r.fileId?el('button',{class:'btn danger',onclick:async()=>{
+        if(!confirm('Move this recipe to the Drive trash?'))return;
+        await Drive.trash(r.fileId); S.recipes=S.recipes.filter(x=>x.fileId!==r.fileId);
+        saveCache(); closeModal(); render(); toast('Trashed.');
+      }},'Delete'):null)));
+}
+/* ---------------- ADD (capture + inbox) ---------------- */
+function viewAdd(){
+  const wrap=h('div');
+  const ta=el('textarea',{rows:12,placeholder:'Paste anything here — a recipe page, a YouTube transcript, a text from your mum, notes on your phone. It does not need to be tidy.'});
+  const hasKey=!!LS.get('anthropicKey','');
+
+  wrap.append(h('div','card',
+    h('h2',null,'Paste a recipe'),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:()=>adaptFlow(ta.value,{ai:hasKey})},hasKey?'Adapt it to our way':'Convert it'),
+      hasKey?el('button',{class:'btn',onclick:()=>adaptFlow(ta.value,{ai:false})},'Convert without AI'):null,
+      h('span','small dim',hasKey?'Claude will rewrite it against house-rules.md.':'Rule-based conversion. Add an API key in Settings for a much better rewrite.'))));
+
+  wrap.append(h('div','card',
+    h('div','row',h('h2','grow','Drive inbox'),
+      el('button',{class:'btn sm',onclick:async()=>{await syncAll();render();}},'Refresh')),
+    h('p','small dim','Make a new Google Doc inside Recipes/_inbox, paste whatever you found into it, and it shows up here. That is the easy path when you are on your phone.'),
+    S.inbox.length?el('ul',{class:'clean'},S.inbox.map(f=>el('li',{class:'row'},
+      el('span',{class:'grow'},f.name),
+      el('a',{class:'btn sm',href:'https://drive.google.com/open?id='+f.id,target:'_blank'},'Open'),
+      el('button',{class:'btn sm pri',onclick:async()=>{
+        status('Reading '+f.name+'…','busy');
+        try{ const t=await Drive.readText(f); adaptFlow(t,{ai:hasKey,source:f}); status('','good'); }
+        catch(e){ toast(e.message); status('Failed','err'); }
+      }},'Adapt')))):h('p','muted','Inbox is empty.')));
+
+  wrap.append(h('div','card',
+    h('h3',null,'How this is meant to work'),
+    el('ol',{class:'muted small',style:'padding-left:18px;line-height:1.7'},
+      el('li',{},'Find a recipe anywhere. Paste it into a Google Doc in Recipes/_inbox, or into the box above.'),
+      el('li',{},'Hit Adapt. It gets rewritten into our format: our swaps, our step library, our serving size, our tags.'),
+      el('li',{},'Look at the diff, fix anything wrong, save. It lands in Recipes/library as a plain .md file.'),
+      el('li',{},'Later, when you change a house rule, the Refactor tab re-applies it to every recipe you already have.'))));
+  return wrap;
+}
+
+async function adaptFlow(raw,opts={}){
+  if(!raw||!raw.trim())return toast('Nothing to convert.');
+  let rec;
+  if(opts.ai){
+    status('Asking Claude…','busy');
+    try{
+      const md=await aiAdapt(raw);
+      rec=parseRecipe(md,null);
+      rec.slug=slug(rec.name);
+      status('','good');
+    }catch(e){ toast('AI step failed: '+e.message+' — falling back to rules.'); status('','');
+      rec=captureParse(raw); }
+  } else rec=captureParse(raw);
+
+  const {result,changes}=refactor(rec);
+  showAdaptModal(result,changes,opts.source);
+}
+
+function showAdaptModal(rec,changes,sourceFile){
+  const ta=el('textarea',{rows:22,class:'mono'},serializeRecipe(rec));
+  const nameIn=el('input',{type:'text',value:(rec.slug||slug(rec.name))+'.md'});
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Adapted: '+rec.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    changes.length?h('div',null,h('h4',null,'What got changed to fit our way'),changeList(changes)):h('p','dim','No house rules applied — nothing in it matched.'),
+    hr(), el('label',{class:'f'},el('span',{},'File name'),nameIn),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        try{
+          status('Saving…','busy');
+          const res=await Drive.create(nameIn.value.endsWith('.md')?nameIn.value:nameIn.value+'.md',S.ids.library,ta.value);
+          const parsed=parseRecipe(ta.value,res); S.recipes.push(parsed); saveCache();
+          if(sourceFile){ try{ await Drive.move(sourceFile.id,S.ids.done,S.ids.inbox);
+            S.inbox=S.inbox.filter(f=>f.id!==sourceFile.id); }catch(e){} }
+          closeModal(); status('Saved','good'); toast('Added to the library.'); render();
+        }catch(e){ status('Save failed','err'); toast(e.message); }
+      }},'Save to library'))));
+}
+function hr(){ return el('hr'); }
+function changeList(changes){
+  const byPass={};
+  changes.forEach(c=>{(byPass[c.pass]=byPass[c.pass]||[]).push(c);});
+  return h('div',null,Object.keys(byPass).map(p=>{
+    const meta=PASSES.find(x=>x.id===p)||{name:p};
+    return h('div',null,h('div','small',el('b',{},meta.name)),
+      el('div',{class:'diff'},byPass[p].map(c=>el('div',{},
+        el('span',{class:'del'},c.before),' → ',el('span',{class:'add'},c.after),
+        c.why?el('span',{class:'dim'},'   ('+c.why+')'):'', document.createElement('br')))));
+  }));
+}
+
+/* ---------------- REFACTOR ---------------- */
+function viewRefactor(){
+  const wrap=h('div');
+  const on=new Set(enabledPasses());
+  wrap.append(h('div','card',
+    h('h2',null,'Refactor the whole library'),
+    h('p','small dim','Change a house rule, then run this. Every recipe you already have gets re-fitted to it. Nothing is written until you press Apply, and you can see every single edit first.'),
+    el('div',{class:'col'},PASSES.map(p=>el('label',{class:'row',style:'align-items:flex-start;gap:8px;cursor:pointer'},
+      el('input',{type:'checkbox',style:'width:auto;margin-top:4px',checked:on.has(p.id)?'checked':null,
+        onchange:e=>{ const s=new Set(enabledPasses()); e.target.checked?s.add(p.id):s.delete(p.id);
+          LS.set('passes',[...s]); }}),
+      el('div',{},el('b',{},p.name),el('div',{class:'small dim'},p.desc))))),
+    el('div',{class:'row',style:'margin-top:12px'},
+      el('button',{class:'btn pri',onclick:runRefactorAll},'Dry run over '+S.recipes.length+' recipes'))));
+  const out=h('div',null); out.id='refOut'; wrap.append(out);
+
+  wrap.append(h('div','card',
+    h('h3',null,'Health check'),
+    el('ul',{class:'clean'},libraryWarnings().map(w=>el('li',{},
+      el('span',{class:w.level==='bad'?'miss':'dim'},w.text))))));
+  return wrap;
+}
+function libraryWarnings(){
+  const out=[];
+  S.recipes.forEach(r=>{
+    if(!r.ingredients.length)out.push({level:'bad',text:r.name+' — no ingredients section'});
+    if(!r.steps.length)out.push({level:'bad',text:r.name+' — no steps'});
+    if(!r.meta.serves)out.push({level:'warn',text:r.name+' — no serving size'});
+    if(!r.tags.length)out.push({level:'warn',text:r.name+' — no tags, the planner will rarely pick it'});
+    r.steps.forEach(s=>{ const m=/^@([a-z0-9-]+)/i.exec(s.trim());
+      if(m&&!S.steps.map[m[1]])out.push({level:'bad',text:r.name+' — refers to @'+m[1]+' which is not in the step library'}); });
+    const nv=S.rules.never.filter(n=>r.ingredients.some(i=>sameThing(n,i.item)));
+    nv.forEach(n=>out.push({level:'bad',text:r.name+' — contains '+n+' (Never list)'}));
+  });
+  // repeated step text across recipes = candidate for the step library
+  const counts={};
+  S.recipes.forEach(r=>r.steps.forEach(s=>{ if(/^@/.test(s))return; const k=norm(s).slice(0,60);
+    if(k.length<20)return; (counts[k]=counts[k]||{n:0,ex:s}).n++; }));
+  Object.values(counts).filter(c=>c.n>=2).slice(0,6).forEach(c=>
+    out.push({level:'warn',text:`"${c.ex.slice(0,60)}…" appears in ${c.n} recipes — worth naming in the step library`}));
+  if(!out.length)out.push({level:'ok',text:'Everything looks clean.'});
+  return out;
+}
+function runRefactorAll(){
+  const host=$('#refOut'); host.innerHTML='';
+  const results=S.recipes.map(r=>Object.assign({r},refactor(r))).filter(x=>x.changes.length);
+  if(!results.length){ host.append(h('div','card',h('p','muted','Nothing to change — the library already matches the house rules.'))); return; }
+  const picks=new Set(results.map(x=>x.r.fileId));
+  const card=h('div','card',
+    h('div','row',h('h3','grow',results.length+' recipes would change'),
+      el('button',{class:'btn pri',onclick:async()=>{
+        let n=0; status('Applying…','busy');
+        for(const x of results){
+          if(!picks.has(x.r.fileId))continue;
+          try{ const text=serializeRecipe(x.result);
+            await Drive.write(x.r.fileId,text);
+            Object.assign(x.r,parseRecipe(text,{id:x.r.fileId,name:x.r.fileName}));
+            n++; status('Applying… '+n+'/'+results.length,'busy');
+          }catch(e){ toast(x.r.name+': '+e.message); }
+        }
+        saveCache(); status('Applied to '+n+' recipes','good'); toast('Done — '+n+' rewritten.'); render();
+      }},'Apply selected')));
+  results.forEach(x=>{
+    card.append(el('div',{style:'border-top:1px solid #26221c;padding-top:10px;margin-top:10px'},
+      el('label',{class:'row',style:'cursor:pointer'},
+        el('input',{type:'checkbox',checked:'checked',style:'width:auto',
+          onchange:e=>{ e.target.checked?picks.add(x.r.fileId):picks.delete(x.r.fileId); }}),
+        el('b',{class:'grow'},x.r.name),
+        el('span',{class:'tiny dim'},x.changes.length+' edits')),
+      changeList(x.changes)));
+  });
+  host.append(card);
+}
+function refactorOne(r){
+  const {result,changes}=refactor(r);
+  const ta=el('textarea',{rows:20,class:'mono'},serializeRecipe(result));
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Refactor: '+r.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    changes.length?changeList(changes):h('p','muted','Nothing to change.'),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        try{ await Drive.write(r.fileId,ta.value);
+          Object.assign(r,parseRecipe(ta.value,{id:r.fileId,name:r.fileName}));
+          saveCache(); closeModal(); toast('Saved.'); render();
+        }catch(e){ toast(e.message); }
+      }},'Save'))));
+}
+
+/* ---------------- FILES (raw text editing) ---------------- */
+const EDITABLE=[
+  ['house-rules.md','The brain. Swaps, never-eat list, house technique, thaw times.'],
+  ['pantry.md','What we keep in the house. ! means we are out.'],
+  ['steps-library.md','Named methods. Fix one here, every recipe improves.'],
+  ['meal-plan.md','Trips, nights out, the plan itself.'],
+  ['grocery-list.md','The shopping list.']
+];
+function viewFiles(){
+  const wrap=h('div');
+  wrap.append(h('div','card',h('h2',null,'The actual files'),
+    h('p','small dim','Everything the app knows is in these files, in plain text, in your Drive. Edit them here or in any text editor — the app just reads whatever is there.'),
+    S.ids.root?el('a',{class:'btn sm',target:'_blank',href:'https://drive.google.com/drive/folders/'+S.ids.root},'Open the folder in Drive'):null));
+  EDITABLE.forEach(([name,desc])=>{
+    wrap.append(h('div','card',
+      h('div','row',h('h3','grow',name),
+        el('button',{class:'btn sm',onclick:()=>editConfig(name)},'Edit')),
+      h('div','small dim',desc)));
+  });
+  return wrap;
+}
+function editConfig(name){
+  const cur={'house-rules.md':S.rules.raw,'pantry.md':S.pantry.raw,'steps-library.md':S.steps.raw,
+    'meal-plan.md':S.plan.raw,'grocery-list.md':S.grocery.raw}[name]||'';
+  const ta=el('textarea',{rows:26,class:'mono'},cur);
+  showModal(h('div','box',
+    h('div','row',h('h2','grow',name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        try{ status('Saving…','busy'); await saveFile(name,ta.value);
+          const apply=(CONFIG_FILES.find(c=>c[0]===name)||[])[1]; if(apply)apply(ta.value);
+          saveCache(); closeModal(); status('Saved','good'); toast('Saved.'); render();
+        }catch(e){ status('Save failed','err'); toast(e.message); }
+      }},'Save to Drive'))));
+}
+
+/* ---------------- SETTINGS ---------------- */
+function viewSettings(){
+  const wrap=h('div');
+  const cid=el('input',{type:'text',value:LS.get('clientId',''),placeholder:'1234-abcd.apps.googleusercontent.com'});
+  const key=el('input',{type:'password',value:LS.get('anthropicKey',''),placeholder:'sk-ant-… (optional)'});
+  const modelSel=el('select',{},el('option',{value:LS.get('anthropicModel','claude-sonnet-4-5')},LS.get('anthropicModel','claude-sonnet-4-5')));
+  wrap.append(h('div','card',
+    h('h2',null,'Google Drive'),
+    h('p','small dim','Paste the OAuth Client ID from your Google Cloud project here. See the setup guide that came with this file — four minutes, once, and then this works on any computer you open it on.'),
+    el('label',{class:'f'},el('span',{},'OAuth Client ID'),cid),
+    el('label',{class:'f'},el('span',{},'Drive folder name'),
+      el('input',{type:'text',value:LS.get('folderName',APP.FOLDER),
+        onchange:e=>LS.set('folderName',e.target.value.trim()||APP.FOLDER)})),
+    el('div',{class:'row'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        LS.set('clientId',cid.value.trim()); Drive.client=null; Drive.token=null; LS.del('tok');
+        if(!Drive.init())return toast('Google library not loaded yet — reload the page.');
+        try{ await Drive.auth(true); toast('Connected.'); await syncAll(); render(); }
+        catch(e){ toast('Sign-in failed: '+e.message); }
+      }},'Save and connect'),
+      el('button',{class:'btn',onclick:async()=>{ await syncAll(); render(); }},'Sync now'),
+      el('span',{class:'small dim'},'This browser: '+(window.location.origin||'file://')))));
+
+  wrap.append(h('div','card',
+    h('h2',null,'Smarter adapting (optional)'),
+    h('p','small dim','With an Anthropic API key, pasted recipes get rewritten by Claude against your house rules instead of by simple find-and-replace. It is a big quality difference on messy sources like video transcripts. Costs a fraction of a cent per recipe. Without a key everything else still works.'),
+    el('label',{class:'f'},el('span',{},'API key'),key),
+    el('label',{class:'f'},el('span',{},'Model'),modelSel),
+    el('div',{class:'row'},
+      el('button',{class:'btn',onclick:async()=>{
+        LS.set('anthropicKey',key.value.trim());
+        try{ const ms=await aiModels(); modelSel.innerHTML='';
+          ms.forEach(m=>modelSel.append(el('option',{value:m,selected:m===LS.get('anthropicModel','')?'selected':null},m)));
+          modelSel.onchange=()=>LS.set('anthropicModel',modelSel.value);
+          if(!ms.includes(LS.get('anthropicModel','')))LS.set('anthropicModel',ms[0]);
+          toast('Key works — '+ms.length+' models available.');
+        }catch(e){ toast('Key check failed: '+e.message); }
+      }},'Save key and load models'))));
+
+  wrap.append(h('div','card',
+    h('h2',null,'This device'),
+    h('div','kv',
+      el('b',{},'Recipes'),el('span',{},String(S.recipes.length)),
+      el('b',{},'Last sync'),el('span',{},S.loadedAt?new Date(S.loadedAt).toLocaleString():'never'),
+      el('b',{},'Drive folder'),el('span',{},S.ids.root||'not found yet'),
+      el('b',{},'Version'),el('span',{},APP.VER)),
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn',onclick:()=>{LS.del('cache');location.reload();}},'Clear local cache'),
+      el('button',{class:'btn danger',onclick:()=>{
+        if(confirm('Forget the sign-in and API key on this computer? Your Drive data is untouched.')){
+          LS.del('tok');LS.del('anthropicKey');LS.del('clientId');location.reload();}
+      }},'Sign out of this device'))));
+  return wrap;
+}
+
+/* ---------------- modal ---------------- */
+function showModal(box){
+  closeModal();
+  const m=el('div',{class:'modal',onclick:e=>{ if(e.target===m)closeModal(); }},box);
+  $('#modalHost').append(m);
+  document.body.style.overflow='hidden';
+}
+function closeModal(){ $('#modalHost').innerHTML=''; document.body.style.overflow=''; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal(); });
+
+/* ---------------- boot ---------------- */
+$('#btnSync').addEventListener('click',async()=>{ await syncAll(); render(); });
+$('#btnSignin').addEventListener('click',async()=>{
+  try{ await Drive.auth(true); await syncAll(); render(); }catch(e){ toast(e.message); }
+});
+
+async function boot(){
+  renderNav();
+  const cached=loadCache();
+  render();
+  if(cached) status('Showing the last synced copy…','');
+  const url=new URL(location.href);
+  if(url.searchParams.get('client_id')) LS.set('clientId',url.searchParams.get('client_id'));
+  let tries=0;
+  while(!(window.google&&google.accounts)&&tries<40){ await new Promise(r=>setTimeout(r,150)); tries++; }
+  if(!Drive.clientId()){ status('Needs a one-time setup — open Settings','err'); $('#btnSignin').classList.remove('hide'); render(); return; }
+  if(!Drive.init()){ status('Google sign-in did not load. Are you offline?','err'); return; }
+  try{
+    await Drive.auth(false);
+    await syncAll();
+  }catch(e){
+    status('Tap Connect Drive to sign in','');
+    $('#btnSignin').classList.remove('hide');
+  }
+  render();
+}
+boot();
+</script>
+</body>
+</html>
