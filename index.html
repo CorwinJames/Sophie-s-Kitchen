@@ -116,6 +116,36 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
   background:var(--panel2);color:var(--ink);font-size:20px;font-weight:600;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
 .scanbtn:active{background:var(--hot);color:#1a1005}
+
+/* Cook: recipes lead, the house sits beside them */
+.cooklayout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+@media(max-width:900px){.cooklayout{grid-template-columns:minmax(0,1fr)}}
+.side{position:sticky;top:62px;max-height:calc(100vh - 130px);overflow:auto;padding:12px}
+.side::-webkit-scrollbar{width:8px}
+.side::-webkit-scrollbar-thumb{background:#332e26;border-radius:4px}
+.sidehead{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.sidehead h3{margin:0}
+.pgroup{font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;
+  margin:12px 0 3px;padding:0 8px}
+.pitem{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;
+  cursor:pointer;user-select:none;font-size:13.5px;line-height:1.3;
+  -webkit-touch-callout:none;-webkit-user-select:none}
+.pitem:hover{background:var(--panel2)}
+.pitem.on{background:var(--hot);color:#1a1005;font-weight:600}
+.pitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem .lvl{font-size:10px;letter-spacing:.04em;opacity:.55;white-space:nowrap}
+.pitem.on .lvl{opacity:.7}
+.pitem .kill{opacity:0;font-weight:700;font-size:14px;line-height:1;padding:1px 5px;
+  border-radius:5px;color:var(--bad);flex:none}
+.pitem:hover .kill,.pitem:focus-within .kill{opacity:.6}
+.pitem .kill:hover{opacity:1;background:#3a201b}
+.pitem.on .kill{color:#6b2214}
+.pitem.on .kill:hover{background:#00000022;color:#4a1610}
+.pitem.pressing{background:#3a201b;color:var(--ink)}
+.pitem.gone{opacity:.45;text-decoration:line-through}
+.pitem.gone:hover{opacity:.8;text-decoration:none;color:var(--ok)}
+.sidefind{width:100%;margin-bottom:4px;font-size:13px;padding:6px 9px}
+.filterbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px}
 .tag{display:inline-block;background:#2a2419;border:1px solid var(--line);border-radius:5px;
   padding:1px 7px;font-size:11.5px;color:var(--ink2);margin:0 4px 4px 0}
 .bar{height:5px;background:#2a251d;border-radius:3px;overflow:hidden;min-width:60px}
@@ -191,7 +221,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.3'
+  VER: '1.4'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -1954,7 +1984,7 @@ const TABS=[
   ['add','Add'],['money','Money'],['refactor','Refactor'],['files','Files'],['settings','Settings']
 ];
 let TAB=LS.get('tab','cook');
-let UI={selected:[],q:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null,
+let UI={selected:[],q:'',sideFind:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null,
   scanMode:/[?&]scan=1/.test(location.search)};
 
 function renderNav(){
@@ -1981,7 +2011,7 @@ function setStockLevel(item,level){
   else { S.grocery.need=S.grocery.need.filter(t=>t!==name); }
   _stockDirty=true;
   status(level==='out'?`Out of ${name} — added to the list…`:`${name}: ${LEVEL_LABEL[level]}…`,'busy');
-  renderStockHost(); refreshMatches(); renderGrocHost();
+  renderStockHost(); renderPantrySide(); refreshMatches(); renderGrocHost();
   clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,900);
 }
 function markStockDirty(){ _stockDirty=true; clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,700); }
@@ -2050,7 +2080,7 @@ function addPantry(inp,sel){
   if(g.items.some(i=>sameThing(i.name,name)))return toast('Already in the pantry.');
   g.items.push({name,level:'plenty',out:false,qty:null,unit:null,bought:null,key:norm(name)});
   inp.value='';
-  _stockDirty=true; renderStockHost(); refreshMatches();
+  _stockDirty=true; renderStockHost(); renderPantrySide(); refreshMatches();
   clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,600);
   toast(name+' added to the pantry.');
 }
@@ -2073,57 +2103,142 @@ function viewFirstRun(){
 
 /* ---------------- COOK ---------------- */
 function viewCook(){
-  const wrap=h('div');
-  wrap.append(h('div','card',
+  const wrap=h('div','cooklayout');
+
+  /* the recipes lead */
+  const main=h('div',null);
+  main.append(h('div','card',
     el('div',{class:'searchbar'},
       el('input',{type:'text',id:'searchBox',value:UI.q,
         placeholder:'Search — “beef”, “short ribs”, “fried rice”…',
         oninput:e=>{UI.q=e.target.value;refreshMatches();}}),
-      el('button',{class:'btn',onclick:()=>{UI.q='';const b=$('#searchBox');if(b)b.value='';refreshMatches();}},'Clear')),
-    h('p','small dim','Searching an ingredient family like “beef” finds the short ribs and the chuck. Searching “short ribs” stays specific.')));
-  wrap.append(el('div',{class:'card',id:'pickHost'}));
-  wrap.append(el('div',{id:'matchHost'}));
-  wrap.append(stockCard());
-  setTimeout(refreshMatches,0);
+      el('button',{class:'btn',onclick:()=>{UI.q='';const b=$('#searchBox');if(b)b.value='';refreshMatches();}},'Clear'))));
+  main.append(el('div',{id:'matchHost'}));
+  wrap.append(main);
+
+  /* the house sits beside them */
+  wrap.append(el('aside',{class:'card side',id:'pantrySide'}));
+
+  setTimeout(()=>{ renderPantrySide(); refreshMatches(); },0);
   return wrap;
 }
-/* re-draw just the picker and the matches — no full page rebuild, so the
-   stock chips you are tapping don't jump around underneath you */
-function refreshMatches(){
-  const pick=document.getElementById('pickHost');
-  const host=document.getElementById('matchHost');
-  if(!pick||!host)return;
 
-  pick.innerHTML='';
-  const have=pantryHave(S.pantry);
-  const quick=uniq(have.filter(i=>/fridge|freezer|produce/.test(i.group)).map(i=>i.name))
-    .concat(uniq(S.recipes.flatMap(r=>r.ingredients.map(i=>i.item))
-      .filter(x=>!have.some(hh=>sameThing(hh.name,x)))).slice(0,26));
-  const chips=h('div','chips');
-  uniq(quick).slice(0,44).forEach(name=>{
-    const on=UI.selected.some(s=>sameThing(s,name));
-    chips.append(el('div',{class:'chip'+(on?' on':''),onclick:()=>{
-      UI.selected = on ? UI.selected.filter(s=>!sameThing(s,name)) : UI.selected.concat(name);
-      refreshMatches();
-    }},name));
+/* press and hold — the touch equivalent of hovering to reveal the ×.
+   Tolerant of a little finger drift, and swallows the click that follows. */
+function longPress(node,ms,fn){
+  let timer=null,fired=false,sx=0,sy=0;
+  const cancel=()=>{ clearTimeout(timer); timer=null; node.classList.remove('pressing'); };
+  node.addEventListener('pointerdown',e=>{
+    if(e.button&&e.button!==0)return;
+    fired=false; sx=e.clientX; sy=e.clientY;
+    node.classList.add('pressing');
+    timer=setTimeout(()=>{ fired=true; node.classList.remove('pressing'); fn(); },ms);
   });
-  pick.append(
-    h('h2',null,"What's in the house?"),
-    h('p','small dim','Everything in the pantry is assumed to be here already. Pick the things you specifically want to use up tonight.'),
-    chips,
-    el('div',{style:'margin-top:8px'},el('input',{type:'text',placeholder:'…or type something you have and hit enter',
-      onkeydown:e=>{ if(e.key==='Enter'&&e.target.value.trim()){ UI.selected.push(e.target.value.trim()); e.target.value=''; refreshMatches(); } }})),
-    UI.selected.length? h('div','row', h('span','small muted','Using: '+UI.selected.join(', ')),
-      el('button',{class:'btn sm',onclick:()=>{UI.selected=[];refreshMatches();}},'Clear')):document.createComment(''));
+  node.addEventListener('pointermove',e=>{
+    if(!timer)return;
+    if(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8)cancel();
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>node.addEventListener(ev,cancel));
+  node.addEventListener('click',e=>{ if(fired){ e.preventDefault(); e.stopPropagation(); fired=false; } },true);
+  node.addEventListener('contextmenu',e=>e.preventDefault());
+}
 
+/* ---- the sidebar: everything in the house, doubling as recipe filters ---- */
+function renderPantrySide(){
+  const side=document.getElementById('pantrySide');
+  if(!side)return;
+  side.innerHTML='';
+  const all=S.pantry.groups.flatMap(g=>g.items);
+  const out=all.filter(i=>i.out);
+  const q=(UI.sideFind||'').trim().toLowerCase();
+
+  side.append(el('div',{class:'sidehead'},
+    h('h3',null,"What's in the house"),
+    h('span','n tiny dim',(all.length-out.length)+' in')));
+  side.append(el('input',{type:'text',class:'sidefind',placeholder:'find an ingredient',
+    value:UI.sideFind||'',
+    oninput:e=>{UI.sideFind=e.target.value;renderPantrySide();}}));
+  side.append(h('p','tiny dim','Click to filter the recipes. Hover for the × — or press and hold — to say we have run out.'));
+
+  if(UI.selected.length){
+    side.append(el('div',{class:'row',style:'margin:8px 0'},
+      el('button',{class:'btn sm',onclick:()=>{UI.selected=[];renderPantrySide();refreshMatches();}},
+        'Clear '+UI.selected.length+' filter'+(UI.selected.length>1?'s':''))));
+  }
+
+  const row=(i,gone)=>{
+    const on=UI.selected.some(s=>sameThing(s,i.name));
+    const node=el('div',{class:'pitem'+(on?' on':'')+(gone?' gone':''),
+      title:gone?'we are out — click to say we have it again'
+                :(LEVEL_LABEL[i.level]+' · click to filter, × or hold to mark it gone')},
+      el('span',{class:'nm'},i.name));
+    if(!gone && i.level!=='plenty')
+      node.append(el('span',{class:'lvl'},i.level==='low'?'LOW':'SOME'));
+    if(!gone && i.qty)
+      node.append(el('span',{class:'lvl'},[i.qty,i.unit].filter(Boolean).join(' ')));
+    node.append(el('span',{class:'kill',title:gone?'we have it again':'we do not have this any more',
+      onclick:e=>{ e.stopPropagation(); setStockLevel(i,gone?'plenty':'out'); }},gone?'↺':'×'));
+    node.addEventListener('click',()=>{
+      if(gone){ setStockLevel(i,'plenty'); return; }
+      UI.selected = on ? UI.selected.filter(s=>!sameThing(s,i.name)) : UI.selected.concat(i.name);
+      renderPantrySide(); refreshMatches();
+    });
+    longPress(node,500,()=>setStockLevel(i,gone?'plenty':'out'));
+    return node;
+  };
+
+  let shown=0;
+  S.pantry.groups.forEach(g=>{
+    const items=g.items.filter(i=>!i.out && (!q||i.name.toLowerCase().includes(q)));
+    if(!items.length)return;
+    side.append(h('div','pgroup',g.name));
+    items.forEach(i=>{ side.append(row(i,false)); shown++; });
+  });
+  if(!shown) side.append(h('p','small dim',q?'Nothing matches “'+q+'”.':'Nothing in the house.'));
+
+  const outShown=out.filter(i=>!q||i.name.toLowerCase().includes(q));
+  if(outShown.length){
+    side.append(h('div','pgroup','Out — click to put back'));
+    outShown.forEach(i=>side.append(row(i,true)));
+  }
+}
+
+/* re-draw only the recipe bands */
+function refreshMatches(){
+  const host=document.getElementById('matchHost');
+  if(!host)return;
   host.innerHTML='';
-  const ranked=rankRecipes(UI.selected,{q:UI.q});
+
+  let ranked=rankRecipes(UI.selected,{q:UI.q});
+  /* the sidebar is a filter, not a hint: everything ticked must be in the recipe */
+  if(UI.selected.length)
+    ranked=ranked.filter(x=>UI.selected.every(s=>x.recipe.ingredients.some(i=>sameThing(i.item,s))));
+
   const now=ranked.filter(x=>x.missing.length===0);
   const swap=ranked.filter(x=>x.missing.length>0
     && x.missing.every(m=>findSub(m.item)||isDroppable(m.item)));
   const near=ranked.filter(x=>!now.includes(x)&&!swap.includes(x)
     && x.missing.filter(m=>!findSub(m.item)&&!isDroppable(m.item)).length<=2);
   const rest=ranked.filter(x=>!now.includes(x)&&!swap.includes(x)&&!near.includes(x));
+
+  if(UI.selected.length||UI.q){
+    host.append(el('div',{class:'filterbar'},
+      h('span','tiny dim','Showing'),
+      UI.q?h('span','tag','“'+UI.q+'”'):null,
+      UI.selected.map(s=>el('span',{class:'tag',style:'cursor:pointer',
+        onclick:()=>{UI.selected=UI.selected.filter(x=>x!==s);renderPantrySide();refreshMatches();}},s+'  ×')),
+      el('button',{class:'btn sm',onclick:()=>{
+        UI.selected=[];UI.q='';const b=$('#searchBox');if(b)b.value='';
+        renderPantrySide();refreshMatches();
+      }},'Show everything')));
+  }
+
+  if(!ranked.length){
+    host.append(h('div','card',h('p','muted',
+      UI.selected.length?'Nothing uses '+UI.selected.join(' and ')+'.'
+        :(UI.q?'Nothing matches “'+UI.q+'”.':'No recipes yet. Add one from the Add tab.'))));
+    return;
+  }
 
   const band=(title,sub,list,limit)=>{
     if(!list.length)return;
@@ -2133,11 +2248,7 @@ function refreshMatches(){
     host.append(grid);
   };
 
-  if(!ranked.length){
-    host.append(h('div','card',h('p','muted',UI.q?'Nothing matches “'+UI.q+'”.':'No recipes yet. Add one from the Add tab.')));
-    return;
-  }
-  host.append(el('div',{class:'row',style:'margin-top:6px'},
+  host.append(el('div',{class:'row',style:'margin:2px 0 6px'},
     el('button',{class:'btn pri',onclick:()=>{
       const src=now.length?now:ranked;
       const p=src[Math.floor(Math.random()*src.length)];
@@ -2150,7 +2261,7 @@ function refreshMatches(){
   band('Make it right now','nothing to buy',now,12);
   band('One swap away','we have a stand-in for everything missing',swap,9);
   band('Nearly there','one or two things short',near,9);
-  band(UI.q?'Other matches':'Everything else','',rest,9);
+  band(UI.q||UI.selected.length?'Other matches':'Everything else','',rest,9);
 }
 function recipeCard(x){
   const r=x.recipe;
