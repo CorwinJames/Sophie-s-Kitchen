@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kitchen</title>
+<title>Sophie’s Kitchen</title>
 <style>
 :root{
   --bg:#12100e; --panel:#1b1815; --panel2:#232019; --line:#332e26;
@@ -80,8 +80,42 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
 }
 .chip:hover{border-color:#4a4236}
 .chip.on{background:var(--hot);border-color:var(--hot);color:#1a1005;font-weight:600}
-.chip.out{opacity:.4;text-decoration:line-through}
+.chip.out{opacity:.45;text-decoration:line-through;border-style:dashed}
+.chip.out:hover{opacity:.85;text-decoration:none;border-color:var(--ok);color:var(--ok)}
+.chip .x{opacity:.35;font-weight:700;font-size:12px;line-height:1}
+.chip:hover .x{opacity:.9;color:var(--bad)}
+.chip.out:hover .x{color:var(--ok)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.stockgroup{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 4px}
+.chip.lvl-some{border-color:#4a4236}
+.chip.lvl-low{border-color:var(--warn);color:var(--warn)}
+.chip .lv{font-size:10.5px;opacity:.75;font-weight:600;letter-spacing:.03em}
+.chip .qty{font-size:10.5px;opacity:.6}
+.sec{margin:22px 0 8px;display:flex;align-items:baseline;gap:10px}
+.sec h2{margin:0}
+.sec .n{color:var(--ink3);font-size:13px}
+.searchbar{display:flex;gap:8px;align-items:center}
+.searchbar input{font-size:16px;padding:11px 13px}
+.chg{display:block;padding:4px 0;font-size:13.5px}
+.chg b{font-weight:600}
+.chg.sub b{color:var(--ok)}
+.chg.protein b{color:var(--hot2)}
+.chg.drop b{color:var(--ink3)}
+.chg.add b{color:var(--ok)}
+.chg.technique b{color:var(--hot2)}
+.chg.missing b{color:var(--warn)}
+.chg.warn b{color:var(--bad)}
+.was{color:var(--ink3);text-decoration:line-through}
+.subbed{color:var(--ok)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;padding:5px 10px;cursor:pointer;font-size:12.5px;color:var(--ink2)}
+.seg button.on{background:var(--hot);color:#1a1005;font-weight:600}
+.scanwrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:70vh;text-align:center;gap:18px}
+.scanbtn{width:min(320px,80vw);aspect-ratio:1;border-radius:50%;border:2px solid var(--hot);
+  background:var(--panel2);color:var(--ink);font-size:20px;font-weight:600;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.scanbtn:active{background:var(--hot);color:#1a1005}
 .tag{display:inline-block;background:#2a2419;border:1px solid var(--line);border-radius:5px;
   padding:1px 7px;font-size:11.5px;color:var(--ink2);margin:0 4px 4px 0}
 .bar{height:5px;background:#2a251d;border-radius:3px;overflow:hidden;min-width:60px}
@@ -131,7 +165,7 @@ ul.clean li:last-child{border-bottom:0}
 <body>
 <header>
   <div class="hwrap">
-    <div class="brand">Kitchen<span>.</span></div>
+    <div class="brand">Sophie’s <span>Kitchen</span></div>
     <nav id="nav"></nav>
     <div class="right row">
       <button class="btn sm" id="btnSync">Sync</button>
@@ -154,9 +188,10 @@ ul.clean li:last-child{border-bottom:0}
    ============================================================ */
 
 const APP = {
+  NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.0'
+  VER: '1.3'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -234,8 +269,19 @@ const UNIT_CANON={
   bunch:'bunch',bunches:'bunch',slice:'slice',slices:'slice',stick:'stick',sticks:'stick',
   quart:'qt',quarts:'qt',qt:'qt',pint:'pint',pints:'pint',head:'head',heads:'head',
   sprig:'sprig',sprigs:'sprig',piece:'piece',pieces:'piece',handful:'handful',
-  dash:'dash',dashes:'dash',package:'pkg',packages:'pkg',pkg:'pkg',package_:'pkg'
+  dash:'dash',dashes:'dash',package:'pkg',packages:'pkg',pkg:'pkg',package_:'pkg',
+  floz:'floz',flozs:'floz','fl oz':'floz','fluid ounce':'floz','fluid ounces':'floz',
+  gallon:'gal',gallons:'gal',gal:'gal'
 };
+/* "2 lb", "1 1/2 cups", "12" — a bare amount with no ingredient after it */
+function parseAmount(str){
+  const s=deVulgar(String(str||'')).trim();
+  if(!s)return {qty:null,unit:null};
+  const m=/^([\d.\/]+(?:\s+\d+\/\d+)?)\s*([a-zA-Z ]*)$/.exec(s);
+  if(!m)return {qty:null,unit:null};
+  const u=(m[2]||'').trim().toLowerCase().replace(/\s+/g,' ');
+  return {qty:m[1].trim(), unit:UNIT_CANON[u]||UNIT_CANON[u.replace(/\s/g,'')]||(u||null)};
+}
 const VULGAR={'½':'1/2','¼':'1/4','¾':'3/4','⅓':'1/3','⅔':'2/3','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8'};
 function deVulgar(s){ return String(s).replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g,c=>' '+VULGAR[c]).replace(/\s+/g,' ').trim(); }
 
@@ -373,23 +419,90 @@ function parseRules(text){
   bullets(S['thaw']).forEach(l=>{ const m=/^(.+?):\s*([\d.]+)/.exec(l); if(m)thaw[norm(m[1])]=parseFloat(m[2]); });
   const portions={};
   bullets(S['portions']).forEach(l=>{ const m=/^(.+?):\s*(.+)$/.exec(l); if(m)portions[m[1].trim().toLowerCase()]=m[2].trim(); });
+  /* things that can just be left out when we don't have them */
+  const drop=bullets(S['drop']);
+  /* swapping the whole protein: what to add, and how the method changes.
+     "fish -> add: lemon, butter | technique: never braise | time: 15 minutes" */
+  const proteins={};
+  bullets(S['protein swaps']).forEach(l=>{
+    const m=/^(.+?)\s*->\s*(.+)$/.exec(l); if(!m)return;
+    const o={name:m[1].trim(),add:[],technique:'',time:''};
+    m[2].split('|').forEach(part=>{
+      const p=/^\s*(add|technique|time)\s*:\s*(.+)$/i.exec(part); if(!p)return;
+      const k=p[1].toLowerCase();
+      if(k==='add')o.add=p[2].split(',').map(s=>s.trim()).filter(Boolean);
+      else o[k]=p[2].trim();
+    });
+    proteins[norm(o.name)]=o;
+  });
   return {
-    never:bullets(S['never']), swap, always,
+    never:bullets(S['never']), swap, always, drop, proteins,
     prefer:bullets(S['prefer']), thaw, portions,
     raw:text
   };
 }
 
-/* ---------- pantry ---------- */
+/* ---------- pantry / inventory ----------
+   A line is just the name. Everything else is optional and lives in a
+   trailing parenthetical, so a phone-typed line can never be wrong:
+
+     - apples                          we have plenty
+     - apples (some)                   getting through them
+     - apples (low)                    nearly gone
+     - ! apples                        out
+     - apples (6 lb, bought 2026-08-10)   exact, straight off a receipt
+
+   Levels beat counts here on purpose. Nobody is going to tell an app
+   they ate an apple, so the app tracks confidence, not arithmetic —
+   and stores the real number only when a receipt actually gave it one.
+*/
+const LEVELS=['out','low','some','plenty'];
+const LEVEL_LABEL={out:'out',low:'nearly gone',some:'some left',plenty:'plenty'};
+function parsePantryItem(line){
+  let s=String(line||'').trim();
+  const flaggedOut=/^!\s*/.test(s);
+  s=s.replace(/^!\s*/,'');
+  let level=null,qty=null,unit=null,bought=null;
+  const m=/\(([^)]*)\)\s*$/.exec(s);
+  if(m){
+    s=s.slice(0,m.index).trim();
+    m[1].split(',').forEach(tok=>{
+      const t=tok.trim().toLowerCase(); if(!t)return;
+      if(LEVELS.includes(t)){ level=t; return; }
+      let d=/^(?:bought\s+)?(\d{4}-\d{2}-\d{2})$/.exec(t);
+      if(d){ bought=d[1]; return; }
+      d=/^(?:bought\s+)?(\d{1,2})\/(\d{1,2})$/.exec(t);
+      if(d){ bought=new Date().getFullYear()+'-'+String(+d[1]).padStart(2,'0')+'-'+String(+d[2]).padStart(2,'0'); return; }
+      const q=/^([\d.\/\s]+?)\s*([a-z]*)$/.exec(t);
+      if(q && fracToNum(q[1])!=null){ qty=q[1].trim(); unit=UNIT_CANON[q[2]]||q[2]||null; }
+    });
+  }
+  if(flaggedOut)level='out';
+  if(!level)level='plenty';
+  return {name:s,level,out:level==='out',qty,unit,bought,key:norm(s)};
+}
+function pantryItemLine(i){
+  const bits=[];
+  if(i.level && i.level!=='plenty' && i.level!=='out')bits.push(i.level);
+  if(i.qty)bits.push([i.qty,i.unit].filter(Boolean).join(' '));
+  if(i.bought)bits.push('bought '+i.bought);
+  return (i.out?'! ':'')+i.name+(bits.length?' ('+bits.join(', ')+')':'');
+}
+/* the only way levels should ever be set — keeps out/level in step */
+function setLevel(item,level){
+  if(!LEVELS.includes(level))return;
+  item.level=level; item.out=(level==='out');
+  if(level==='out'){ item.qty=null; item.unit=null; }
+}
+function stepDown(item){ setLevel(item,LEVELS[Math.max(0,LEVELS.indexOf(item.level)-1)]); }
+function stepUp(item){ setLevel(item,LEVELS[Math.min(LEVELS.length-1,LEVELS.indexOf(item.level)+1)]); }
+
 function parsePantry(text){
   const S=sections(text);
   const groups=[];
   Object.keys(S).forEach(k=>{
     if(k==='_head')return;
-    const items=bullets(S[k]).map(l=>{
-      const out=/^!\s*/.test(l);
-      return {name:l.replace(/^!\s*/,'').trim(), out, key:norm(l.replace(/^!\s*/,''))};
-    }).filter(i=>i.name);
+    const items=bullets(S[k]).map(parsePantryItem).filter(i=>i.name);
     if(items.length)groups.push({name:k,items});
   });
   return {groups,raw:text};
@@ -398,14 +511,162 @@ function pantryAll(p){ return p.groups.flatMap(g=>g.items.map(i=>Object.assign({
 function pantryHave(p){ return pantryAll(p).filter(i=>!i.out); }
 function serializePantry(p){
   const out=['# Pantry',''];
-  out.push('Put a `!` at the front of a line when we are OUT of it.','');
+  out.push('What is in the house. The app assumes anything here is available,');
+  out.push('so it only ever tells you what you would have to go buy.','');
+  out.push('Just the name means we have plenty. Everything else is optional:','');
+  out.push('    - apples                            plenty');
+  out.push('    - apples (some)                     working through them');
+  out.push('    - apples (low)                      nearly gone');
+  out.push('    - ! apples                          out — lands on the grocery list');
+  out.push('    - apples (6 lb, bought 2026-08-10)  exact, off a receipt','');
   p.groups.forEach(g=>{
     out.push('## '+g.name.replace(/\b\w/g,c=>c.toUpperCase()));
-    g.items.forEach(i=>out.push('- '+(i.out?'! ':'')+i.name));
+    g.items.forEach(i=>out.push('- '+pantryItemLine(i)));
     out.push('');
   });
   return out.join('\n');
 }
+
+/* ============================================================
+   UNITS — enough conversion to price a recipe honestly
+   Three families. Inside a family we convert exactly; across families
+   we refuse to guess, and say so, rather than inventing a number.
+   ============================================================ */
+const UNIT_G={g:1,kg:1000,oz:28.3495,lb:453.592};
+const UNIT_ML={ml:1,l:1000,tsp:4.92892,tbsp:14.7868,cup:236.588,pint:473.176,qt:946.353,floz:29.5735,gal:3785.41};
+const COUNT_UNITS=new Set(['clove','can','bunch','slice','stick','sprig','piece','head','pkg','handful','pinch','dash','']);
+function unitFamily(u){
+  const k=(u||'').toLowerCase();
+  if(UNIT_G[k])return 'weight';
+  if(UNIT_ML[k])return 'volume';
+  if(COUNT_UNITS.has(k))return 'count';
+  return null;
+}
+function toBase(qty,unit){
+  const n=fracToNum(qty); if(n==null)return null;
+  const k=(unit||'').toLowerCase();
+  if(UNIT_G[k])return {fam:'weight',n:n*UNIT_G[k]};
+  if(UNIT_ML[k])return {fam:'volume',n:n*UNIT_ML[k]};
+  if(COUNT_UNITS.has(k))return {fam:'count',n:n};
+  return null;
+}
+function money(n){
+  if(n==null||isNaN(n))return '—';
+  return '$'+(Math.round(n*100)/100).toFixed(2);
+}
+
+/* ---------- prices ----------
+   An append-only log of what we actually paid. Never edited by the app,
+   only added to, so the history stays true. */
+function parsePrices(text){
+  const S=sections(text);
+  const buy=bullets(S['purchases']).map(l=>{
+    const p=l.split('|').map(x=>x.trim());
+    if(p.length<4)return null;
+    const amt=parseAmount(p[2]||'');
+    return {date:p[0],item:p[1],qty:amt.qty,unit:amt.unit,
+      price:parseFloat(String(p[3]).replace(/[^0-9.]/g,'')),
+      store:p[4]||'',key:norm(p[1])};
+  }).filter(x=>x&&x.item&&!isNaN(x.price));
+  const weights={};
+  bullets(S['typical weights']).forEach(l=>{
+    const m=/^(.+?):\s*(.+)$/.exec(l); if(!m)return;
+    const a=parseAmount(m[2]); const b=toBase(a.qty,a.unit);
+    if(b&&b.fam==='weight')weights[norm(m[1])]={item:m[1].trim(),g:b.n,as:m[2].trim()};
+  });
+  const other=bullets(S['other spending']).map(l=>{
+    const p=l.split('|').map(x=>x.trim());
+    if(p.length<3)return null;
+    return {date:p[0],what:p[1],price:parseFloat(String(p[2]).replace(/[^0-9.]/g,'')),store:p[3]||''};
+  }).filter(x=>x&&!isNaN(x.price));
+  return {buy,other,weights,raw:text};
+}
+function serializePrices(p){
+  const out=['# Prices','',
+    'Everything we have actually paid. The app only ever appends to this —',
+    'your history is never rewritten. Recipe costs are worked out from it.','',
+    'Written as:  YYYY-MM-DD | item | amount | price | store','','## Purchases',''];
+  p.buy.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(b=>
+    out.push(`- ${b.date} | ${b.item} | ${[b.qty,b.unit].filter(Boolean).join(' ')||'1'} | ${Number(b.price).toFixed(2)} | ${b.store}`));
+  out.push('','## Typical weights',
+    'What one of a thing weighs, so a recipe saying "3 carrots" can be costed',
+    'from a price paid per pound. Only used when the units do not otherwise',
+    'line up, and anything costed this way is shown as an estimate.',
+    'Written as:  item: amount','');
+  Object.values(p.weights||{}).forEach(w=>out.push(`- ${w.item}: ${w.as}`));
+  out.push('','## Other spending',
+    'Money that is not a line item — a farm share, a guest\'s shopping run.',
+    'Written as:  YYYY-MM-DD | what | amount | store','');
+  p.other.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(o=>
+    out.push(`- ${o.date} | ${o.what} | ${Number(o.price).toFixed(2)} | ${o.store}`));
+  return out.join('\n')+'\n';
+}
+
+/* ---------- stores ---------- */
+function parseStores(text){
+  const S=sections(text);
+  const list=bullets(S['stores']).map(l=>{
+    const p=l.split('|').map(x=>x.trim());
+    return p[0]?{name:p[0],good:(p[1]||'').split(',').map(s=>s.trim()).filter(Boolean),note:p[2]||''}:null;
+  }).filter(Boolean);
+  const best={};
+  bullets(S['best for']).forEach(l=>{
+    const m=/^(.+?)\s*->\s*(.+)$/.exec(l); if(!m)return;
+    best[norm(m[1])]={item:m[1].trim(),store:m[2].trim()};
+  });
+  const season={};
+  bullets(S['seasons']).forEach(l=>{
+    const m=/^(.+?):\s*(\d{1,2})\s*[-–]\s*(\d{1,2})\s*$/.exec(l); if(!m)return;
+    season[norm(m[1])]={item:m[1].trim(),from:+m[2],to:+m[3]};
+  });
+  return {list,best,season,raw:text};
+}
+function serializeStores(s){
+  const out=['# Stores','',
+    'Where to buy what, and when it is worth buying.','',
+    'Written as:  name | what it is good for | note','','## Stores',''];
+  s.list.forEach(x=>out.push(`- ${x.name} | ${x.good.join(', ')} | ${x.note}`.trimEnd()));
+  out.push('','## Best for','Written as:  item or category -> store','');
+  Object.values(s.best).forEach(b=>out.push(`- ${b.item} -> ${b.store}`));
+  out.push('','## Seasons','When something is actually worth buying. Written as:  item: first month - last month','');
+  Object.values(s.season).forEach(b=>out.push(`- ${b.item}: ${b.from}-${b.to}`));
+  return out.join('\n')+'\n';
+}
+function inSeason(item,month){
+  const m=month||(new Date().getMonth()+1);
+  const hit=Object.values(S.stores?S.stores.season:{}).find(s=>sameThing(s.item,item));
+  if(!hit)return null;
+  return hit.from<=hit.to ? (m>=hit.from&&m<=hit.to) : (m>=hit.from||m<=hit.to);
+}
+
+/* ---------- ingredient families ----------
+   So that searching "beef" finds the short ribs, while searching
+   "short ribs" stays specific to short ribs. */
+const FAMILY={
+  beef:['beef','short ribs','chuck','steak','brisket','ribeye','sirloin','flank','ground beef','stew meat','oxtail'],
+  chicken:['chicken','chicken thigh','chicken breast','chicken wing','drumstick','whole chicken'],
+  pork:['pork','bacon','sausage','ham','pork shoulder','pork chop','pork belly','pancetta','prosciutto'],
+  lamb:['lamb','lamb shoulder','lamb chop'],
+  fish:['fish','salmon','cod','halibut','tuna','snapper','trout','sea bass','mackerel','anchovy'],
+  seafood:['shrimp','prawn','scallop','mussel','clam','squid','crab','lobster','octopus'],
+  egg:['egg'],
+  tofu:['tofu','tempeh'],
+  pasta:['pasta','spaghetti','noodle','penne','rigatoni','linguine','orzo'],
+  rice:['rice','risotto','arborio','jasmine rice','basmati'],
+  potato:['potato','fingerling','yukon','russet'],
+  mushroom:['mushroom','shiitake','cremini','portobello','porcini'],
+  cheese:['cheese','parmesan','cheddar','mozzarella','gruyere','feta','goat cheese']
+};
+const PROTEIN_FAMILIES=['beef','chicken','pork','lamb','fish','seafood','tofu','egg'];
+/* which family does this ingredient belong to, if any */
+function familyOf(item){
+  const n=norm(item);
+  for(const k of Object.keys(FAMILY)){
+    if(FAMILY[k].some(w=>sameThing(w,n)||n.includes(norm(w))))return k;
+  }
+  return null;
+}
+function isProtein(item){ const f=familyOf(item); return f&&PROTEIN_FAMILIES.includes(f)?f:null; }
 
 /* ---------- steps library ---------- */
 function parseSteps(text){
@@ -447,13 +708,25 @@ function parsePlan(text){
     const m=/^(\d{4}-\d{2}-\d{2})\s+(\w+)\s*:\s*(.*)$/.exec(l);
     return m?{date:m[1],meal:m[2].toLowerCase(),recipe:m[3].trim()}:null;
   }).filter(Boolean);
-  return {away,skip,plan,raw:text};
+  const guests=bullets(S['guests']).map(l=>{
+    const p=l.split('|').map(x=>x.trim());
+    const m=/^(\d{4}-\d{2}-\d{2})\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2})$/.exec(p[0]||'');
+    return m?{from:m[1],to:m[2],who:p[1]||'guests',extra:parseInt(p[2]||'1')||1}:null;
+  }).filter(Boolean);
+  const favourites=bullets(S['guest favourites']);
+  return {away,skip,plan,guests,favourites,raw:text};
 }
 function serializePlan(p,thaws){
   const out=['# Meal Plan','','## Away','Written as:  YYYY-MM-DD to YYYY-MM-DD  label',''];
   p.away.forEach(a=>out.push(`- ${a.from} to ${a.to}  ${a.label||''}`.trimEnd()));
   out.push('','## Skip','Written as:  YYYY-MM-DD meal  reason','');
   p.skip.forEach(s=>out.push(`- ${s.date} ${s.meal}  ${s.reason||''}`.trimEnd()));
+  out.push('','## Guests',
+    'People staying with us. The planner buys for more mouths and leans on',
+    'the favourites below. Written as:  YYYY-MM-DD to YYYY-MM-DD | who | extra people','');
+  (p.guests||[]).forEach(g=>out.push(`- ${g.from} to ${g.to} | ${g.who} | ${g.extra}`));
+  out.push('','## Guest favourites','What we always end up making when people stay.','');
+  (p.favourites||[]).forEach(f=>out.push('- '+f));
   out.push('','## Plan','Written as:  YYYY-MM-DD meal: recipe name','');
   p.plan.slice().sort((a,b)=>a.date.localeCompare(b.date))
     .forEach(s=>out.push(`- ${s.date} ${s.meal}: ${s.recipe}`));
@@ -566,6 +839,17 @@ const Drive = {
     return r.text();
   },
 
+  /* photos and other binaries: create the file, then PATCH the bytes in */
+  async createBinary(name,parent,blob,mime){
+    const r=await this.req('https://www.googleapis.com/drive/v3/files',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,parents:parent?[parent]:undefined})});
+    const f=await r.json();
+    const r2=await this.req(`https://www.googleapis.com/upload/drive/v3/files/${f.id}?uploadType=media&fields=id,name,webViewLink`,
+      {method:'PATCH',headers:{'Content-Type':mime||'application/octet-stream'},body:blob});
+    return r2.json();
+  },
+
   async create(name,parent,text,mime='text/markdown'){
     const b='-----kitchen'+Math.random().toString(36).slice(2);
     const meta={name,parents:parent?[parent]:undefined};
@@ -603,7 +887,7 @@ const Drive = {
    STATE
    ============================================================ */
 const S = {
-  ids:{root:null,library:null,inbox:null,done:null},
+  ids:{root:null,library:null,inbox:null,done:null,receipts:null},
   files:{},            // name -> drive file meta for the config files
   rules:parseRules(''),
   pantry:parsePantry(''),
@@ -611,6 +895,9 @@ const S = {
   plan:parsePlan(''),
   grocery:parseGrocery(''),
   recipes:[],
+  receipts:{rows:[],done:[],raw:''},
+  prices:{buy:[],other:[],raw:''},
+  stores:{list:[],best:{},season:{},raw:''},
   inbox:[],
   loadedAt:null,
   dirty:new Set(),
@@ -622,7 +909,10 @@ const CONFIG_FILES=[
   ['pantry.md',      t=>S.pantry=parsePantry(t)],
   ['steps-library.md',t=>S.steps=parseSteps(t)],
   ['meal-plan.md',   t=>S.plan=parsePlan(t)],
-  ['grocery-list.md',t=>S.grocery=parseGrocery(t)]
+  ['grocery-list.md',t=>S.grocery=parseGrocery(t)],
+  ['receipts-queue.md',t=>S.receipts=parseReceipts(t)],
+  ['prices.md',      t=>S.prices=parsePrices(t)],
+  ['stores.md',      t=>S.stores=parseStores(t)]
 ];
 
 const SEED={
@@ -693,8 +983,82 @@ match: brown on all sides
 ## Manual
 
 ## Got
+`,
+'prices.md':`# Prices
+
+Everything we have actually paid. The app only ever appends to this.
+
+Written as:  YYYY-MM-DD | item | amount | price | store
+
+## Purchases
+
+## Typical weights
+What one of a thing weighs, so "3 carrots" can be costed from a price paid
+per pound. Written as:  item: amount
+
+- onion: 6 oz
+- carrot: 2.5 oz
+- lemon: 3.5 oz
+- garlic clove: 5 g
+- egg: 2 oz
+- chicken thigh: 5 oz
+- potato: 6 oz
+- tomato: 5 oz
+
+## Other spending
+Money that is not a line item — a farm share, a guest's shopping run.
+Written as:  YYYY-MM-DD | what | amount | store
+
+`,
+'stores.md':`# Stores
+
+Where to buy what, and when it is worth buying.
+
+## Stores
+Written as:  name | what it is good for | note
+
+## Best for
+Written as:  item or category -> store
+
+## Seasons
+Written as:  item: first month - last month
+
+`,
+'receipts-queue.md':`# Receipts
+
+Photos taken with the Scan button land in Recipes/_receipts and get logged
+here. Ask Claude to "process the receipt queue" and it will read them, update
+the pantry with what was bought, and record prices.
+
+Written as:  YYYY-MM-DD HH:MM | filename | drive-id | status
+
+## Queue
+
+## Done
 `
 };
+
+/* ---------- receipt queue ---------- */
+function parseReceipts(text){
+  const S2=sections(text);
+  const row=l=>{
+    const p=l.split('|').map(x=>x.trim());
+    return p.length>=3?{when:p[0],file:p[1],id:p[2],status:p[3]||'new'}:null;
+  };
+  return {rows:bullets(S2['queue']).map(row).filter(Boolean),
+          done:bullets(S2['done']).map(row).filter(Boolean),raw:text};
+}
+function serializeReceipts(r){
+  const out=['# Receipts','',
+    'Photos taken with the Scan button land in Recipes/_receipts and get logged',
+    'here. Ask Claude to "process the receipt queue" and it will read them, update',
+    'the pantry with what was bought, and record prices.','',
+    'Written as:  YYYY-MM-DD HH:MM | filename | drive-id | status','','## Queue',''];
+  r.rows.forEach(x=>out.push(`- ${x.when} | ${x.file} | ${x.id} | ${x.status}`));
+  out.push('','## Done','');
+  (r.done||[]).forEach(x=>out.push(`- ${x.when} | ${x.file} | ${x.id} | ${x.status}`));
+  return out.join('\n')+'\n';
+}
 
 /* cache so the app opens instantly and works offline (read-only) */
 function saveCache(){
@@ -713,6 +1077,8 @@ function loadCache(){
   S.files=c.files||{};
   S.rules=parseRules(c.raw.rules); S.pantry=parsePantry(c.raw.pantry);
   S.steps=parseSteps(c.raw.steps); S.plan=parsePlan(c.raw.plan); S.grocery=parseGrocery(c.raw.grocery);
+  S.receipts=parseReceipts(c.raw.receipts||'');
+  S.prices=parsePrices(c.raw.prices||''); S.stores=parseStores(c.raw.stores||'');
   S.recipes=(c.recipes||[]).map(r=>parseRecipe(r.raw,{id:r.fileId,name:r.fileName,modifiedTime:r.modifiedTime}));
   S.loadedAt=c.at;
   return true;
@@ -727,6 +1093,7 @@ async function syncAll(){
     S.ids.library=(await Drive.ensureFolder('library',S.ids.root)).id;
     S.ids.inbox=(await Drive.ensureFolder('_inbox',S.ids.root)).id;
     S.ids.done=(await Drive.ensureFolder('done',S.ids.inbox)).id;
+    S.ids.receipts=(await Drive.ensureFolder('_receipts',S.ids.root)).id;
 
     const rootFiles=await Drive.list(`'${S.ids.root}' in parents and trashed=false`);
     for(const [name,apply] of CONFIG_FILES){
@@ -743,6 +1110,26 @@ async function syncAll(){
 
     S.inbox=(await Drive.list(`'${S.ids.inbox}' in parents and trashed=false`))
       .filter(f=>f.mimeType!=='application/vnd.google-apps.folder');
+
+    /* The _receipts FOLDER is the source of truth, not the queue file — so a
+       photo that arrives any other way (an iOS Shortcut, the Drive app's share
+       sheet, dragged in on a laptop) still gets picked up and queued. */
+    S.receipts.rows=S.receipts.rows||[]; S.receipts.done=S.receipts.done||[];
+    const seenShots=new Set(S.receipts.rows.concat(S.receipts.done).map(r=>r.id));
+    const shots=(await Drive.list(`'${S.ids.receipts}' in parents and trashed=false`,
+      'files(id,name,mimeType,modifiedTime,createdTime)'))
+      .filter(f=>/^image\//.test(f.mimeType||'')||/\.(jpe?g|png|heic|webp)$/i.test(f.name||''));
+    let newShots=0;
+    shots.forEach(f=>{
+      if(seenShots.has(f.id))return;
+      S.receipts.rows.push({when:(f.createdTime||f.modifiedTime||'').replace('T',' ').slice(0,16),
+        file:f.name,id:f.id,status:'new'});
+      newShots++;
+    });
+    if(newShots){
+      const rtext=serializeReceipts(S.receipts); S.receipts.raw=rtext;
+      try{ await saveFile('receipts-queue.md',rtext); }catch(e){}
+    }
 
     S.loadedAt=Date.now(); S.offline=false;
     saveCache();
@@ -829,20 +1216,229 @@ function scoreRecipe(r,selected,have){
   if(sel.length && selHits<sel.length) score -= (sel.length-selHits)*35;
   return {recipe:r,coverage,matched,total,missing,subs,selHits,never,score};
 }
+/* ---------- search ----------
+   "beef" should find the short ribs. "short ribs" should not find every
+   beef recipe. So: exact and substring matches always count, and a
+   family name additionally matches anything in that family. */
+function searchScore(r,q){
+  const raw=String(q||'').trim().toLowerCase();
+  if(!raw)return 1;
+  const nq=norm(raw);
+  let s=0;
+  const name=r.name.toLowerCase();
+  if(name===raw)s+=100;
+  else if(name.includes(raw))s+=60;
+  if(r.tags.some(t=>t.toLowerCase()===raw))s+=40;
+  else if(r.tags.some(t=>t.toLowerCase().includes(raw)))s+=15;
+  r.ingredients.forEach(i=>{
+    if(sameThing(i.item,raw))s+=45;                       // "short ribs" -> the short rib recipe
+    else if(i.item.toLowerCase().includes(raw))s+=25;
+    else if(nq && norm(i.item).includes(nq))s+=20;
+  });
+  if(FAMILY[nq]){                                          // "beef" -> chuck, short ribs, brisket…
+    const hit=r.ingredients.some(i=>familyOf(i.item)===nq);
+    if(hit)s+=35;
+    if(r.tags.some(t=>norm(t)===nq))s+=10;
+  }
+  if(r.steps.join(' ').toLowerCase().includes(raw))s+=5;
+  if((r.notes||'').toLowerCase().includes(raw))s+=3;
+  return s;
+}
 function rankRecipes(selected,opts={}){
   const have=haveKeys();
   let list=S.recipes.map(r=>scoreRecipe(r,selected,have));
   if(opts.tag) list=list.filter(x=>x.recipe.tags.some(t=>t.toLowerCase().includes(opts.tag.toLowerCase())));
-  if(opts.q){ const q=opts.q.toLowerCase();
-    list=list.filter(x=>x.recipe.name.toLowerCase().includes(q)
-      ||x.recipe.tags.join(' ').toLowerCase().includes(q)
-      ||x.recipe.ingredients.some(i=>i.item.toLowerCase().includes(q))); }
+  if(opts.q && opts.q.trim()){
+    list=list.map(x=>Object.assign(x,{search:searchScore(x.recipe,opts.q)}))
+             .filter(x=>x.search>0)
+             .map(x=>Object.assign(x,{score:x.score+x.search*3}));
+  }
   if(opts.maxMissing!=null) list=list.filter(x=>x.missing.filter(m=>!findSub(m.item)).length<=opts.maxMissing);
   list.sort((a,b)=>b.score-a.score);
   return list;
 }
+/* recipes we could put on the table right now with nothing bought */
+function cookableNow(){ return rankRecipes([]).filter(x=>x.missing.length===0); }
+/* …and the ones a house substitution would rescue */
+function cookableWithSwaps(){
+  return rankRecipes([]).filter(x=>x.missing.length>0
+    && x.missing.every(m=>findSub(m.item)||isDroppable(m.item)));
+}
+function isDroppable(item){
+  const raw=String(item||'').toLowerCase().trim();
+  const n=norm(item);
+  if(!raw)return false;
+  return (S.rules.drop||[]).some(d=>{
+    const dr=String(d).toLowerCase().trim();
+    if(!dr)return false;
+    if(raw.includes(dr))return true;                 // "garnish" normalises to nothing, so match raw too
+    const dn=norm(d);
+    return !!dn && (sameThing(d,item)||(!!n&&n.includes(dn)));
+  });
+}
+
+/* ============================================================
+   COST — what a meal actually costs, from what we actually paid
+   It refuses to guess. If we have never bought a thing, or bought it
+   in units that cannot be converted, it says so rather than inventing
+   a number and quietly making every total wrong.
+   ============================================================ */
+function priceHistory(item){
+  return (S.prices.buy||[]).filter(b=>sameThing(b.item,item))
+    .slice().sort((a,b)=>b.date.localeCompare(a.date));
+}
+/* the most recent price, expressed per base unit (per g, per ml, per one) */
+function unitPrice(item){
+  const hist=priceHistory(item);
+  for(const b of hist){
+    const base=toBase(b.qty||'1',b.unit||'');
+    if(!base||!base.n)continue;
+    return {per:b.price/base.n,fam:base.fam,paid:b.price,on:b.date,store:b.store,
+      amount:[b.qty,b.unit].filter(Boolean).join(' ')||'1'};
+  }
+  return null;
+}
+function bestPrice(item){
+  const hist=priceHistory(item);
+  let best=null;
+  hist.forEach(b=>{
+    const base=toBase(b.qty||'1',b.unit||'');
+    if(!base||!base.n)return;
+    const per=b.price/base.n;
+    if(!best||per<best.per)best={per,fam:base.fam,paid:b.price,on:b.date,store:b.store};
+  });
+  return best;
+}
+/* seasonings used by the pinch are not worth pricing and should not
+   make the total look uncertain */
+function negligible(ing){
+  const seasonings=S.pantry.groups.filter(g=>/seasoning|spice/.test(g.name)).flatMap(g=>g.items);
+  if(seasonings.some(x=>sameThing(x.name,ing.item)))return true;
+  if(!ing.qty && /salt|pepper|oil|water/.test(norm(ing.item)))return true;
+  return false;
+}
+/* what one of a thing weighs, in grams, if we have been told */
+function typicalWeight(item){
+  const W=(S.prices&&S.prices.weights)||{};
+  for(const k of Object.keys(W)) if(sameThing(W[k].item,item))return W[k].g;
+  return null;
+}
+/* recipes count things; shops sell them by weight. Bridge the two, but only
+   with an assumption we can point at, and always flag it as an estimate. */
+function crossConvert(item,base,targetFam){
+  if(!base)return null;
+  if(base.fam===targetFam)return {n:base.n,est:false};
+  const w=typicalWeight(item);
+  if(base.fam==='count'&&targetFam==='weight'&&w!=null)return {n:base.n*w,est:true};
+  if(base.fam==='weight'&&targetFam==='count'&&w)return {n:base.n/w,est:true};
+  if(base.fam==='count'&&targetFam==='volume'&&w!=null)return {n:base.n*w,est:true};
+  /* for anything wet, a millilitre weighs about a gram. Wrong for flour,
+     close enough for stock, milk, paste and sauce. */
+  if((base.fam==='volume'&&targetFam==='weight')||(base.fam==='weight'&&targetFam==='volume'))
+    return {n:base.n,est:true};
+  return null;
+}
+function recipeCost(recipe,servingsMultiplier){
+  const mult=servingsMultiplier||1;
+  let total=0;
+  const priced=[],unpriced=[],skipped=[],estimated=[];
+  recipe.ingredients.forEach(i=>{
+    if(!i.key)return;
+    if(negligible(i)){ skipped.push(i.item); return; }
+    const up=unitPrice(i.item);
+    if(!up){ unpriced.push(i.item); return; }
+    const conv=crossConvert(i.item,toBase(i.qty||'1',i.unit||''),up.fam);
+    if(!conv){ unpriced.push(i.item); return; }
+    const c=up.per*conv.n*mult;
+    total+=c;
+    if(conv.est)estimated.push(i.item);
+    priced.push({item:i.item,cost:c,on:up.on,store:up.store,est:conv.est});
+  });
+  return {total,priced,unpriced,skipped,estimated,
+    complete:unpriced.length===0,
+    confidence: priced.length+unpriced.length ? priced.length/(priced.length+unpriced.length) : 0};
+}
+function costLabel(c){
+  if(!c.priced.length)return null;
+  if(!c.complete)return 'from '+money(c.total);
+  return (c.estimated.length?'about ':'')+money(c.total);
+}
+/* spending, by month and in total */
+function spending(){
+  const rows=[];
+  (S.prices.buy||[]).forEach(b=>rows.push({date:b.date,price:b.price,store:b.store,what:b.item}));
+  (S.prices.other||[]).forEach(o=>rows.push({date:o.date,price:o.price,store:o.store,what:o.what,other:true}));
+  const byMonth={};
+  rows.forEach(r=>{ const m=(r.date||'').slice(0,7); if(!m)return;
+    byMonth[m]=(byMonth[m]||0)+r.price; });
+  const byStore={};
+  rows.forEach(r=>{ const s=r.store||'unknown'; byStore[s]=(byStore[s]||0)+r.price; });
+  return {rows,byMonth,byStore,total:rows.reduce((a,r)=>a+r.price,0)};
+}
+/* record a shop — used by the manual form and by receipt processing */
+function recordPurchase({date,store,items,other}){
+  const d=date||todayISO();
+  (items||[]).forEach(it=>{
+    S.prices.buy.push({date:d,item:it.item,qty:it.qty||'1',unit:it.unit||'',
+      price:parseFloat(it.price)||0,store:store||'',key:norm(it.item)});
+    /* bought it, so we have it again */
+    S.pantry.groups.forEach(g=>g.items.forEach(p=>{
+      if(!sameThing(p.name,it.item))return;
+      setLevel(p,'plenty');
+      if(it.qty){ p.qty=it.qty; p.unit=it.unit||null; }
+      p.bought=d;
+      S.grocery.need=S.grocery.need.filter(t=>t!==p.name);
+    }));
+  });
+  (other||[]).forEach(o=>S.prices.other.push({date:d,what:o.what,price:parseFloat(o.price)||0,store:store||''}));
+  return true;
+}
+
+/* ============================================================
+   WHERE TO SHOP
+   ============================================================ */
+function storeFor(item){
+  const month=new Date().getMonth()+1;
+  /* an explicit rule wins */
+  for(const k of Object.keys(S.stores.best||{})){
+    const b=S.stores.best[k];
+    if(sameThing(b.item,item)||norm(item).includes(norm(b.item)))
+      return {store:b.store,why:'we always get it there'};
+  }
+  /* in season and someone sells seasonal produce */
+  const seasonal=inSeason(item,month);
+  if(seasonal){
+    const farm=(S.stores.list||[]).find(s=>s.good.some(g=>/season|produce|vegetable|farm/i.test(g)));
+    if(farm)return {store:farm.name,why:'in season right now'};
+  }
+  /* a store that lists this category as a speciality */
+  const cat=familyOf(item);
+  const byCat=(S.stores.list||[]).find(s=>s.good.some(g=>
+    sameThing(g,item)||(cat&&norm(g)===cat)||norm(item).includes(norm(g))));
+  if(byCat)return {store:byCat.name,why:'they are good for '+item};
+  /* otherwise, wherever it was cheapest */
+  const best=bestPrice(item);
+  if(best&&best.store)return {store:best.store,why:'cheapest we have paid, '+money(best.paid)+' on '+best.on};
+  const dflt=(S.stores.list||[]).find(s=>s.good.some(g=>/everything|default/i.test(g)));
+  return dflt?{store:dflt.name,why:'default'}:null;
+}
+function shoppingRoute(items){
+  const by={};
+  items.forEach(t=>{
+    const name=typeof t==='string'?t:t.item||t.text;
+    const s=storeFor(name)||{store:'anywhere',why:''};
+    (by[s.store]=by[s.store]||{store:s.store,items:[],why:{}}).items.push(name);
+    by[s.store].why[name]=s.why;
+  });
+  return Object.values(by).sort((a,b)=>b.items.length-a.items.length);
+}
 
 /* ---------- planner ---------- */
+function guestsOn(iso){ return (S.plan.guests||[]).find(g=>iso>=g.from&&iso<=g.to)||null; }
+function houseSize(){ return parseInt((S.rules.portions||{}).serves||'2')||2; }
+/* how many portions to cook on a given day */
+function portionsOn(iso){ const g=guestsOn(iso); return houseSize()+(g?g.extra:0); }
+function isFavourite(r){ return (S.plan.favourites||[]).some(f=>sameThing(f,r.name)||f.toLowerCase()===r.name.toLowerCase()); }
 function isAway(iso){ return S.plan.away.some(a=>iso>=a.from&&iso<=a.to); }
 function nextTrip(fromISO){
   const t=S.plan.away.filter(a=>a.from>=fromISO).sort((a,b)=>a.from.localeCompare(b.from));
@@ -881,10 +1477,13 @@ function buildPlan(startISO,days,opts={}){
     if(isSkipped(iso,'dinner')){ out.push({date:iso,meal:'dinner',skip:true,reason:skipReason(iso,'dinner')}); continue; }
     const existing=S.plan.plan.find(p=>p.date===iso&&p.meal==='dinner');
     if(existing && !opts.replace){
-      out.push({date:iso,meal:'dinner',recipe:recipeByName(existing.recipe),name:existing.recipe,pinned:true});
+      out.push({date:iso,meal:'dinner',recipe:recipeByName(existing.recipe),name:existing.recipe,pinned:true,
+        guest:guestsOn(iso),portions:portionsOn(iso),
+        reason:guestsOn(iso)?`${guestsOn(iso).who} staying — cooking for ${portionsOn(iso)}`:''});
       used.add((recipeByName(existing.recipe)||{}).fileId); continue;
     }
     const daysToTrip = trip?dayDiff(iso,trip.from):999;
+    const guest=guestsOn(iso);
     let pool=S.recipes.filter(r=>!used.has(r.fileId));
     if(!pool.length){ used.clear(); pool=S.recipes.slice(); }   // small library — start the rotation over
     const cands=pool.map(r=>{
@@ -892,13 +1491,15 @@ function buildPlan(startISO,days,opts={}){
       let s=sc.score;
       if(daysToTrip<=2 && daysToTrip>=0){ s+=perishScore(r)*6; s-=sc.missing.length*10; }   // burn the fridge down, buy nothing
       else if(daysToTrip<=4) s+=perishScore(r)*2;
+      if(guest && isFavourite(r)) s+=80;                             // people are staying — cook the good stuff
       s+=Math.random()*3;                                            // a little shuffle so it isn't the same week forever
       return {r,s,sc,daysToTrip};
     }).sort((a,b)=>b.s-a.s);
     const pick=cands[0];
     out.push({date:iso,meal:'dinner',recipe:pick?pick.r:null,name:pick?pick.r.name:'',
-      score:pick?pick.sc:null,
-      reason: daysToTrip<=2&&daysToTrip>=0 ? `${daysToTrip===0?'leaving today':'before '+(trip.label||'the trip')} — uses what's here`:''});
+      score:pick?pick.sc:null,guest,portions:portionsOn(iso),
+      reason: guest ? `${guest.who} staying — cooking for ${portionsOn(iso)}`
+        : (daysToTrip<=2&&daysToTrip>=0 ? `${daysToTrip===0?'leaving today':'before '+(trip.label||'the trip')} — uses what's here`:'')});
     if(pick)used.add(pick.r.fileId);
   }
   return out;
@@ -931,14 +1532,17 @@ function buildGrocery(planRows){
   const bucket=new Map();
   planRows.forEach(row=>{
     if(!row.recipe)return;
+    const serves=parseInt(row.recipe.meta.serves||houseSize())||houseSize();
+    const mult=row.portions?Math.max(1,row.portions/serves):1;
     row.recipe.ingredients.forEach(i=>{
       if(!i.key)return;
       if(have.some(h=>sameThing(h.name,i.item)))return;
       const k=i.key;
       if(!bucket.has(k))bucket.set(k,{item:i.item,parts:[],forr:new Set()});
       const b=bucket.get(k);
-      b.parts.push({qty:i.qty,unit:i.unit});
-      b.forr.add(row.recipe.name);
+      const n=fracToNum(i.qty);
+      b.parts.push({qty:n!=null?String(trimNum(n*mult)):i.qty,unit:i.unit});
+      b.forr.add(row.recipe.name+(mult>1?' (for '+row.portions+')':''));
     });
   });
   const list=[...bucket.values()].map(b=>{
@@ -1080,6 +1684,160 @@ function refactor(rec,passIds){
   return {result:r,changes};
 }
 
+/* ============================================================
+   MAKE IT — adapt a recipe to what is actually in the house
+   Substitute what we can, drop what doesn't matter, swap the protein
+   if you want to, and be loud about every change.
+   ============================================================ */
+function makeIt(recipe,opts={}){
+  const r=JSON.parse(JSON.stringify(recipe));
+  const changes=[];
+  const have=pantryHave(S.pantry);
+  const hasIt=n=>have.some(h=>sameThing(h.name,n));
+  const note=(kind,text,was)=>changes.push({kind,text,was:was||null});
+
+  /* 1 — swap the whole protein, if asked */
+  if(opts.protein){
+    const target=opts.protein;
+    const rule=S.rules.proteins[norm(target)]||null;
+    const oldIdx=r.ingredients.findIndex(i=>isProtein(i.item));
+    const oldName=oldIdx>=0?r.ingredients[oldIdx].item:null;
+    const oldFam=oldName?isProtein(oldName):null;
+
+    /* strip out everything that was only there because of the old protein */
+    if(oldFam){
+      const oldRule=S.rules.proteins[norm(oldFam)]||null;
+      const before=r.steps.length;
+      r.steps=r.steps.filter(s=>{
+        const low=s.toLowerCase();
+        if(oldRule&&oldRule.technique&&low.includes(oldRule.technique.toLowerCase().slice(0,20)))return false;
+        return !S.rules.always.some(a=>a.trigger
+          && (norm(a.trigger)===norm(oldFam)||isProtein(a.trigger)===oldFam)
+          && low.includes(a.do.toLowerCase().slice(0,16)));
+      });
+      if(r.steps.length<before)note('technique','dropped the '+oldFam+' method');
+      /* drop the old protein's pairings too, so fish doesn't inherit bay leaf */
+      if(oldRule){
+        oldRule.add.forEach(a=>{
+          const n=r.ingredients.findIndex(i=>sameThing(i.item,a));
+          if(n>=0 && !(rule&&rule.add.some(x=>sameThing(x,a)))){
+            r.ingredients.splice(n,1);
+            note('drop',`${a} — that was there for the ${oldFam}`);
+          }
+        });
+      }
+    }
+
+    if(oldIdx>=0){
+      const ing=r.ingredients.find(i=>isProtein(i.item));
+      if(ing){ ing.item=target; ing.key=norm(target); ing.dirty=true; ing.chosen=true; ing.raw=ingLine(ing); }
+      note('protein',`${target} instead of ${oldName}`,oldName);
+      /* reword the written steps so they stop talking about ribs */
+      const words=uniq(String(oldName).toLowerCase().split(/\s+/).concat(norm(oldName).split(' ')))
+        .filter(w=>w.length>3);
+      if(words.length){
+        const re=new RegExp('\\b('+words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(s|es)?\\b','ig');
+        const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+        r.steps=r.steps.map(s=>cap(s.replace(re,target)));
+        r.notes=(r.notes||'').replace(re,target);
+      }
+    }else{
+      r.ingredients.unshift(Object.assign(parseIngredient(target),{dirty:true,chosen:true}));
+      note('protein',`added ${target}`);
+    }
+
+    if(rule){
+      rule.add.forEach(a=>{
+        if(r.ingredients.some(i=>sameThing(i.item,a)))return;
+        r.ingredients.push(Object.assign(parseIngredient(a),{dirty:true}));
+        note('add',`${a} — goes with ${target}`);
+      });
+      if(rule.technique){
+        r.steps.unshift('With '+target+': '+rule.technique+'.');
+        note('technique',rule.technique);
+      }
+      if(rule.time){ r.meta.time=rule.time; note('technique','timing: '+rule.time); }
+    }
+    /* apply the house Always rules that belong to the NEW protein only —
+       the recipe's own tags still say "braise", and they are no longer true */
+    S.rules.always.forEach(a=>{
+      if(!a.trigger||!target.toLowerCase().includes(a.trigger.toLowerCase()))return;
+      if(r.steps.some(s=>s.toLowerCase().includes(a.do.toLowerCase().slice(0,18))))return;
+      r.steps.splice(1,0,a.do.charAt(0).toUpperCase()+a.do.slice(1)+'.');
+      note('technique',a.do+' — house rule for '+a.trigger);
+    });
+    if(oldFam){
+      r.tags=r.tags.filter(t=>norm(t)!==norm(oldFam));
+      if(!r.tags.includes(target))r.tags.unshift(target);
+      note('warn','the written steps below were composed for '+oldFam+
+        ' — the method line at the top wins where they disagree');
+    }
+  }
+
+  /* 2 — anything we don't have: substitute, drop, or flag */
+  const missing=[];
+  for(let n=r.ingredients.length-1;n>=0;n--){
+    const i=r.ingredients[n];
+    if(!i.key||hasIt(i.item))continue;
+    if(i.chosen){ missing.push(i.item); continue; }   // you asked for this one — never drop it
+    const sub=findSub(i.item);
+    if(sub){
+      const was=i.item;
+      i.item=sub.to.split(',')[0].trim(); i.key=norm(i.item); i.dirty=true; i.sub=was; i.raw=ingLine(i);
+      note('sub',`${i.item} instead of ${was}`,was);
+      continue;
+    }
+    if(isDroppable(i.item)){
+      note('drop',`left out the ${i.item}`,i.item);
+      r.ingredients.splice(n,1);
+      continue;
+    }
+    missing.push(i.item);
+  }
+  missing.reverse();
+  if(missing.length)note('missing','still need: '+missing.join(', '));
+  return {recipe:r,changes,missing};
+}
+/* proteins we could swap in, given what's in the house */
+function availableProteins(){
+  const out=[];
+  pantryHave(S.pantry).forEach(i=>{ if(isProtein(i.name))out.push(i.name); });
+  return uniq(out);
+}
+
+/* ============================================================
+   COOKING SOMETHING USES IT UP
+   Perishables step down a level; a seasoning is not "used up" by a
+   pinch of it. Everything is a suggestion you can override in one tap.
+   ============================================================ */
+function deductPlan(recipe){
+  const rows=[];
+  S.pantry.groups.forEach(g=>g.items.forEach(i=>{
+    if(i.out)return;
+    const used=recipe.ingredients.find(x=>sameThing(x.item,i.name));
+    if(!used)return;
+    const perishable=/fridge|freezer|produce|veg|meat/.test(g.name);
+    let suggestion='keep';
+    if(i.level==='low')suggestion='out';
+    else if(perishable)suggestion='down';
+    rows.push({item:i,group:g.name,used:ingLine(used),suggestion,choice:suggestion});
+  }));
+  return rows;
+}
+function applyDeduct(rows){
+  const nowOut=[];
+  rows.forEach(r=>{
+    if(r.choice==='keep')return;
+    if(r.choice==='out'){ setLevel(r.item,'out'); nowOut.push(r.item.name); }
+    else { stepDown(r.item); if(r.item.out)nowOut.push(r.item.name); }
+  });
+  nowOut.forEach(name=>{
+    if(!S.grocery.need.includes(name)&&!S.grocery.manual.includes(name))S.grocery.need.push(name);
+    S.grocery.got=S.grocery.got.filter(t=>t!==name);
+  });
+  return nowOut;
+}
+
 /* ---------- turn a pasted blob into a recipe ---------- */
 const ING_HEAD=/^\s*#*\s*(ingredients|what you.ll need|shopping list)\s*:?\s*$/i;
 const STEP_HEAD=/^\s*#*\s*(instructions|directions|steps|method|preparation|how to make.*)\s*:?\s*$/i;
@@ -1193,10 +1951,11 @@ async function aiModels(){
    ============================================================ */
 const TABS=[
   ['cook','Cook'],['plan','Plan'],['grocery','Groceries'],['library','Library'],
-  ['add','Add'],['refactor','Refactor'],['files','Files'],['settings','Settings']
+  ['add','Add'],['money','Money'],['refactor','Refactor'],['files','Files'],['settings','Settings']
 ];
 let TAB=LS.get('tab','cook');
-let UI={selected:[],q:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null};
+let UI={selected:[],q:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null,
+  scanMode:/[?&]scan=1/.test(location.search)};
 
 function renderNav(){
   const nav=$('#nav'); nav.innerHTML='';
@@ -1204,12 +1963,103 @@ function renderNav(){
     nav.append(el('button',{class:id===TAB?'on':'',onclick:()=>go(id)},label));
   });
 }
-function go(tab){ TAB=tab; LS.set('tab',tab); renderNav(); render(); window.scrollTo(0,0); }
+function go(tab){ flushStock(); TAB=tab; LS.set('tab',tab); renderNav(); render(); window.scrollTo(0,0); }
+
+/* ============================================================
+   STOCK — "we've run out of that"
+   One tap flips an item to out. It stops counting as available,
+   goes on the grocery list, and stays in the pantry so putting it
+   back is one tap too. Saves itself to Drive a moment later.
+   ============================================================ */
+let _stockTimer=null,_stockDirty=false;
+function setStock(item,out){ setStockLevel(item,out?'out':'plenty'); }
+function setStockLevel(item,level){
+  setLevel(item,level);
+  const name=item.name;
+  S.grocery.got=S.grocery.got.filter(t=>t!==name);
+  if(level==='out'){ if(!S.grocery.need.includes(name)&&!S.grocery.manual.includes(name))S.grocery.need.push(name); }
+  else { S.grocery.need=S.grocery.need.filter(t=>t!==name); }
+  _stockDirty=true;
+  status(level==='out'?`Out of ${name} — added to the list…`:`${name}: ${LEVEL_LABEL[level]}…`,'busy');
+  renderStockHost(); refreshMatches(); renderGrocHost();
+  clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,900);
+}
+function markStockDirty(){ _stockDirty=true; clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,700); }
+async function flushStock(){
+  if(!_stockDirty)return;
+  _stockDirty=false;
+  const pt=serializePantry(S.pantry); S.pantry.raw=pt;
+  const gt=serializeGrocery(S.grocery); S.grocery.raw=gt;
+  try{
+    await saveFile('pantry.md',pt);
+    await saveFile('grocery-list.md',gt);
+    saveCache();
+    status('Saved to Drive · '+niceTime(new Date()),'good');
+  }catch(e){
+    _stockDirty=true;
+    status('Not saved yet — '+e.message,'err');
+    toast('Could not reach Drive. Press Sync when you are back online.');
+  }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden)flushStock(); });
+
+function stockCard(){
+  const host=el('div',{class:'card',id:'stockHost'});
+  renderStockHost(host);
+  return host;
+}
+function renderStockHost(node){
+  const host=node||document.getElementById('stockHost');
+  if(!host)return;
+  host.innerHTML='';
+  const all=S.pantry.groups.flatMap(g=>g.items);
+  const out=all.filter(i=>i.out);
+  const low=all.filter(i=>i.level==='low');
+  host.append(el('div',{class:'row'},h('h3','grow',"What's in the house"),
+    low.length?h('span','pill warn',low.length+' running low'):null,
+    out.length?h('span','pill bad',out.length+' out'):null));
+  host.append(h('p','small dim','One tap knocks an item down a level — plenty, some left, nearly gone, out. No amounts to type. Anything that hits "out" stops counting as available and lands on the grocery list, but stays here, because it is still something we buy.'));
+  if(out.length){
+    host.append(h('div','stockgroup','Out right now — tap to put back'));
+    host.append(el('div',{class:'chips'},out.map(i=>
+      el('span',{class:'chip out',title:'we bought more',onclick:()=>setStockLevel(i,'plenty')},i.name,el('b',{class:'x'},'↺')))));
+  }
+  S.pantry.groups.forEach(g=>{
+    const items=g.items.filter(i=>!i.out);
+    if(!items.length)return;
+    host.append(h('div','stockgroup',g.name));
+    host.append(el('div',{class:'chips'},items.map(i=>
+      el('span',{class:'chip'+(i.level!=='plenty'?' lvl-'+i.level:''),
+        title:LEVEL_LABEL[i.level]+' — tap to knock it down, shift-tap to top it up',
+        onclick:e=>{ if(e.shiftKey){stepUp(i);markStockDirty();renderStockHost();refreshMatches();}
+                     else setStockLevel(i,LEVELS[Math.max(0,LEVELS.indexOf(i.level)-1)]); }},
+        i.name,
+        i.level!=='plenty'?el('b',{class:'lv'},i.level==='low'?'NEARLY GONE':'SOME'):null,
+        i.qty?el('b',{class:'qty'},[i.qty,i.unit].filter(Boolean).join(' ')):null,
+        el('b',{class:'x'},'−')))));
+  });
+  const sel=el('select',{style:'width:auto'},S.pantry.groups.map(g=>el('option',{value:g.name},g.name)));
+  const inp=el('input',{type:'text',placeholder:'something else we keep in the house',style:'flex:1;min-width:180px',
+    onkeydown:e=>{ if(e.key==='Enter')addPantry(inp,sel); }});
+  host.append(el('div',{class:'row',style:'margin-top:14px'},inp,sel,
+    el('button',{class:'btn sm',onclick:()=>addPantry(inp,sel)},'Add to pantry')));
+}
+function addPantry(inp,sel){
+  const name=inp.value.trim(); if(!name)return;
+  const g=S.pantry.groups.find(x=>x.name===sel.value)||S.pantry.groups[0];
+  if(g.items.some(i=>sameThing(i.name,name)))return toast('Already in the pantry.');
+  g.items.push({name,level:'plenty',out:false,qty:null,unit:null,bought:null,key:norm(name)});
+  inp.value='';
+  _stockDirty=true; renderStockHost(); refreshMatches();
+  clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,600);
+  toast(name+' added to the pantry.');
+}
 function render(){
   const v=$('#view'); v.innerHTML='';
+  if(UI.scanMode){ v.append(viewScan()); return; }
   if(!Drive.clientId() && TAB!=='settings'){ v.append(viewFirstRun()); return; }
   const VIEWS={cook:viewCook,plan:viewPlan,grocery:viewGrocery,library:viewLibrary,
-    add:viewAdd,refactor:viewRefactor,files:viewFiles,settings:viewSettings};
+    add:viewAdd,money:viewMoney,refactor:viewRefactor,files:viewFiles,settings:viewSettings};
   v.append((VIEWS[TAB]||viewCook)());
 }
 function h(tag,cls,...k){ return el(tag,{class:cls},...k); }
@@ -1224,43 +2074,83 @@ function viewFirstRun(){
 /* ---------------- COOK ---------------- */
 function viewCook(){
   const wrap=h('div');
+  wrap.append(h('div','card',
+    el('div',{class:'searchbar'},
+      el('input',{type:'text',id:'searchBox',value:UI.q,
+        placeholder:'Search — “beef”, “short ribs”, “fried rice”…',
+        oninput:e=>{UI.q=e.target.value;refreshMatches();}}),
+      el('button',{class:'btn',onclick:()=>{UI.q='';const b=$('#searchBox');if(b)b.value='';refreshMatches();}},'Clear')),
+    h('p','small dim','Searching an ingredient family like “beef” finds the short ribs and the chuck. Searching “short ribs” stays specific.')));
+  wrap.append(el('div',{class:'card',id:'pickHost'}));
+  wrap.append(el('div',{id:'matchHost'}));
+  wrap.append(stockCard());
+  setTimeout(refreshMatches,0);
+  return wrap;
+}
+/* re-draw just the picker and the matches — no full page rebuild, so the
+   stock chips you are tapping don't jump around underneath you */
+function refreshMatches(){
+  const pick=document.getElementById('pickHost');
+  const host=document.getElementById('matchHost');
+  if(!pick||!host)return;
+
+  pick.innerHTML='';
   const have=pantryHave(S.pantry);
   const quick=uniq(have.filter(i=>/fridge|freezer|produce/.test(i.group)).map(i=>i.name))
     .concat(uniq(S.recipes.flatMap(r=>r.ingredients.map(i=>i.item))
-      .filter(x=>!have.some(h=>sameThing(h.name,x)))).slice(0,26));
-
+      .filter(x=>!have.some(hh=>sameThing(hh.name,x)))).slice(0,26));
   const chips=h('div','chips');
   uniq(quick).slice(0,44).forEach(name=>{
     const on=UI.selected.some(s=>sameThing(s,name));
     chips.append(el('div',{class:'chip'+(on?' on':''),onclick:()=>{
       UI.selected = on ? UI.selected.filter(s=>!sameThing(s,name)) : UI.selected.concat(name);
-      render();
+      refreshMatches();
     }},name));
   });
-
-  const custom=el('input',{type:'text',placeholder:'…or type something you have and hit enter',
-    onkeydown:e=>{ if(e.key==='Enter'&&e.target.value.trim()){ UI.selected.push(e.target.value.trim()); e.target.value=''; render(); } }});
-
-  wrap.append(h('div','card',
+  pick.append(
     h('h2',null,"What's in the house?"),
-    h('p','small dim','Everything in your pantry file is assumed to be here already. Pick the things you specifically want to use up.'),
-    chips, h('div',null,custom),
+    h('p','small dim','Everything in the pantry is assumed to be here already. Pick the things you specifically want to use up tonight.'),
+    chips,
+    el('div',{style:'margin-top:8px'},el('input',{type:'text',placeholder:'…or type something you have and hit enter',
+      onkeydown:e=>{ if(e.key==='Enter'&&e.target.value.trim()){ UI.selected.push(e.target.value.trim()); e.target.value=''; refreshMatches(); } }})),
     UI.selected.length? h('div','row', h('span','small muted','Using: '+UI.selected.join(', ')),
-      el('button',{class:'btn sm',onclick:()=>{UI.selected=[];render();}},'Clear')):null
-  ));
+      el('button',{class:'btn sm',onclick:()=>{UI.selected=[];refreshMatches();}},'Clear')):document.createComment(''));
 
-  const ranked=rankRecipes(UI.selected).slice(0,24);
-  const grid=h('div','grid');
-  ranked.forEach(x=>grid.append(recipeCard(x)));
-  wrap.append(h('div','card',
-    h('div','row', h('h2','grow',UI.selected.length?'Best matches':'Everything, best first'),
-      el('button',{class:'btn sm',onclick:()=>{
-        const pool=ranked.filter(x=>x.missing.length===0);
-        const pick=(pool.length?pool:ranked)[Math.floor(Math.random()*(pool.length?pool.length:ranked.length))];
-        if(pick)openRecipe(pick.recipe);
-      }},'Just pick one')),
-    ranked.length?grid:h('p','muted','No recipes yet. Add one from the Add tab.')));
-  return wrap;
+  host.innerHTML='';
+  const ranked=rankRecipes(UI.selected,{q:UI.q});
+  const now=ranked.filter(x=>x.missing.length===0);
+  const swap=ranked.filter(x=>x.missing.length>0
+    && x.missing.every(m=>findSub(m.item)||isDroppable(m.item)));
+  const near=ranked.filter(x=>!now.includes(x)&&!swap.includes(x)
+    && x.missing.filter(m=>!findSub(m.item)&&!isDroppable(m.item)).length<=2);
+  const rest=ranked.filter(x=>!now.includes(x)&&!swap.includes(x)&&!near.includes(x));
+
+  const band=(title,sub,list,limit)=>{
+    if(!list.length)return;
+    host.append(el('div',{class:'sec'},h('h2',null,title),h('span','n',list.length+(sub?' · '+sub:''))));
+    const grid=h('div','grid');
+    list.slice(0,limit||12).forEach(x=>grid.append(recipeCard(x)));
+    host.append(grid);
+  };
+
+  if(!ranked.length){
+    host.append(h('div','card',h('p','muted',UI.q?'Nothing matches “'+UI.q+'”.':'No recipes yet. Add one from the Add tab.')));
+    return;
+  }
+  host.append(el('div',{class:'row',style:'margin-top:6px'},
+    el('button',{class:'btn pri',onclick:()=>{
+      const src=now.length?now:ranked;
+      const p=src[Math.floor(Math.random()*src.length)];
+      if(p)openRecipe(p.recipe);
+    }},now.length?'Just pick one of the '+now.length:'Just pick one'),
+    h('span','small dim',now.length
+      ? 'Nothing to buy for '+now.length+' of these.'
+      : 'Nothing is fully covered right now — the next section shows what a swap would fix.')));
+
+  band('Make it right now','nothing to buy',now,12);
+  band('One swap away','we have a stand-in for everything missing',swap,9);
+  band('Nearly there','one or two things short',near,9);
+  band(UI.q?'Other matches':'Everything else','',rest,9);
 }
 function recipeCard(x){
   const r=x.recipe;
@@ -1270,7 +2160,9 @@ function recipeCard(x){
     el('div',{class:'row',style:'align-items:flex-start'},
       el('div',{class:'grow',style:'cursor:pointer',onclick:()=>openRecipe(r)},
         h('h3',null,r.name),
-        h('div','tiny dim',[r.meta.time,r.meta.serves?'serves '+r.meta.serves:null,r.meta.rating?'★'+r.meta.rating:null].filter(Boolean).join(' · '))),
+        h('div','tiny dim',[r.meta.time,r.meta.serves?'serves '+r.meta.serves:null,
+          r.meta.rating?'★'+r.meta.rating:null,
+          (()=>{const c=recipeCost(r);return c.priced.length?costLabel(c):null;})()].filter(Boolean).join(' · '))),
       x.never.length?h('span','pill bad','contains '+x.never[0]):
         (shoppable.length===0?h('span','pill ok','can make now'):
          h('span','pill '+(shoppable.length<=2?'warn':'bad'),'need '+shoppable.length))),
@@ -1284,7 +2176,8 @@ function recipeCard(x){
       })):null,
     el('div',{class:'row',style:'margin-top:8px'},
       el('button',{class:'btn sm',onclick:()=>openRecipe(r)},'Open'),
-      el('button',{class:'btn sm',onclick:()=>{tonight(r);}},'Cook tonight'))
+      el('button',{class:'btn sm pri',onclick:()=>openMakeIt(r)},'Make it'),
+      el('button',{class:'btn sm',onclick:()=>{tonight(r);}},'Plan it'))
   );
 }
 async function tonight(r){
@@ -1309,6 +2202,10 @@ function openRecipe(r){
     h('div','tiny dim',[r.meta.time&&('total '+r.meta.time),r.meta.active&&('hands-on '+r.meta.active),
       r.meta.serves&&('serves '+r.meta.serves),r.meta.status,r.meta.source].filter(Boolean).join(' · ')),
     h('div',null,r.tags.map(t=>h('span','tag',t))),
+    (()=>{const c=recipeCost(r); if(!c.priced.length)return null;
+      return h('div','small',el('b',{},costLabel(c)),' to make',
+        c.unpriced.length?h('span','dim','  — no price yet for '+c.unpriced.join(', ')):null,
+        h('span','dim','  · from what we actually paid'));})(),
     h('div','split',
       h('div',null,h('h3',null,'Ingredients'),
         el('ul',{class:'clean'},r.ingredients.map(i=>{
@@ -1320,8 +2217,9 @@ function openRecipe(r){
         el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
     r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
     el('div',{class:'row',style:'margin-top:14px'},
-      el('button',{class:'btn',onclick:()=>{tonight(r);closeModal();}},'Cook tonight'),
-      el('button',{class:'btn',onclick:()=>markMade(r)},'Made it'),
+      el('button',{class:'btn pri',onclick:()=>{closeModal();openMakeIt(r);}},'Make it'),
+      el('button',{class:'btn',onclick:()=>{tonight(r);closeModal();}},'Plan it'),
+      el('button',{class:'btn',onclick:()=>{closeModal();openCooked(r);}},'Cooked it'),
       el('button',{class:'btn',onclick:()=>{closeModal();refactorOne(r);}},'Refactor this one'),
       r.fileId?el('a',{class:'btn',href:'https://drive.google.com/file/d/'+r.fileId+'/view',target:'_blank'},'Open in Drive'):null)
   );
@@ -1331,7 +2229,109 @@ async function markMade(r){
   r.meta.lastmade=todayISO();
   r.meta.times=String((parseInt(r.meta.times||'0')||0)+1);
   if(r.meta.status==='untested')r.meta.status='tested';
-  try{ await saveRecipe(r); toast('Logged.'); }catch(e){ toast(e.message); }
+  try{ await saveRecipe(r); }catch(e){ toast(e.message); }
+}
+
+/* ---------------- MAKE IT ---------------- */
+function openMakeIt(recipe,protein){
+  const {recipe:r,changes,missing}=makeIt(recipe,{protein});
+  const proteins=uniq(availableProteins().concat(Object.values(S.rules.proteins).map(p=>p.name)));
+  const cur=recipe.ingredients.find(i=>isProtein(i.item));
+  const expand=s=>{
+    const m=/^@([a-z0-9-]+)/i.exec(s.trim());
+    if(m&&S.steps.map[m[1]])return el('span',{},
+      el('span',{class:'step-ref'},'@'+m[1]),' — ',S.steps.map[m[1]].text);
+    return document.createTextNode(s);
+  };
+  const box=h('div','box',
+    h('div','row',h('h1','grow',r.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('p','small dim','Adapted to what is actually in the house right now. Everything that changed is listed below and marked in the ingredients.'),
+
+    el('div',{class:'row'},h('span','small muted','Make it with:'),
+      el('select',{style:'width:auto',onchange:e=>openMakeIt(recipe,e.target.value||undefined)},
+        el('option',{value:''},cur?'as written ('+cur.item+')':'as written'),
+        proteins.map(p=>el('option',{value:p,selected:protein===p?'selected':null},p)))),
+
+    changes.length?h('div',{},h('h3',null,'What changed'),
+      el('div',{class:'card',style:'padding:10px'},changes.map(c=>
+        el('span',{class:'chg '+c.kind},
+          el('b',{},{sub:'SWAP',protein:'PROTEIN',drop:'LEFT OUT',add:'ADDED',technique:'METHOD',missing:'MISSING',warn:'HEADS UP'}[c.kind]||c.kind),
+          ' ',c.text)))):h('p','muted','Nothing needed changing — we have everything.'),
+
+    h('div','split',
+      h('div',null,h('h3',null,'Ingredients'),
+        el('ul',{class:'clean'},r.ingredients.map(i=>{
+          const got=pantryHave(S.pantry).some(hh=>sameThing(hh.name,i.item));
+          return el('li',{},
+            el('span',{class:i.sub?'subbed':(got?'':'miss')},ingLine(i)),
+            i.sub?el('span',{class:'tiny'},'  ',el('span',{class:'was'},i.sub)):null,
+            !got&&!i.sub?el('span',{class:'tiny miss'},'  need this'):null);
+        }))),
+      h('div',null,h('h3',null,'Steps'),
+        el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
+    r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
+    (()=>{
+      const was=recipeCost(recipe), now=recipeCost(r);
+      if(!was.priced.length && !now.priced.length)
+        return h('p','small dim','No prices logged yet, so there is nothing to compare. Log a shop on the Money tab and this will show what each version costs.');
+      const d=now.total-was.total;
+      return h('div','card',
+        el('div',{class:'row'},
+          el('div',{},h('div','tiny dim','AS WRITTEN'),h('h3',null,costLabel(was)||'—')),
+          el('div',{},h('div','tiny dim','THIS VERSION'),h('h3',null,costLabel(now)||'—')),
+          Math.abs(d)>0.005?el('div',{},h('div','tiny dim','DIFFERENCE'),
+            el('h3',{class:d<0?'sub':'miss'},(d<0?'saves ':'costs ')+money(Math.abs(d)))):null),
+        (was.unpriced.length||now.unpriced.length)
+          ? h('p','tiny dim','Not counted, never bought: '+uniq(was.unpriced.concat(now.unpriced)).join(', '))
+          : null);
+    })(),
+    el('div',{class:'row',style:'margin-top:14px'},
+      el('button',{class:'btn pri',onclick:()=>{closeModal();openCooked(recipe,r);}},'Cooked it — use up the ingredients'),
+      el('button',{class:'btn',onclick:()=>saveAsVariant(recipe,r,protein)},'Save this as its own recipe')));
+  showModal(box);
+}
+async function saveAsVariant(orig,adapted,protein){
+  const name=adapted.name+(protein?', '+protein:' (our way)');
+  const rec=Object.assign({},adapted,{name,slug:slug(name),fileId:null,fileName:null,
+    meta:Object.assign({},adapted.meta,{source:'adapted from '+orig.name,status:'untested',added:todayISO()})});
+  try{ status('Saving…','busy'); await saveRecipe(rec); status('Saved','good'); toast('Saved as “'+name+'”.'); closeModal(); render(); }
+  catch(e){ status('Save failed','err'); toast(e.message); }
+}
+
+/* ---------------- COOKED IT — deduct what it used ---------------- */
+function openCooked(recipe,adapted){
+  const rows=deductPlan(adapted||recipe);
+  const box=h('div','box',
+    h('div','row',h('h2','grow','Cooked '+recipe.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    rows.length
+      ? h('p','small dim','Best guess at what that used up. Seasonings are left alone — a pinch of paprika is not a shopping trip. Change anything that is wrong, then save.')
+      : h('p','muted','Nothing in this recipe is tracked in the pantry, so there is nothing to knock down.'),
+    el('div',{},rows.map(r=>{
+      const seg=el('div',{class:'seg'});
+      [['keep','still have it'],['down','used some'],['out','all gone']].forEach(([v,label])=>{
+        seg.append(el('button',{class:r.choice===v?'on':'',onclick:e=>{
+          r.choice=v;
+          [...seg.children].forEach(b=>b.className='');
+          e.target.className='on';
+        }},label));
+      });
+      return el('div',{class:'row',style:'border-bottom:1px solid #26221c;padding:8px 0'},
+        el('div',{class:'grow'},el('b',{},r.item.name),
+          el('span',{class:'tiny dim'},'  '+LEVEL_LABEL[r.item.level]+' · recipe used '+r.used)),
+        seg);
+    })),
+    el('div',{class:'row',style:'margin-top:14px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        const nowOut=applyDeduct(rows);
+        await markMade(recipe);
+        markStockDirty();
+        closeModal();
+        toast(nowOut.length?'Logged. '+nowOut.join(', ')+' went on the grocery list.':'Logged.');
+        render();
+      }},'Save'),
+      el('button',{class:'btn',onclick:async()=>{ await markMade(recipe); closeModal(); toast('Logged, inventory untouched.'); }},
+        'Just log it, change nothing')));
+  showModal(box);
 }
 
 /* ---------------- PLAN ---------------- */
@@ -1366,6 +2366,7 @@ function viewPlan(){
     list.append(el('div',{class:'row',style:'border-bottom:1px solid #26221c;padding:7px 0'},
       el('b',{style:'width:70px'},niceDate(row.date)),
       el('div',{class:'grow'},sel),
+      row.guest?h('span','pill warn','for '+row.portions):null,
       row.reason?h('span','tiny warn',row.reason):null,
       row.recipe?el('button',{class:'btn sm',onclick:()=>openRecipe(row.recipe)},'View'):null));
   });
@@ -1375,6 +2376,42 @@ function viewPlan(){
   wrap.append(side);
   UI.planRows=rows;
   setTimeout(renderPlanSide,0);
+
+  /* guests */
+  wrap.append(h('div','card',
+    h('h3',null,'Guests'),
+    h('p','small dim','While people are staying the planner cooks for more, leans on the favourites below, and scales the shopping. A guest cooking one night without telling the app is fine — use the button to knock the fridge down afterwards.'),
+    el('ul',{class:'clean'},(S.plan.guests||[]).map((g,n)=>el('li',{class:'row'},
+      el('span',{class:'grow'},`${niceDate(g.from)} → ${niceDate(g.to)} · ${g.who} · +${g.extra}`),
+      el('button',{class:'btn sm danger',onclick:async()=>{S.plan.guests.splice(n,1);await persistPlan();render();}},'×')))),
+    h('div','row',
+      el('input',{type:'date',id:'gFrom',style:'width:auto'}),
+      el('input',{type:'date',id:'gTo',style:'width:auto'}),
+      el('input',{type:'text',id:'gWho',placeholder:'who',style:'width:auto'}),
+      el('input',{type:'number',id:'gExtra',value:'2',min:'1',style:'width:70px'}),
+      el('button',{class:'btn sm',onclick:async()=>{
+        const f=$('#gFrom').value,t=$('#gTo').value;
+        if(!f||!t)return toast('Need both dates');
+        S.plan.guests=(S.plan.guests||[]).concat({from:f,to:t,who:$('#gWho').value||'guests',
+          extra:parseInt($('#gExtra').value)||1});
+        await persistPlan(); render();
+      }},'Add')),
+    hr(),
+    h('div','stockgroup','Favourites we make when people stay'),
+    el('div',{class:'chips'},(S.plan.favourites||[]).map((f,n)=>
+      el('span',{class:'chip',onclick:async()=>{S.plan.favourites.splice(n,1);await persistPlan();render();}},f,el('b',{class:'x'},'×')))),
+    h('div','row',
+      el('select',{id:'favPick',style:'flex:1'},
+        S.recipes.map(r=>el('option',{value:r.name},r.name))),
+      el('button',{class:'btn sm',onclick:async()=>{
+        const v=$('#favPick').value;
+        S.plan.favourites=uniq((S.plan.favourites||[]).concat(v));
+        await persistPlan(); render();
+      }},'Add favourite')),
+    hr(),
+    el('div',{class:'row'},
+      el('button',{class:'btn',onclick:guestCompensate},'Someone cooked here — knock the fridge down'),
+      el('button',{class:'btn',onclick:()=>openPurchaseForm()},'Log what they spent'))));
 
   /* trips + skips editor */
   wrap.append(h('div','card',
@@ -1439,6 +2476,32 @@ async function persistPlan(){
   try{ await saveFile('meal-plan.md',text); }catch(e){ toast('Could not save: '+e.message); }
 }
 
+/* a guest cooked and told nobody — knock the perishables down a level */
+function guestCompensate(){
+  const groups=S.pantry.groups.filter(g=>/fridge|freezer|produce|veg/.test(g.name));
+  const picks=new Set();
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Someone cooked here'),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('p','small dim','Nobody is going to log what a guest used, so tick roughly what got raided and each one drops a level. Rough is fine — that is the whole point of levels rather than counts.'),
+    el('div',{},groups.map(g=>el('div',{},h('div','stockgroup',g.name),
+      el('div',{class:'chips'},g.items.filter(i=>!i.out).map(i=>
+        el('span',{class:'chip',onclick:e=>{
+          if(picks.has(i)){picks.delete(i);e.currentTarget.classList.remove('on');}
+          else {picks.add(i);e.currentTarget.classList.add('on');}
+        }},i.name)))))),
+    el('div',{class:'row',style:'margin-top:14px'},
+      el('button',{class:'btn pri',onclick:()=>{
+        picks.forEach(i=>{ stepDown(i);
+          if(i.out&&!S.grocery.need.includes(i.name))S.grocery.need.push(i.name); });
+        markStockDirty(); closeModal();
+        toast(picks.size+' knocked down.'); render();
+      }},'Knock those down'),
+      el('button',{class:'btn',onclick:()=>{
+        groups.forEach(g=>g.items.forEach(i=>{ if(!i.out)stepDown(i); }));
+        markStockDirty(); closeModal(); toast('Whole fridge and freezer knocked down a level.'); render();
+      }},'Actually, knock everything down'))));
+}
+
 /* ---------------- GROCERY ---------------- */
 async function pushToGrocery(items){
   const add=items.map(i=>i.text).filter(t=>!S.grocery.need.includes(t));
@@ -1451,33 +2514,52 @@ async function persistGrocery(){
 }
 function viewGrocery(){
   const wrap=h('div');
+  wrap.append(h('div','card',h('h2',null,'Groceries'),
+    h('p','small dim','Both of you can edit grocery-list.md straight in Drive on a phone — this screen and that file are the same thing.')));
+  wrap.append(el('div',{id:'grocHost'}));
+  const all=S.grocery.need.concat(S.grocery.manual).filter(Boolean);
+  if(all.length && (S.stores.list||[]).length){
+    const route=shoppingRoute(all);
+    wrap.append(h('div','card',
+      h('h3',null,'Where to go'),
+      h('p','small dim','Split by shop, using your rules first, then what is in season, then what each place is good at, then wherever we last paid least.'),
+      el('div',{},route.map(r=>el('div',{style:'border-top:1px solid #26221c;padding:8px 0'},
+        el('div',{class:'row'},el('b',{class:'grow'},r.store),h('span','pill warn',r.items.length+' things')),
+        el('div',{class:'chips',style:'margin-top:4px'},r.items.map(i=>
+          h('span','tag',i+(r.why[i]?' · '+r.why[i]:'')))))))));
+  }
+  wrap.append(stockCard());
+  setTimeout(renderGrocHost,0);
+  return wrap;
+}
+function renderGrocHost(){
+  const wrap=document.getElementById('grocHost');
+  if(!wrap)return;
+  wrap.innerHTML='';
   const section=(title,key,strike)=>h('div','card',
     h('div','row',h('h3','grow',title),
-      key==='got'?el('button',{class:'btn sm',onclick:async()=>{S.grocery.got=[];await persistGrocery();render();}},'Clear'):null),
+      key==='got'?el('button',{class:'btn sm',onclick:async()=>{S.grocery.got=[];renderGrocHost();await persistGrocery();}},'Clear'):null),
     el('ul',{class:'clean'},S.grocery[key].map((t,n)=>el('li',{class:'row'},
       el('span',{class:'grow'+(strike?' dim':''),style:strike?'text-decoration:line-through':''},t),
       key!=='got'?el('button',{class:'btn sm',onclick:async()=>{
-        S.grocery[key].splice(n,1); S.grocery.got.push(t); await persistGrocery(); render();
+        S.grocery[key].splice(n,1); S.grocery.got.push(t); restock(t); renderGrocHost(); renderStockHost(); await persistGrocery();
       }},'got it'):el('button',{class:'btn sm',onclick:async()=>{
-        S.grocery.got.splice(n,1); S.grocery.manual.push(t); await persistGrocery(); render();}},'put back'),
-      el('button',{class:'btn sm danger',onclick:async()=>{S.grocery[key].splice(n,1);await persistGrocery();render();}},'×')))),
+        S.grocery.got.splice(n,1); S.grocery.manual.push(t); renderGrocHost(); await persistGrocery();}},'put back'),
+      el('button',{class:'btn sm danger',onclick:async()=>{S.grocery[key].splice(n,1);renderGrocHost();await persistGrocery();}},'×')))),
     key==='manual'?h('div','row',
       el('input',{type:'text',id:'gAdd',placeholder:'add something',
         onkeydown:async e=>{ if(e.key==='Enter'&&e.target.value.trim()){
-          S.grocery.manual.push(e.target.value.trim()); e.target.value=''; await persistGrocery(); render(); }}})):null);
-  wrap.append(h('div','card',h('h2',null,'Groceries'),
-    h('p','small dim','Both of you can edit grocery-list.md straight in Drive on a phone — this screen and that file are the same thing.')));
+          S.grocery.manual.push(e.target.value.trim()); e.target.value=''; renderGrocHost(); await persistGrocery(); }}})):null);
   wrap.append(section('Needed for the plan','need',false));
   wrap.append(section('Added by hand','manual',false));
   wrap.append(section('Got','got',true));
-  wrap.append(h('div','card',h('h3',null,"We're out of…"),
-    h('p','small dim','Tap anything to flip it. Out-of-stock items stop counting as available and land on the list.'),
-    el('div',{class:'chips'},pantryAll(S.pantry).map(i=>
-      el('span',{class:'chip'+(i.out?' out':''),onclick:async()=>{
-        i.out=!i.out; const text=serializePantry(S.pantry); S.pantry.raw=text;
-        try{await saveFile('pantry.md',text);}catch(e){toast(e.message);} render();
-      }},i.name)))));
-  return wrap;
+}
+/* ticking something off the list puts it back in stock */
+function restock(text){
+  S.pantry.groups.forEach(g=>g.items.forEach(i=>{
+    if(i.out && (i.name===text || sameThing(i.name,text))){ i.out=false; _stockDirty=true; }
+  }));
+  if(_stockDirty){ clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,600); }
 }
 
 /* ---------------- LIBRARY ---------------- */
@@ -1560,6 +2642,8 @@ function viewAdd(){
         catch(e){ toast(e.message); status('Failed','err'); }
       }},'Adapt')))):h('p','muted','Inbox is empty.')));
 
+  wrap.append(receiptCard());
+
   wrap.append(h('div','card',
     h('h3',null,'How this is meant to work'),
     el('ol',{class:'muted small',style:'padding-left:18px;line-height:1.7'},
@@ -1609,6 +2693,76 @@ function showAdaptModal(rec,changes,sourceFile){
       }},'Save to library'))));
 }
 function hr(){ return el('hr'); }
+
+/* ============================================================
+   RECEIPTS — photograph now, read later
+   The photo goes to Drive and gets logged in receipts-queue.md.
+   Ask Claude to process the queue and it fills in the pantry and prices.
+   ============================================================ */
+function pickReceipt(onDone){
+  const inp=el('input',{type:'file',accept:'image/*',capture:'environment',style:'display:none'});
+  inp.addEventListener('change',async()=>{
+    const f=inp.files&&inp.files[0];
+    if(!f)return;
+    try{ const res=await uploadReceipt(f); onDone&&onDone(null,res); }
+    catch(e){ onDone&&onDone(e); }
+    inp.remove();
+  });
+  document.body.append(inp);
+  inp.click();
+}
+async function uploadReceipt(file){
+  status('Uploading the receipt…','busy');
+  if(!S.ids.receipts){ await syncAll(); }
+  if(!S.ids.receipts) throw new Error('Not connected to Drive yet');
+  const d=new Date();
+  const stamp=fmtDate(d)+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+  const ext=(file.name.match(/\.(jpe?g|png|heic|webp)$/i)||['.jpg'])[0];
+  const name='receipt-'+stamp+ext.toLowerCase();
+  const up=await Drive.createBinary(name,S.ids.receipts,file,file.type||'image/jpeg');
+  S.receipts.rows.push({when:fmtDate(d)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+    file:name,id:up.id,status:'new'});
+  const text=serializeReceipts(S.receipts); S.receipts.raw=text;
+  await saveFile('receipts-queue.md',text);
+  saveCache();
+  status('Receipt saved · '+S.receipts.rows.length+' waiting to be read','good');
+  return {name,id:up.id};
+}
+function receiptCard(){
+  const waiting=(S.receipts&&S.receipts.rows||[]).filter(r=>r.status==='new');
+  return h('div','card',
+    el('div',{class:'row'},h('h2','grow','Receipts'),
+      waiting.length?h('span','pill warn',waiting.length+' waiting'):null),
+    h('p','small dim','Photograph the receipt on the way out of the shop. It goes straight to Drive. When you next talk to Claude, say “process the receipt queue” and it reads them — what you bought, how much, which shop, what it cost — then tops the pantry back up and records the prices.'),
+    el('div',{class:'row'},
+      el('button',{class:'btn pri',onclick:()=>pickReceipt((e,res)=>{
+        if(e)return toast('Upload failed: '+e.message);
+        toast('Saved '+res.name); render();
+      })},'Take a photo of a receipt'),
+      S.ids.receipts?el('a',{class:'btn',target:'_blank',
+        href:'https://drive.google.com/drive/folders/'+S.ids.receipts},'Open the folder'):null),
+    waiting.length?el('ul',{class:'clean',style:'margin-top:10px'},waiting.map(r=>
+      el('li',{class:'row'},el('span',{class:'grow'},r.when+'  '+r.file),
+        el('a',{class:'btn sm',target:'_blank',href:'https://drive.google.com/file/d/'+r.id+'/view'},'View')))):null,
+    h('div','stockgroup','On your iPhone'),
+    h('p','small dim','Open this page in Safari with ?scan=1 on the end of the address, then Share → Add to Home Screen. That icon opens straight to one big camera button.'),
+    h('p','small dim','It does not matter how a photo gets into Recipes/_receipts — this button, an iOS Shortcut, the Drive app\'s share sheet, or dragging it in on a laptop. The app reads the folder itself on every sync and queues anything it has not seen before.'));
+}
+
+/* the ?scan=1 fast path — one button, nothing else */
+function viewScan(){
+  const wrap=h('div','scanwrap');
+  const shot=el('button',{class:'scanbtn',onclick:()=>pickReceipt((e,res)=>{
+    if(e){ msg.textContent='Failed: '+e.message; return; }
+    msg.innerHTML='';
+    msg.append(h('div','pill ok','Saved '+res.name),
+      h('p','muted','Take another, or open the app.'));
+  })},'📷',el('div',{},'Photograph a receipt'));
+  const msg=h('div',null);
+  wrap.append(shot,msg,
+    el('a',{class:'btn',href:location.pathname},'Open Sophie’s Kitchen'));
+  return wrap;
+}
 function changeList(changes){
   const byPass={};
   changes.forEach(c=>{(byPass[c.pass]=byPass[c.pass]||[]).push(c);});
@@ -1712,11 +2866,14 @@ function refactorOne(r){
 
 /* ---------------- FILES (raw text editing) ---------------- */
 const EDITABLE=[
-  ['house-rules.md','The brain. Swaps, never-eat list, house technique, thaw times.'],
+  ['house-rules.md','The brain. Swaps, never-eat list, house technique, protein swaps, thaw times.'],
   ['pantry.md','What we keep in the house. ! means we are out.'],
   ['steps-library.md','Named methods. Fix one here, every recipe improves.'],
   ['meal-plan.md','Trips, nights out, the plan itself.'],
-  ['grocery-list.md','The shopping list.']
+  ['grocery-list.md','The shopping list.'],
+  ['prices.md','Everything we have paid, and where. Append-only.'],
+  ['stores.md','Which shop for what, and what is in season.'],
+  ['receipts-queue.md','Photos waiting to be read.']
 ];
 function viewFiles(){
   const wrap=h('div');
@@ -1733,7 +2890,8 @@ function viewFiles(){
 }
 function editConfig(name){
   const cur={'house-rules.md':S.rules.raw,'pantry.md':S.pantry.raw,'steps-library.md':S.steps.raw,
-    'meal-plan.md':S.plan.raw,'grocery-list.md':S.grocery.raw}[name]||'';
+    'meal-plan.md':S.plan.raw,'grocery-list.md':S.grocery.raw,
+    'prices.md':S.prices.raw,'stores.md':S.stores.raw,'receipts-queue.md':S.receipts.raw}[name]||'';
   const ta=el('textarea',{rows:26,class:'mono'},cur);
   showModal(h('div','box',
     h('div','row',h('h2','grow',name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
@@ -1745,6 +2903,133 @@ function editConfig(name){
           saveCache(); closeModal(); status('Saved','good'); toast('Saved.'); render();
         }catch(e){ status('Save failed','err'); toast(e.message); }
       }},'Save to Drive'))));
+}
+
+/* ---------------- MONEY ---------------- */
+async function persistPrices(){
+  const text=serializePrices(S.prices); S.prices.raw=text;
+  try{ await saveFile('prices.md',text); saveCache(); }catch(e){ toast('Could not save: '+e.message); }
+}
+function viewMoney(){
+  const wrap=h('div');
+  const sp=spending();
+  const months=Object.keys(sp.byMonth).sort().reverse();
+  const thisMonth=months[0];
+
+  wrap.append(h('div','card',
+    el('div',{class:'row'},h('h2','grow','Money'),
+      el('button',{class:'btn pri',onclick:openPurchaseForm},'Log a shop')),
+    sp.rows.length
+      ? el('div',{class:'row',style:'gap:26px;margin-top:6px'},
+          el('div',{},h('div','tiny dim','SPENT ALL TIME'),h('h1',null,money(sp.total))),
+          thisMonth?el('div',{},h('div','tiny dim',thisMonth.toUpperCase()),h('h1',null,money(sp.byMonth[thisMonth]))):null,
+          el('div',{},h('div','tiny dim','PURCHASES LOGGED'),h('h1',null,String(sp.rows.length))))
+      : h('p','muted','Nothing logged yet. Photograph a receipt on the Add tab and ask Claude to read it, or log a shop by hand.')));
+
+  if(months.length){
+    const max=Math.max(...months.map(m=>sp.byMonth[m]));
+    wrap.append(h('div','card',h('h3',null,'By month'),
+      el('div',{},months.map(m=>el('div',{class:'row',style:'padding:4px 0'},
+        el('b',{style:'width:74px'},m),
+        el('div',{class:'bar grow'},el('i',{style:'width:'+Math.round(sp.byMonth[m]/max*100)+'%'})),
+        el('span',{style:'width:80px;text-align:right'},money(sp.byMonth[m])))))));
+    const stores=Object.keys(sp.byStore).sort((a,b)=>sp.byStore[b]-sp.byStore[a]);
+    wrap.append(h('div','card',h('h3',null,'By shop'),
+      el('ul',{class:'clean'},stores.map(st=>el('li',{class:'row'},
+        el('span',{class:'grow'},st),el('b',{},money(sp.byStore[st])))))));
+  }
+
+  const items=uniq((S.prices.buy||[]).map(b=>b.item)).sort();
+  if(items.length){
+    const card=h('div','card',h('h3',null,'What things cost'),
+      h('p','small dim','Every price we have paid, most recent first. The cheapest is marked — that is what the shopping route falls back on when no rule says otherwise.'));
+    items.forEach(it=>{
+      const hist=priceHistory(it);
+      const best=bestPrice(it);
+      const up=unitPrice(it);
+      card.append(el('div',{style:'border-top:1px solid #26221c;padding:8px 0'},
+        el('div',{class:'row'},el('b',{class:'grow'},it),
+          up?h('span','tiny dim','last '+money(up.paid)+' for '+up.amount+' at '+(up.store||'?')):null),
+        el('div',{class:'chips',style:'margin-top:4px'},hist.map(b=>{
+          const base=toBase(b.qty||'1',b.unit||'');
+          const per=base&&base.n?b.price/base.n:null;
+          const cheapest=best&&per!=null&&Math.abs(per-best.per)<1e-9;
+          return h('span','tag',b.date+' · '+money(b.price)+' · '+([b.qty,b.unit].filter(Boolean).join(' ')||'1')
+            +' · '+(b.store||'?')+(cheapest?'  ✓ cheapest':''));
+        }))));
+    });
+    wrap.append(card);
+  }
+
+  const costs=S.recipes.map(r=>({r,c:recipeCost(r)})).filter(x=>x.c.priced.length)
+    .sort((a,b)=>a.c.total-b.c.total);
+  if(costs.length){
+    wrap.append(h('div','card',h('h3',null,'What our meals cost'),
+      h('p','small dim','Worked out from what we actually paid. Anything never bought is left out of the total and named, rather than guessed at.'),
+      el('ul',{class:'clean'},costs.map(x=>el('li',{class:'row'},
+        el('span',{class:'grow',style:'cursor:pointer',onclick:()=>openRecipe(x.r)},x.r.name),
+        x.c.unpriced.length?h('span','tiny dim','no price for '+x.c.unpriced.join(', ')):null,
+        el('b',{},costLabel(x.c)),
+        h('span','tiny dim','serves '+(x.r.meta.serves||'2')))))));
+  }
+
+  wrap.append(h('div','card',h('h3',null,'Where to shop'),
+    h('p','small dim','Edit stores.md to teach it. A rule under “Best for” always wins; otherwise it uses what is in season, then what each shop is good at, then wherever we last paid least.'),
+    (S.stores.list||[]).length
+      ? el('ul',{class:'clean'},S.stores.list.map(s=>el('li',{},
+          el('b',{},s.name),h('span','dim','  '+s.good.join(', ')),s.note?h('div','tiny dim',s.note):null)))
+      : h('p','muted','No shops listed yet.'),
+    el('button',{class:'btn sm',onclick:()=>{go('files');setTimeout(()=>editConfig('stores.md'),50);}},'Edit stores.md')));
+  return wrap;
+}
+function openPurchaseForm(prefillOther){
+  const rows=[];
+  const list=h('div',null);
+  const addRow=(item,qty,price)=>{
+    const r={item:item||'',qty:qty||'',price:price||''};
+    rows.push(r);
+    list.append(el('div',{class:'row',style:'padding:4px 0'},
+      el('input',{type:'text',placeholder:'item',value:r.item,style:'flex:2',oninput:e=>r.item=e.target.value}),
+      el('input',{type:'text',placeholder:'2 lb',value:r.qty,style:'flex:1',oninput:e=>r.qty=e.target.value}),
+      el('input',{type:'text',placeholder:'0.00',value:r.price,style:'width:90px',oninput:e=>r.price=e.target.value})));
+  };
+  S.grocery.need.concat(S.grocery.manual).filter(Boolean).slice(0,12).forEach(t=>{
+    const p=parseIngredient(t);
+    addRow(p.item,[p.qty,p.unit].filter(Boolean).join(' '),'');
+  });
+  if(!rows.length)addRow();
+  const dateIn=el('input',{type:'date',value:todayISO(),style:'width:auto'});
+  const storeIn=el('input',{type:'text',placeholder:'shop',style:'width:auto',
+    value:(S.stores.list[0]||{}).name||''});
+  const lumpIn=el('input',{type:'text',placeholder:'e.g. farm share, or what a guest bought',style:'flex:2'});
+  const lumpAmt=el('input',{type:'text',placeholder:'0.00',style:'width:90px'});
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Log a shop'),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('p','small dim','Pre-filled from the grocery list. Anything logged here tops the pantry back up, records the price, and counts towards the spending total. Leave a price blank to skip a line.'),
+    el('div',{class:'row'},dateIn,storeIn),
+    el('div',{class:'row tiny dim',style:'margin-top:10px'},
+      el('span',{style:'flex:2'},'ITEM'),el('span',{style:'flex:1'},'AMOUNT'),el('span',{style:'width:90px'},'PRICE')),
+    list,
+    el('button',{class:'btn sm',onclick:()=>addRow()},'Another line'),
+    hr(),
+    h('div','stockgroup','Or just a lump sum'),
+    h('p','small dim','For a farm share, or money a guest spent that we are never going to itemise. It still counts towards the total.'),
+    el('div',{class:'row'},lumpIn,lumpAmt),
+    el('div',{class:'row',style:'margin-top:14px'},
+      el('button',{class:'btn pri',onclick:async()=>{
+        const items=rows.filter(r=>r.item.trim()&&String(r.price).trim()).map(r=>{
+          const a=parseAmount(r.qty);
+          return {item:r.item.trim(),qty:a.qty,unit:a.unit,price:r.price};
+        });
+        const other=lumpIn.value.trim()&&lumpAmt.value.trim()
+          ? [{what:lumpIn.value.trim(),price:lumpAmt.value}] : [];
+        if(!items.length&&!other.length)return toast('Nothing to log.');
+        recordPurchase({date:dateIn.value,store:storeIn.value,items,other});
+        status('Saving…','busy');
+        await persistPrices(); markStockDirty();
+        closeModal(); status('Logged','good');
+        toast((items.length+other.length)+' logged, pantry topped up.'); render();
+      }},'Save'))));
 }
 
 /* ---------------- SETTINGS ---------------- */
@@ -1820,6 +3105,7 @@ $('#btnSignin').addEventListener('click',async()=>{
 
 async function boot(){
   renderNav();
+  if(UI.scanMode)document.querySelector('header').classList.add('hide');
   const cached=loadCache();
   render();
   if(cached) status('Showing the last synced copy…','');
