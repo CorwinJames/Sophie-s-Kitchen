@@ -105,6 +105,10 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
 .chg.technique b{color:var(--hot2)}
 .chg.missing b{color:var(--warn)}
 .chg.warn b{color:var(--bad)}
+.chg.scratch b{color:#9ad0c8}
+.scratch{color:#9ad0c8}
+.pill.scratch{background:#1d3330;color:#9ad0c8}
+.steps-scratch{color:#9ad0c8;font-weight:600;margin-top:6px}
 .was{color:var(--ink3);text-decoration:line-through}
 .subbed{color:var(--ok)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -221,7 +225,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.5'
+  VER: '1.6'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -397,7 +401,8 @@ function ingLine(i){
 }
 
 /* ---------- recipe file <-> object ---------- */
-const META_KEYS=['tags','serves','time','active','source','status','rating','added','lastmade','times'];
+const META_KEYS=['tags','serves','time','active','source','status','rating','added','lastmade','times',
+  'makes','yields','leaves'];
 function parseRecipe(text,file){
   const lines=String(text||'').split(/\r?\n/);
   let name='Untitled';
@@ -1222,18 +1227,63 @@ function findSub(missingItem){
   }
   return null;
 }
+/* ============================================================
+   THINGS WE MAKE RATHER THAN BUY
+   A recipe with "makes: chicken stock" in its header doesn't just feed you —
+   it produces a pantry ingredient. So having the bones counts as having the
+   stock, and any recipe calling for stock can fold the stock-making into it.
+   Never a rule, always a fallback: if the jar is in the cupboard, use the jar.
+   ============================================================ */
+function componentFor(item){
+  if(!item)return null;
+  return S.recipes.find(r=>r.meta.makes && sameThing(r.meta.makes,item))||null;
+}
+function inPantry(item){ return pantryHave(S.pantry).some(h=>sameThing(h.name,item)); }
+/* can we produce this from what is in the house right now? depth-limited, so
+   two recipes that quote each other cannot spin forever */
+function canMake(item,depth,seen){
+  depth = depth==null?2:depth;
+  seen = seen||new Set();
+  if(depth<0)return null;
+  const key=norm(item);
+  if(seen.has(key))return null;
+  seen.add(key);
+  const c=componentFor(item);
+  if(!c)return null;
+  for(const i of c.ingredients){
+    if(!i.key||negligible(i))continue;
+    if(inPantry(i.item))continue;
+    if(canMake(i.item,depth-1,new Set(seen)))continue;
+    return null;
+  }
+  return {recipe:c,item};
+}
+/* everything this recipe needs that we would have to make first */
+function scratchPlan(r){
+  const out=[];
+  r.ingredients.forEach(i=>{
+    if(!i.key||negligible(i)||inPantry(i.item))return;
+    const c=canMake(i.item);
+    if(c && !out.some(x=>sameThing(x.item,i.item)))out.push(c);
+  });
+  return out;
+}
+
 function scoreRecipe(r,selected,have){
   const hv=have||haveKeys();
   const sel=(selected||[]).map(norm).filter(Boolean);
   let matched=0,usedSel=0;
   const missing=[];
+  const scratch=[];
   r.ingredients.forEach(i=>{
     if(!i.key)return;
     const inSel=sel.some(s=>sameThing(s,i.item));
-    const inPantry=hv.some(k=>sameThing(k,i.item));
+    const held=hv.some(k=>sameThing(k,i.item));
     if(inSel)usedSel++;
-    if(inSel||inPantry)matched++;
-    else missing.push(i);
+    if(inSel||held){ matched++; return; }
+    const mk=canMake(i.item);          // don't have it, but could make it
+    if(mk){ matched++; scratch.push(mk); return; }
+    missing.push(i);
   });
   const total=r.ingredients.filter(i=>i.key).length||1;
   const selHits=sel.filter(s=>r.ingredients.some(i=>sameThing(s,i.item))).length;
@@ -1242,9 +1292,9 @@ function scoreRecipe(r,selected,have){
   const never=S.rules.never.filter(n=>r.ingredients.some(i=>sameThing(n,i.item)));
   const subs=missing.map(m=>({ing:m,sub:findSub(m.item)}));
   const shoppable=subs.filter(s=>!s.sub).length;
-  let score = coverage*100 + selHits*40 - shoppable*7 + rating*2;
+  let score = coverage*100 + selHits*40 - shoppable*7 + rating*2 - scratch.length*4;
   if(sel.length && selHits<sel.length) score -= (sel.length-selHits)*35;
-  return {recipe:r,coverage,matched,total,missing,subs,selHits,never,score};
+  return {recipe:r,coverage,matched,total,missing,subs,selHits,never,scratch,score};
 }
 /* ---------- search ----------
    "beef" should find the short ribs. "short ribs" should not find every
@@ -1342,6 +1392,8 @@ function bestPrice(item){
 /* seasonings used by the pinch are not worth pricing and should not
    make the total look uncertain */
 function negligible(ing){
+  const n=norm(ing.item);
+  if(n==='water'||n==='ice'||n==='tap water')return true;   // it comes out of the wall
   const seasonings=S.pantry.groups.filter(g=>/seasoning|spice/.test(g.name)).flatMap(g=>g.items);
   if(seasonings.some(x=>sameThing(x.name,ing.item)))return true;
   if(!ing.qty && /salt|pepper|oil|water/.test(norm(ing.item)))return true;
@@ -1567,6 +1619,20 @@ function buildGrocery(planRows){
     row.recipe.ingredients.forEach(i=>{
       if(!i.key)return;
       if(have.some(h=>sameThing(h.name,i.item)))return;
+      if(canMake(i.item))return;                       // we can make this from what's here
+      const comp=componentFor(i.item);
+      if(comp){                                        // we make this, but are short an input
+        comp.ingredients.forEach(ci=>{
+          if(!ci.key||negligible(ci))return;
+          if(have.some(h=>sameThing(h.name,ci.item)))return;
+          const ck=ci.key;
+          if(!bucket.has(ck))bucket.set(ck,{item:ci.item,parts:[],forr:new Set()});
+          const cb=bucket.get(ck);
+          cb.parts.push({qty:ci.qty,unit:ci.unit});
+          cb.forr.add('to make '+comp.meta.makes);
+        });
+        return;
+      }
       const k=i.key;
       if(!bucket.has(k))bucket.set(k,{item:i.item,parts:[],forr:new Set()});
       const b=bucket.get(k);
@@ -1587,7 +1653,11 @@ function buildGrocery(planRows){
     const amt=Object.keys(byUnit).map(u=>trimNum(byUnit[u])+(u?' '+u:'')).join(' + ');
     return {text:(amt?amt+' ':'')+b.item, item:b.item, forr:[...b.forr]};
   });
-  const outOf=pantryAll(S.pantry).filter(i=>i.out).map(i=>({text:i.name,item:i.name,forr:['out of it']}));
+  /* being out of something we make ourselves is not a shopping problem —
+     the inputs are already on the list above if we are short of them */
+  const outOf=pantryAll(S.pantry)
+    .filter(i=>i.out && !componentFor(i.name))
+    .map(i=>({text:i.name,item:i.name,forr:['out of it']}));
   return list.concat(outOf);
 }
 function fracToNum(q){
@@ -1804,12 +1874,22 @@ function makeIt(recipe,opts={}){
     }
   }
 
-  /* 2 — anything we don't have: substitute, drop, or flag */
+  /* 2 — anything we don't have: make it, substitute, drop, or flag */
   const missing=[];
+  const scratchUsed=[];
   for(let n=r.ingredients.length-1;n>=0;n--){
     const i=r.ingredients[n];
     if(!i.key||hasIt(i.item))continue;
     if(i.chosen){ missing.push(i.item); continue; }   // you asked for this one — never drop it
+    if(!opts.noScratch){
+      const mk=canMake(i.item);
+      if(mk){
+        i.scratch=mk.recipe.name;
+        scratchUsed.push(mk);
+        note('scratch',`${i.item} — we don't have it, but we can make it: ${mk.recipe.name}`);
+        continue;
+      }
+    }
     const sub=findSub(i.item);
     if(sub){
       const was=i.item;
@@ -1825,8 +1905,28 @@ function makeIt(recipe,opts={}){
     missing.push(i.item);
   }
   missing.reverse();
+
+  /* 3 — splice the making-of into the top of the method, and bring its
+     shopping along, so the page you cook from is complete */
+  if(scratchUsed.length){
+    scratchUsed.reverse();
+    const pre=[];
+    scratchUsed.forEach(mk=>{
+      const t=mk.recipe.meta.time?' — '+mk.recipe.meta.time:'';
+      pre.push('First, the '+mk.item+''+t+':');
+      mk.recipe.steps.forEach(st=>pre.push(st));
+      mk.recipe.ingredients.forEach(ing=>{
+        if(negligible(ing))return;
+        if(r.ingredients.some(x=>sameThing(x.item,ing.item)))return;
+        const copy=Object.assign({},ing,{forScratch:mk.item,dirty:true});
+        r.ingredients.push(copy);
+      });
+    });
+    r.steps=pre.concat(r.steps);
+  }
+
   if(missing.length)note('missing','still need: '+missing.join(', '));
-  return {recipe:r,changes,missing};
+  return {recipe:r,changes,missing,scratch:scratchUsed};
 }
 /* proteins we could swap in, given what's in the house */
 function availableProteins(){
@@ -1853,6 +1953,23 @@ function deductPlan(recipe){
     rows.push({item:i,group:g.name,used:ingLine(used),suggestion,choice:suggestion});
   }));
   return rows;
+}
+/* "leaves: chicken bones" — roast a chicken, gain the makings of stock */
+function applyLeaves(recipe){
+  const list=String((recipe.meta||{}).leaves||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const added=[];
+  list.forEach(name=>{
+    let found=null;
+    S.pantry.groups.forEach(g=>g.items.forEach(i=>{ if(sameThing(i.name,name))found=i; }));
+    if(found){ setLevel(found,'plenty'); found.bought=todayISO(); }
+    else{
+      const g=S.pantry.groups.find(x=>/freezer/.test(x.name))||S.pantry.groups[0];
+      g.items.push({name,level:'plenty',out:false,qty:null,unit:null,bought:todayISO(),key:norm(name)});
+    }
+    S.grocery.need=S.grocery.need.filter(t=>t!==name);
+    added.push(name);
+  });
+  return added;
 }
 function applyDeduct(rows){
   const nowOut=[];
@@ -2280,10 +2397,15 @@ function recipeCard(x){
           r.meta.rating?'★'+r.meta.rating:null,
           (()=>{const c=recipeCost(r);return c.priced.length?costLabel(c):null;})()].filter(Boolean).join(' · '))),
       x.never.length?h('span','pill bad','contains '+x.never[0]):
-        (shoppable.length===0?h('span','pill ok','can make now'):
-         h('span','pill '+(shoppable.length<=2?'warn':'bad'),'need '+shoppable.length))),
+        (shoppable.length===0
+          ? h('span','pill '+(x.scratch&&x.scratch.length?'scratch':'ok'),
+              x.scratch&&x.scratch.length?'make the '+x.scratch[0].item+' first':'can make now')
+          : h('span','pill '+(shoppable.length<=2?'warn':'bad'),'need '+shoppable.length))),
     el('div',{class:'bar',style:'margin:8px 0'},el('i',{style:'width:'+pct+'%'})),
     r.tags.slice(0,5).map(t=>h('span','tag',t)),
+    x.scratch&&x.scratch.length?h('div','small',
+      h('span','scratch','From scratch: '),
+      x.scratch.map((c,n)=>(n?', ':'')+c.item+' ('+c.recipe.name+')').join('')):null,
     x.missing.length?h('div','small',
       h('span','miss','Missing: '),
       x.missing.map((m,n)=>{
@@ -2318,6 +2440,13 @@ function openRecipe(r){
     h('div','tiny dim',[r.meta.time&&('total '+r.meta.time),r.meta.active&&('hands-on '+r.meta.active),
       r.meta.serves&&('serves '+r.meta.serves),r.meta.status,r.meta.source].filter(Boolean).join(' · ')),
     h('div',null,r.tags.map(t=>h('span','tag',t))),
+    r.meta.makes?h('div','small scratch','Makes: '+r.meta.makes
+      +(r.meta.yields?' · '+r.meta.yields:'')+' — this one stocks the pantry rather than the table'):null,
+    r.meta.leaves?h('div','small dim','Leaves: '+r.meta.leaves+' when you are done'):null,
+    (()=>{const sp=scratchPlan(r); if(!sp.length)return null;
+      return h('div','small scratch','We do not have '
+        +sp.map(c=>c.item).join(' or ')+', but we can make '
+        +(sp.length>1?'them':'it')+' — “Make it” folds the steps in.');})(),
     (()=>{const c=recipeCost(r); if(!c.priced.length)return null;
       return h('div','small',el('b',{},costLabel(c)),' to make',
         c.unpriced.length?h('span','dim','  — no price yet for '+c.unpriced.join(', ')):null,
@@ -2371,7 +2500,7 @@ function openMakeIt(recipe,protein){
     changes.length?h('div',{},h('h3',null,'What changed'),
       el('div',{class:'card',style:'padding:10px'},changes.map(c=>
         el('span',{class:'chg '+c.kind},
-          el('b',{},{sub:'SWAP',protein:'PROTEIN',drop:'LEFT OUT',add:'ADDED',technique:'METHOD',missing:'MISSING',warn:'HEADS UP'}[c.kind]||c.kind),
+          el('b',{},{sub:'SWAP',protein:'PROTEIN',drop:'LEFT OUT',add:'ADDED',technique:'METHOD',missing:'MISSING',warn:'HEADS UP',scratch:'FROM SCRATCH'}[c.kind]||c.kind),
           ' ',c.text)))):h('p','muted','Nothing needed changing — we have everything.'),
 
     h('div','split',
@@ -2379,12 +2508,15 @@ function openMakeIt(recipe,protein){
         el('ul',{class:'clean'},r.ingredients.map(i=>{
           const got=pantryHave(S.pantry).some(hh=>sameThing(hh.name,i.item));
           return el('li',{},
-            el('span',{class:i.sub?'subbed':(got?'':'miss')},ingLine(i)),
+            el('span',{class:i.forScratch?'scratch':(i.sub?'subbed':(got?'':'miss'))},ingLine(i)),
+            i.forScratch?el('span',{class:'tiny scratch'},'  for the '+i.forScratch):null,
             i.sub?el('span',{class:'tiny'},'  ',el('span',{class:'was'},i.sub)):null,
-            !got&&!i.sub?el('span',{class:'tiny miss'},'  need this'):null);
+            i.scratch?el('span',{class:'tiny scratch'},'  making our own'):null,
+            !got&&!i.sub&&!i.forScratch&&!i.scratch?el('span',{class:'tiny miss'},'  need this'):null);
         }))),
       h('div',null,h('h3',null,'Steps'),
-        el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
+        el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>
+          el('li',{class:/^First, the /.test(s)?'steps-scratch':'',style:'margin-bottom:7px'},expand(s)))))),
     r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
     (()=>{
       const was=recipeCost(recipe), now=recipeCost(r);
@@ -2439,10 +2571,12 @@ function openCooked(recipe,adapted){
     el('div',{class:'row',style:'margin-top:14px'},
       el('button',{class:'btn pri',onclick:async()=>{
         const nowOut=applyDeduct(rows);
+        const gained=applyLeaves(recipe);
         await markMade(recipe);
         markStockDirty();
         closeModal();
-        toast(nowOut.length?'Logged. '+nowOut.join(', ')+' went on the grocery list.':'Logged.');
+        toast([nowOut.length?nowOut.join(', ')+' went on the grocery list.':'',
+               gained.length?'You now have '+gained.join(', ')+'.':''].filter(Boolean).join(' ')||'Logged.');
         render();
       }},'Save'),
       el('button',{class:'btn',onclick:async()=>{ await markMade(recipe); closeModal(); toast('Logged, inventory untouched.'); }},
