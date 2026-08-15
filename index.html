@@ -225,7 +225,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.7'
+  VER: '1.8'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -324,7 +324,9 @@ const PREP=['fresh','freshly','chopped','finely','roughly','diced','minced','sli
  'grated','crushed','smashed','peeled','trimmed','rinsed','drained','packed','softened','melted','room',
  'temperature','large','small','medium','extra','ripe','optional','taste','cold','warm','hot','dry','dried?no',
  'boneless','bone-in','skin-on','skinless','whole','halved','quartered','cubed','julienned','beaten',
- 'leftover','any','good','quality','plus','more','for','serving','garnish','divided','about','approximately'];
+ 'leftover','any','good','quality','plus','more','for','serving','garnish','divided','about','approximately',
+ 'leaves','leaf','sprigs','sprig','stalks','stalk','fronds','tops','needed','required',
+ 'a','little','few','extra','best','your','favourite','favorite','preferably'];
 const SYN={
   'scallion':'green onion','scallions':'green onion','spring onion':'green onion',
   'coriander leaf':'cilantro','yellow onion':'onion','white onion':'onion','red onion':'onion',
@@ -339,7 +341,21 @@ const SYN={
   'soy':'soy sauce','parmigiano reggiano':'parmesan','parmigiano':'parmesan',
   'chicken backs':'chicken bones','chicken back':'chicken bones',
   'chicken carcass':'chicken bones','chicken frames':'chicken bones',
-  'chicken wings':'chicken wing'
+  'chicken wings':'chicken wing',
+  /* a British cookbook in an American kitchen */
+  'chilli':'chili','chillies':'chili','chilli powder':'chili powder','chilli flakes':'red pepper flakes',
+  'courgette':'zucchini','courgettes':'zucchini','aubergine':'eggplant','aubergines':'eggplant',
+  'rocket':'arugula','prawn':'shrimp','prawns':'shrimp','mangetout':'snow peas',
+  'coriander leaves':'cilantro','fresh coriander':'cilantro',
+  'plain flour':'flour','strong white flour':'bread flour','cornflour':'cornstarch',
+  'caster sugar':'sugar','icing sugar':'powdered sugar','demerara sugar':'brown sugar',
+  'double cream':'heavy cream','single cream':'cream','soured cream':'sour cream',
+  'natural yoghurt':'yogurt','yoghurt':'yogurt',
+  'bicarbonate of soda':'baking soda','tomato purée':'tomato paste','tomato puree':'tomato paste',
+  'streaky bacon':'bacon','back bacon':'bacon','gammon':'ham','beetroot':'beet','swede':'rutabaga',
+  'sultanas':'raisins','flat-leaf parsley':'parsley','flat leaf parsley':'parsley',
+  'spring greens':'collard greens','pepper deseeded':'bell pepper',
+  'greek yoghurt':'greek yogurt','sunflower oil':'vegetable oil','rapeseed oil':'canola oil'
 };
 function singular(w){
   if(/(ss|us|is)$/.test(w))return w;
@@ -348,10 +364,31 @@ function singular(w){
   if(/s$/.test(w)&&w.length>3)return w.slice(0,-1);
   return w;
 }
+/* "oil for frying", "flour for dusting", "parsley to garnish" — the tail says
+   what it is FOR, not what it IS. Strip it so the ingredient is just the thing. */
+const PURPOSE=/\s*(?:,\s*)?(?:\bplus\s+(?:more|extra)\s+)?\b(?:for|to)\s+(?:frying|deep[- ]frying|shallow[- ]frying|dusting|dredging|coating|greasing|oiling|brushing|drizzling|sprinkling|serving|serve|garnish|garnishing|topping|finishing|finish|taste|thin|thicken|the\s+pan|the\s+tin|the\s+tray)\b.*$/i;
+const ASNEEDED=/\s*(?:,\s*)?(?:or\s+)?as\s+(?:needed|required)\b.*$/i;
+const PLUSMORE=/\s*,?\s*plus\s+(?:more|extra)\b.*$/i;
+/* British book, American kitchen: "plain [all-purpose] flour" is all-purpose
+   flour, "cornflour [cornstarch]" is cornstarch. But "225g [8oz] chorizo" is a
+   unit conversion, not a translation — leave anything with digits alone. */
+function preferBracketed(s){
+  let t=String(s||'');
+  t=t.replace(/([A-Za-z-]+)?\s*\[([^\]0-9]+)\]/g,(m,w,inner)=>' '+inner.trim()+' ');
+  t=t.replace(/\[[^\]]*\]/g,' ');
+  return t.replace(/\s+/g,' ').trim();
+}
+function stripPurpose(s){
+  let t=String(s||'');
+  t=t.replace(PURPOSE,'').replace(ASNEEDED,'').replace(PLUSMORE,'');
+  t=t.replace(/[,\s]+$/,'').trim();
+  return t||String(s||'');
+}
 /* the canonical key used for all matching */
 function norm(s){
-  let t=deVulgar(String(s||'')).toLowerCase();
+  let t=deVulgar(preferBracketed(stripPurpose(String(s||'')))).toLowerCase();
   t=t.replace(/\([^)]*\)/g,' ');                       // drop parentheticals
+  t=t.split(/\bor\b/)[0];                             // "chilli powder or flakes" -> the first one
   t=t.replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
   if(SYN[t])t=SYN[t];
   let words=t.split(' ').filter(w=>w&&!PREP.includes(w));
@@ -381,6 +418,20 @@ function sameThing(a,b){
   return true;
 }
 
+/* Does having X satisfy a recipe asking for Y?
+   Deliberately one-way. A recipe asking for plain "oil" is happy with olive
+   oil; a recipe asking for "sesame oil" is not happy with olive oil. So a
+   bare, single-word request matches anything whose head noun is that word. */
+function satisfies(haveItem,wantItem){
+  if(sameThing(haveItem,wantItem))return true;
+  const w=norm(wantItem), h=norm(haveItem);
+  if(!w||!h)return false;
+  const ws=w.split(' ');
+  if(ws.length!==1)return false;                 // a specific ask needs a specific match
+  const hs=h.split(' ');
+  return hs[hs.length-1]===ws[0];                // "olive oil" answers "oil"
+}
+
 const QTY=/^\s*((?:\d+\s+\d+\/\d+)|(?:\d+\/\d+)|(?:\d+(?:\.\d+)?)(?:\s*[-–]\s*\d+(?:\.\d+)?)?)\s*/;
 function parseIngredient(raw){
   const line=deVulgar(raw).trim();
@@ -391,7 +442,15 @@ function parseIngredient(raw){
   if(um && UNIT_CANON[um[1].toLowerCase()]){ unit=UNIT_CANON[um[1].toLowerCase()]; rest=rest.slice(um[0].length); }
   rest=rest.replace(/^of\s+/i,'');                       // "3 cloves of garlic"
   let note=null;
-  const ci=rest.indexOf(',');
+  /* split the note off at the first comma whose head actually names something —
+     "melted, cooled butter" must not become the ingredient "melted" */
+  let from=0, ci=-1;
+  while(true){
+    const at=rest.indexOf(',',from);
+    if(at<0)break;
+    if(norm(rest.slice(0,at))){ ci=at; break; }
+    from=at+1;
+  }
   if(ci>0){ note=rest.slice(ci+1).trim(); rest=rest.slice(0,ci); }
   const item=rest.trim().replace(/\s+/g,' ');
   return {raw:line,qty,unit,item,note,key:norm(item)};
@@ -1241,7 +1300,7 @@ function componentFor(item){
   if(!item)return null;
   return S.recipes.find(r=>r.meta.makes && sameThing(r.meta.makes,item))||null;
 }
-function inPantry(item){ return pantryHave(S.pantry).some(h=>sameThing(h.name,item)); }
+function inPantry(item){ return pantryHave(S.pantry).some(h=>satisfies(h.name,item)); }
 /* can we produce this from what is in the house right now? depth-limited, so
    two recipes that quote each other cannot spin forever */
 function canMake(item,depth,seen){
@@ -1280,8 +1339,8 @@ function scoreRecipe(r,selected,have){
   const scratch=[];
   r.ingredients.forEach(i=>{
     if(!i.key)return;
-    const inSel=sel.some(s=>sameThing(s,i.item));
-    const held=hv.some(k=>sameThing(k,i.item));
+    const inSel=sel.some(s=>satisfies(s,i.item));
+    const held=hv.some(k=>satisfies(k,i.item));
     if(inSel)usedSel++;
     if(inSel||held){ matched++; return; }
     const mk=canMake(i.item);          // don't have it, but could make it
@@ -1621,13 +1680,13 @@ function buildGrocery(planRows){
     const mult=row.portions?Math.max(1,row.portions/serves):1;
     row.recipe.ingredients.forEach(i=>{
       if(!i.key)return;
-      if(have.some(h=>sameThing(h.name,i.item)))return;
+      if(have.some(h=>satisfies(h.name,i.item)))return;
       if(canMake(i.item))return;                       // we can make this from what's here
       const comp=componentFor(i.item);
       if(comp){                                        // we make this, but are short an input
         comp.ingredients.forEach(ci=>{
           if(!ci.key||negligible(ci))return;
-          if(have.some(h=>sameThing(h.name,ci.item)))return;
+          if(have.some(h=>satisfies(h.name,ci.item)))return;
           const ck=ci.key;
           if(!bucket.has(ck))bucket.set(ck,{item:ci.item,parts:[],forr:new Set()});
           const cb=bucket.get(ck);
@@ -1796,7 +1855,7 @@ function makeIt(recipe,opts={}){
   const r=JSON.parse(JSON.stringify(recipe));
   const changes=[];
   const have=pantryHave(S.pantry);
-  const hasIt=n=>have.some(h=>sameThing(h.name,n));
+  const hasIt=n=>have.some(h=>satisfies(h.name,n));
   const note=(kind,text,was)=>changes.push({kind,text,was:was||null});
 
   /* 1 — swap the whole protein, if asked */
@@ -1947,7 +2006,7 @@ function deductPlan(recipe){
   const rows=[];
   S.pantry.groups.forEach(g=>g.items.forEach(i=>{
     if(i.out)return;
-    const used=recipe.ingredients.find(x=>sameThing(x.item,i.name));
+    const used=recipe.ingredients.find(x=>satisfies(i.name,x.item));
     if(!used)return;
     const perishable=/fridge|freezer|produce|veg|meat/.test(g.name);
     let suggestion='keep';
@@ -2457,7 +2516,7 @@ function openRecipe(r){
     h('div','split',
       h('div',null,h('h3',null,'Ingredients'),
         el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const got=pantryHave(S.pantry).some(hh=>sameThing(hh.name,i.item));
+          const got=pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
           return el('li',{},el('span',{class:got?'':'miss'},ingLine(i)),
             got?el('span',{class:'tiny dim'},'  have'):'');
         }))),
@@ -2509,7 +2568,7 @@ function openMakeIt(recipe,protein){
     h('div','split',
       h('div',null,h('h3',null,'Ingredients'),
         el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const got=pantryHave(S.pantry).some(hh=>sameThing(hh.name,i.item));
+          const got=pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
           return el('li',{},
             el('span',{class:i.forScratch?'scratch':(i.sub?'subbed':(got?'':'miss'))},ingLine(i)),
             i.forScratch?el('span',{class:'tiny scratch'},'  for the '+i.forScratch):null,
