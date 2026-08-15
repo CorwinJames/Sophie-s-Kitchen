@@ -213,6 +213,106 @@ ul.clean li:last-child{border-bottom:0}
 .step-ref{color:var(--hot2);font-weight:600;cursor:help;border-bottom:1px dotted var(--hot2)}
 .miss{color:var(--warn)}
 .sub{color:var(--ok)}
+
+/* ---------------- BAKE ---------------- */
+.subbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.subbar button{background:var(--panel);border:1px solid var(--line);color:var(--ink2);
+  padding:7px 13px;border-radius:99px;cursor:pointer}
+.subbar button.on{background:var(--hot);border-color:var(--hot);color:#1a120c;font-weight:600}
+.bakelayout{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.bakelayout{grid-template-columns:1fr}}
+.bakeside{display:flex;flex-direction:column;gap:12px;position:sticky;top:64px;max-height:calc(100vh - 84px);overflow:auto;padding-right:4px}
+@media (max-width:900px){.bakeside{position:static;max-height:none;overflow:visible}}
+.bakemain{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+.fld{display:flex;align-items:center;gap:8px;margin:8px 0}
+.fld .fldl{flex:1;color:var(--ink2);font-size:13px}
+.fld input,.fld select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:6px 8px;width:110px;text-align:right}
+.fld select{width:auto;max-width:190px;text-align:left}
+.fld .fldu{color:var(--ink3);font-size:12px;width:26px}
+.fld.small{margin:4px 0}
+.fld.small input,.fld.small select{width:78px;padding:4px 6px;font-size:13px}
+.fld.small .fldl{font-size:12px}
+.chk{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:13px;color:var(--ink2);cursor:pointer}
+.chk input{margin-top:3px}
+.lockrow{display:flex;flex-direction:column;gap:2px;margin:8px 0;padding:8px;background:var(--panel2);border-radius:8px}
+
+.blendrow{display:flex;gap:6px;align-items:center;margin:6px 0}
+.blendrow select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.blendrow .pctin{width:62px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:right}
+button.x{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
+button.x:hover{color:var(--bad)}
+button.link{background:none;border:none;color:var(--hot2);cursor:pointer;padding:0;text-align:left;text-decoration:underline}
+
+table.formula{width:100%;border-collapse:collapse;margin:6px 0}
+table.formula th{text-align:left;font-size:12px;color:var(--ink3);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.formula td{padding:6px;border-bottom:1px solid var(--line)}
+table.formula .r,table.deltas .r{text-align:right;font-variant-numeric:tabular-nums}
+table.formula tfoot td{font-weight:600;border-bottom:none;border-top:1px solid var(--line)}
+table.formula tr.k-levain td,table.formula tr.k-salt td{color:var(--hot2)}
+table.formula tr.subrow td{font-size:12px;color:var(--ink3);border-bottom:1px solid var(--line);padding-top:0}
+table.deltas{width:100%;border-collapse:collapse;margin:6px 0}
+table.deltas td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+table.deltas tr.anchor td,table.deltas tr.tot td{font-weight:600}
+table.deltas tr.tot td{border-bottom:none;border-top:1px solid var(--line)}
+.big{font-size:22px;font-weight:600;letter-spacing:-.02em;margin:8px 0 2px}
+
+.tier{display:inline-block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap;cursor:help}
+.t-pr{background:#1e3320;border-color:#31552f;color:#a7d39a}
+.t-prderived{background:#2a3320;border-color:#4a5530;color:#c8d39a}
+.t-std{background:#1e2c33;border-color:#2f4a55;color:#9ac3d3}
+.t-bk{background:#2a2333;border-color:#463a55;color:#c2a7d3}
+.t-ind{background:#33301e;border-color:#55502f;color:#d3c89a}
+.t-prac{background:#33261e;border-color:#553d2f;color:#d3b39a}
+.t-craft{background:#2b2b2b;border-color:#454545;color:#b5b5b5}
+.t-nodata{background:#331e1e;border-color:#552f2f;color:#d39a9a}
+.src{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.45}
+.why{margin:10px 0;padding:8px 10px;background:var(--panel2);border-radius:8px;font-size:13px;color:var(--ink2)}
+
+.alert{padding:10px 12px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.5}
+.alert.hard{background:#3a1f1a;border:1px solid #6a3227;color:#f0c4ba}
+.alert.soft{background:#332a1a;border:1px solid #5a4a27;color:#e8d8b0}
+.warnline{color:var(--warn);font-size:13px}
+
+.timeline{display:flex;flex-direction:column;gap:0;margin:8px 0}
+.tstep{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tstep:last-child{border-bottom:none}
+.twhen{font-size:12px;color:var(--hot2);font-variant-numeric:tabular-nums;padding-top:2px}
+.tlabel{font-weight:600}
+.tdur{color:var(--ink3);font-weight:400;font-size:12px;margin-left:8px}
+.tdetail{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.5}
+
+.limit{padding:10px 12px;border-radius:8px;background:var(--panel2);margin:8px 0}
+.limit.soft{border-left:3px solid var(--warn)}
+.limit.hard{border-left:3px solid var(--bad)}
+.lhead{display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:4px;flex-wrap:wrap}
+.limit p{margin:4px 0;font-size:13px;line-height:1.55}
+ol.proto{margin:8px 0 4px;padding-left:20px;font-size:13px;color:var(--ink2)}
+ol.proto li{margin:4px 0}
+.ovrow{padding:8px 0;border-bottom:1px solid var(--line)}
+.ovrow:last-child{border-bottom:none}
+.ovv{font-size:15px;margin:2px 0}
+.honest{padding:8px 0;border-bottom:1px solid var(--line)}
+.honest:last-child{border-bottom:none}
+.honest h3{margin-bottom:3px}
+.honest p{margin:0;font-size:13px;color:var(--ink2);line-height:1.55}
+.tierkey{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.tkrow{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;align-items:center;font-size:13px;color:var(--ink2)}
+ul.srclist{margin:8px 0;padding-left:0;list-style:none}
+ul.srclist li{padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink2);line-height:1.5}
+.btag{padding:10px 0;border-bottom:1px solid var(--line)}
+.btag:last-child{border-bottom:none}
+.btaghead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.btaghead code{background:var(--hot);color:#1a120c;padding:3px 8px;border-radius:5px;font-weight:700;font-size:12px;letter-spacing:.02em}
+.btag p{margin:0;font-size:13px;color:var(--ink2);line-height:1.55}
+.flourrow{position:relative;padding:10px;background:var(--panel2);border-radius:8px;margin:8px 0}
+.flourrow .fname{background:none;border:none;border-bottom:1px solid var(--line);font-weight:600;width:calc(100% - 30px);padding:2px 0}
+.fnums{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.flourrow>button.x{position:absolute;top:8px;right:6px}
+.saved{margin-top:10px}
+.savedrow{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
 </style>
 </head>
 <body>
@@ -244,7 +344,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.1'
+  VER: '2.2'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -964,6 +1064,93 @@ function serializeGrocery(g){
   g.got.forEach(i=>out.push('- '+i));
   return out.join('\n')+'\n';
 }
+
+/* ---------- flours ----------
+   One "## Name" block per flour, then plain key: value lines. Anything
+   you leave out is simply not used — the calculator tells you which
+   numbers it is missing rather than inventing them. */
+function parseFlours(text){
+  const out=[];
+  const blocks=String(text||'').split(/\n(?=##\s)/);
+  blocks.forEach(b=>{
+    const m=/^##\s+(.+)$/m.exec(b);
+    if(!m)return;
+    const f={name:m[1].trim(),protein:null,fiber:null,whole:0,mill:'roller',grain:'wheat',source:'',note:''};
+    b.split('\n').slice(1).forEach(l=>{
+      const kv=/^\s*([a-z]+)\s*:\s*(.*)$/i.exec(l);
+      if(!kv)return;
+      const k=kv[1].toLowerCase(), v=kv[2].trim();
+      if(k==='protein')f.protein=parseFloat(v);
+      else if(k==='fiber'||k==='fibre')f.fiber=parseFloat(v);
+      else if(k==='whole')f.whole=parseFloat(v)||0;
+      else if(k==='mill')f.mill=/stone/i.test(v)?'stone':'roller';
+      else if(k==='grain')f.grain=v.toLowerCase();
+      else if(k==='source')f.source=v;
+      else if(k==='note')f.note=v;
+    });
+    if(f.name)out.push(f);
+  });
+  return out;
+}
+function serializeFlours(list){
+  const out=['# Flours','',
+    'Everything the dough calculator knows about what is in your cupboard.',
+    'Protein and fiber come off the bag, as a percentage. "whole" is how',
+    'much of that flour is whole grain, 0 to 100. "mill" is roller or stone.',
+    'Leave a number out and the calculator will say so rather than guess.',''];
+  (list||[]).forEach(f=>{
+    out.push('## '+f.name);
+    if(f.protein!=null&&isFinite(f.protein))out.push('protein: '+f.protein);
+    if(f.fiber!=null&&isFinite(f.fiber))out.push('fiber: '+f.fiber);
+    out.push('whole: '+(f.whole||0));
+    out.push('mill: '+(f.mill||'roller'));
+    if(f.grain&&f.grain!=='wheat')out.push('grain: '+f.grain);
+    if(f.source)out.push('source: '+f.source);
+    if(f.note)out.push('note: '+f.note);
+    out.push('');
+  });
+  return out.join('\n');
+}
+
+/* ---------- saved bakes ---------- */
+function parseBakes(text){
+  const out=[];
+  String(text||'').split(/\n(?=##\s)/).forEach(b=>{
+    const m=/^##\s+(.+)$/m.exec(b);
+    if(!m)return;
+    const k={name:m[1].trim(),blend:[],notes:''};
+    b.split('\n').slice(1).forEach(l=>{
+      const kv=/^\s*([a-z]+)\s*:\s*(.*)$/i.exec(l);
+      if(!kv)return;
+      const key=kv[1].toLowerCase(), v=kv[2].trim();
+      if(key==='blend'){
+        v.split(/\s*,\s*/).forEach(part=>{
+          const p=/^(.*?)\s+(\d+(?:\.\d+)?)\s*%?$/.exec(part.trim());
+          if(p)k.blend.push({flour:p[1].trim(),pct:parseFloat(p[2])});
+        });
+      }
+      else if(/^(flour|hydration|salt|pff|temp|levainhyd|scald|retard|anchor|anchorprotein|friction)$/.test(key))k[key]=parseFloat(v);
+      else k[key]=v;
+    });
+    if(k.name)out.push(k);
+  });
+  return out;
+}
+function serializeBakes(list){
+  const out=['# Bakes','','Saved dough formulas. Edit the numbers here and the calculator picks them up.',''];
+  (list||[]).forEach(k=>{
+    out.push('## '+k.name);
+    if(k.style)out.push('style: '+k.style);
+    if(k.blend&&k.blend.length)out.push('blend: '+k.blend.map(b=>b.flour+' '+b.pct).join(', '));
+    ['flour','hydration','salt','pff','temp','levainhyd','scald','anchor','anchorprotein','friction'].forEach(f=>{
+      if(k[f]!=null&&isFinite(k[f]))out.push(f+': '+k[f]);
+    });
+    if(k.path)out.push('path: '+k.path);
+    if(k.notes)out.push('notes: '+k.notes);
+    out.push('');
+  });
+  return out.join('\n');
+}
 /* ============================================================
    GOOGLE DRIVE LAYER
    ============================================================ */
@@ -1151,10 +1338,20 @@ const S = {
   prices:{buy:[],other:[],raw:''},
   stores:{list:[],best:{},season:{},raw:''},
   inbox:[],
+  flours:parseFlours(''),
+  bakes:parseBakes(''),
   loadedAt:null,
   dirty:new Set(),
   offline:false
 };
+
+/* The dough calculator is pure arithmetic and must work with no Drive,
+   no network and no sign-in, so its two data files are seeded locally the
+   first time and only then overwritten by whatever is in Drive. */
+function seedBakeData(){
+  if(!S.flours||!S.flours.length)S.flours=parseFlours(SEED['flours.md']);
+  if(!S.bakes||!S.bakes.length)S.bakes=parseBakes(SEED['bakes.md']);
+}
 
 const CONFIG_FILES=[
   ['house-rules.md', t=>S.rules=parseRules(t)],
@@ -1164,7 +1361,9 @@ const CONFIG_FILES=[
   ['grocery-list.md',t=>S.grocery=parseGrocery(t)],
   ['receipts-queue.md',t=>S.receipts=parseReceipts(t)],
   ['prices.md',      t=>S.prices=parsePrices(t)],
-  ['stores.md',      t=>S.stores=parseStores(t)]
+  ['stores.md',      t=>S.stores=parseStores(t)],
+  ['flours.md',      t=>S.flours=parseFlours(t)],
+  ['bakes.md',       t=>S.bakes=parseBakes(t)]
 ];
 
 const SEED={
@@ -1275,6 +1474,132 @@ Written as:  item or category -> store
 ## Seasons
 Written as:  item: first month - last month
 
+`,
+'flours.md':`# Flours
+
+Everything the dough calculator knows about what is in your cupboard.
+Protein and fiber come off the bag, as a percentage. "whole" is how much
+of that flour is whole grain, 0 to 100. "mill" is roller or stone.
+Leave a number out and the calculator will tell you it is missing rather
+than quietly guessing.
+
+The numbers below are published class averages, not your specific bag.
+Crop year moves a class mean by one to two protein points, and one variety
+spread 8.8 to 12.0% across four fields in a single season. Buy on the lot
+analysis when you can get it, and overwrite these.
+
+## Bread flour
+protein: 11.3
+whole: 0
+mill: roller
+source: Maghirang 2006, matched HRW flour protein [PR]
+
+## Bread flour, high protein
+protein: 13.2
+whole: 0
+mill: roller
+source: Maghirang 2006, matched HRS flour protein [PR]
+
+## All-purpose flour
+protein: 10.3
+fiber: 2.7
+whole: 0
+mill: roller
+source: USDA composite via the reference base [IND]
+
+## Whole wheat flour
+protein: 13.5
+fiber: 10.8
+whole: 100
+mill: roller
+source: Carcea 2020, whole meal 12.6-14.1% protein, 10.2-11.5% fibre dm [PR]
+
+## Whole wheat, stone-milled
+protein: 13.5
+fiber: 10.8
+whole: 100
+mill: stone
+source: Carcea 2022 measured roughly double the damaged starch of roller milling [PR]
+
+## Rye, light
+protein: 8.5
+whole: 80
+mill: roller
+grain: rye
+source: Ginsberg, The Rye Baker, 8.0-9.0% at 80% extraction [PRAC]
+
+## Rye, medium
+protein: 9.5
+whole: 100
+mill: roller
+grain: rye
+source: Ginsberg, The Rye Baker, 9.0-10.0% [PRAC]
+
+## Rye, dark
+protein: 13.0
+whole: 100
+mill: roller
+grain: rye
+source: Ginsberg, The Rye Baker, 12.0-14.0% [PRAC]
+
+## Spelt, whole
+whole: 100
+mill: stone
+grain: spelt
+note: No published protein or absorption figure. Spelt has MORE gluten than common wheat, 111.6 vs 80.4 mg/g, but weaker. Put your bag's number here.
+
+## Einkorn
+protein: 16.5
+whole: 100
+mill: stone
+grain: einkorn
+source: Brandolini 2023, 16.5 g/100g, absorption 52.6% vs 58.8% control [PR]
+
+## Salish Blue
+protein: 8.5
+whole: 100
+mill: stone
+source: Chimacum Valley Grainery vendor spec [PRAC]
+note: There is no published baking dataset for this wheat. No protein, ash, falling number, absorption or loaf volume figure exists in any peer-reviewed source. 8-9% is a product target, not a measurement. Establish your own ceiling by test bake.
+
+## Kernza
+protein: 19.2
+fiber: 18.0
+whole: 100
+mill: stone
+grain: kernza
+source: AURI/UMN whole grain 19.2%, 18.0 g/100g fibre [IND]; Cetiner 2023 [PR]
+
+## Durum semolina
+protein: 12.1
+whole: 0
+mill: roller
+source: Geisslitz 2019 wholemeal durum 120.7 mg/g [PR]
+note: Traditionally pan or basket supported. High gliadin to glutenin ratio costs elasticity.
+
+## Trailblazer
+protein: 13.75
+whole: 85
+mill: stone
+source: Cairnspring Mills, 13-14.5%, Type 85 extraction [PRAC]
+note: The miller says it needs an extra 5% hydration from the bran and germ load.
+`,
+'bakes.md':`# Bakes
+
+Saved dough formulas. Edit the numbers here and the calculator picks them up
+next time it syncs. One "## Name" block each.
+
+## Saturday country loaf
+style: country
+blend: Bread flour 80, Whole wheat flour 20
+flour: 900
+hydration: 78
+salt: 2
+pff: 14
+temp: 24
+levainhyd: 100
+path: retard
+notes: Baseline. Change one thing at a time and write down what happened.
 `,
 'receipts-queue.md':`# Receipts
 
@@ -2348,10 +2673,681 @@ async function aiModels(){
   return (await r.json()).data.map(m=>m.id);
 }
 /* ============================================================
+   BAKE — the dough calculator
+   ------------------------------------------------------------
+   Everything here is arithmetic on published numbers. No recipe
+   lookup, no network. Every coefficient carries its source and
+   its evidence tier so you can see how much weight it will bear.
+
+   Tiers, strongest first:
+     PR    peer-reviewed journal article
+     TH    thesis
+     STD   standard method / official specification
+     BK    published book
+     IND   industry or institutional lab publication
+     PRAC  named practitioner with data
+     PR, derived   computed from published data, not reported directly
+     craft  convention with no published coefficient behind it
+     no data  the knowledge base is silent; said so rather than guessed
+   ============================================================ */
+
+const CITE={
+  cucuzza  :{k:'PRAC',s:'Cucuzza, T., 2024, "The SECRET of Bulk Fermentation: Measuring Dough Temperature and Percentage Rise," The Sourdough Journey'},
+  ganzle   :{k:'PR',  s:'Gänzle, Ehmann & Hammes, 1998, Appl Environ Microbiol 64(7):2616–2623, doi:10.1128/aem.64.7.2616-2623.1998'},
+  campbell :{k:'PR',  s:'Campbell, Ross & Motoi, 2008, "Bran in bread," Bubbles in Food 2, 337–354, doi:10.1016/B978-1-891127-59-5.50037-7', flag:'paywalled chapter — figures not independently retrieved. The most-reused coefficient in the base.'},
+  hamelman :{k:'PRAC',s:'Hamelman, J., 2021, Bread, 3rd ed., Wiley — rule of thumb, no regression coefficient published'},
+  parenti  :{k:'PR, derived', s:'Parenti et al., 2019, LWT 106:240–246, doi:10.1016/j.lwt.2019.02.066 — 6% of flour scalded gave +3.5 pp, i.e. ~0.58 pp per 1%'},
+  koceva   :{k:'PR',  s:'Koceva Komlenić et al., 2010, Int J Food Sci Technol 45(7):1417–1425, doi:10.1111/j.1365-2621.2010.02282.x'},
+  carcea22 :{k:'PR',  s:'Carcea, Narducci, Turfani & Finotti, 2022, Foods 11(3):339, doi:10.3390/foods11030339 — stone 6.83–9.21% damaged starch vs roller 3.82–4.76%'},
+  carcea20 :{k:'PR',  s:'Carcea et al., 2020, Foods 9(1):3 — whole meal fibre 10.2–11.5% dm vs refined 1.8–2.7% dm'},
+  liu14    :{k:'PR',  s:'Liu et al., 2014, Int J Food Sci Technol 49(1):253–260, doi:10.1111/j.1365-2621.2014.12306 — ≈+1 absorption pt per +1 pt damaged starch, valid 6.5–12.1% DS'},
+  jacobs   :{k:'PR',  s:'Jacobs, Hemdane, Dornez, Delcour & Courtin, 2015, Food Chemistry 179:296–304 — farinograph absorption flat at 68.3 ± 0.4% across 77–1687 µm bran'},
+  alzuwaid :{k:'PR',  s:'Alzuwaid, Pleming, Fellows, Laddomada & Sissons, 2021, Foods 10(3):489 — fine bran needed 1.0–1.4% LESS water yet did MORE volume damage'},
+  codina   :{k:'PR',  s:'Codină, Mironeasa & Voica, 2011, Food and Environment Safety X(4):79–83 — 90-min gas production 1270 cm³ at 51.4% water, 1410 at 57.1% (farinograph optimum), 1433 at 62.8%'},
+  brandolini:{k:'PR', s:'Brandolini et al., 2023, Foods 12(8):1610 — einkorn absorption 52.6% vs 58.8% bread-wheat control; development 120.8 vs 175.0 min'},
+  cetiner  :{k:'PR',  s:'Çetiner et al., 2023, Foods 12(11):2109 — Kernza 45% ceiling, 15% optimal; loaf volume 485 mL at 15%, 360 mL with collapse at 60%'},
+  auri     :{k:'IND', s:'AURI / University of Minnesota Kernza fact sheet — 10–15% and flatbreads only'},
+  ireks    :{k:'IND', s:'IREKS Compendium of Baking Technology §8.2.3 — rye α-amylase optimum pH 5.0–5.5; 5% acidifier needed at falling number ~120'},
+  ginsberg :{k:'PRAC',s:'Ginsberg, S., 2016, Bread Lines, Bread Bakers Guild of America — rye preferment ≥30% of total flour; rye protein/ash/extraction bands'},
+  vanin    :{k:'PR',  s:'Vanin et al., 2017, Drying Technology 35(12):1518–1529 — 88 °C core is gummy; lean crumb finishes 93–99 °C'},
+  channaiah:{k:'PR',  s:'Channaiah et al., 2016, J Food Prot 79(4):544–552 — S. cerevisiae D = 18.73 min at 52 °C, 5.67 at 55 °C, 1.03 at 58 °C, z = 4.74 °C'},
+  usw      :{k:'IND', s:'U.S. Wheat Associates, 2025 Crop Quality Report — single crop-year composites'},
+  cgc      :{k:'IND', s:'Canadian Grain Commission, 2025 harvest report'},
+  chimacum :{k:'PRAC',s:'Chimacum Valley Grainery product spec — vendor target, not a measured mean'},
+  morgan23 :{k:'PR',  s:'Morgan, Danilova, Newell, Cai & Jones, 2023, Plants 12(18):3217; ×Tritipyrum aaseae parentage, IPNI 77160203-1'},
+  murphy   :{k:'PR',  s:'Murphy, Hoagland, Reeves, Baik & Jones, 2009, Renew Agric Food Syst 24(4):285–292 — perennial lines: reduced mix time, reduced loaf volume'},
+  alpern   :{k:'IND', s:'Alpern, 2018, "Determining the friction factor in baking," King Arthur Baking'},
+  dumonceaux:{k:'IND',s:'Dumonceaux, 2017, Bakers Journal — sourdough levain 10–25% PFF, practical limit near 35%'},
+  aaccfar  :{k:'STD', s:'AACC International Method 54-21.01 — farinograph absorption at 500 BU, 30 °C, no salt, no leaven, no acid'},
+  yang25   :{k:'PR',  s:'Yang, Yang, Guan & Bian, 2025, Food Chemistry: X 27:102366 — dough recovery measurable on the tens-of-minutes scale'},
+  feng21   :{k:'PR',  s:'Feng, Zhang, Wang & Chen, 2021, Molecules 26(3):541 — GMP recovery peaks at 60 min rest, declines by 90 min'},
+  geisslitz:{k:'PR',  s:'Geisslitz et al., 2019, Foods 8(9):409 — spelt gluten 111.6 mg/g vs common wheat mean 80.4 mg/g'},
+  tucker   :{k:'IND', s:'Tucker, G., 2021, Campden BRI — oven spring completes in roughly the first third of the bake; gelatinisation above 60 °C'},
+  craft    :{k:'craft',s:'Conventional formula. No published coefficient behind it — a starting point to edit, not a result.'},
+  nodata   :{k:'no data',s:'The knowledge base has no published figure for this. Said so rather than invented.'}
+};
+
+/* ---------- fermentation kinetics ----------------------------------
+   Two independent models, used for two different jobs, because that
+   is as far as the evidence goes:
+
+   1. Cucuzza's temperature / % rise matrix gives the base bulk
+      duration. It is the only published thing that maps a dough
+      temperature to an actual bulk time. Single practitioner source,
+      one calibration formula. [PRAC]
+
+   2. A Rosso cardinal-temperature model on the yeast's published
+      growth constants gives the *ratio* between two inoculations at
+      the same temperature. Used only to move off Cucuzza's 20%
+      starter, never to generate an absolute time. [PR, derived]
+   ------------------------------------------------------------------ */
+
+const YEAST={tmin:8,topt:27,tmax:36,umax:0.42};   // Kazachstania humilis (Candida milleri) — Gänzle 1998
+const LABUG={tmin:3.5,topt:32.5,tmax:41,umax:0.69}; // Fructilactobacillus sanfranciscensis — Gänzle 1998
+
+function rosso(T,c){
+  if(T<=c.tmin||T>=c.tmax)return 0;
+  const num=(T-c.tmax)*Math.pow(T-c.tmin,2);
+  const den=(c.topt-c.tmin)*((c.topt-c.tmin)*(T-c.topt)-(c.topt-c.tmax)*(c.topt+c.tmin-2*T));
+  if(den===0)return 0;
+  const r=c.umax*num/den;
+  return r>0?r:0;
+}
+const muYeast=T=>rosso(T,YEAST);
+const muLab  =T=>rosso(T,LABUG);
+
+/* Cucuzza 2024 bulk matrix. Calibration that MUST travel with it:
+   90% bread flour / 10% whole wheat, 75% hydration, 20% starter
+   (≈9.1% prefermented flour), 2% salt. A % rise target quoted
+   without its formula, inoculation and temperature is meaningless. */
+const BULK_MATRIX=[
+  {t:18, rise:100, lo:12, hi:18},
+  {t:21, rise:75,  lo:8,  hi:12},
+  {t:24, rise:50,  lo:5,  hi:7},
+  {t:27, rise:30,  lo:3,  hi:5.5}
+];
+const PFF_REF=9.1;          // 20% starter at 100% hydration, on total flour
+const HYD_REF=75;           // the matrix's calibration hydration
+const RETARD_C=3.5;         // 3–4 °C domestic fridge
+const PFF_MAX=35;           // practical ceiling — Dumonceaux 2017 [IND]
+const PFF_MIN=1.0;
+
+function lerp(a,b,f){ return a+(b-a)*f; }
+function matrixAt(T){
+  const m=BULK_MATRIX;
+  if(T<=m[0].t){ // extrapolate down with the yeast rate model
+    const k=muYeast(m[0].t)/Math.max(muYeast(T),1e-4);
+    return {rise:m[0].rise, lo:m[0].lo*k, hi:m[0].hi*k, mid:(m[0].lo+m[0].hi)/2*k, out:'below'};
+  }
+  if(T>=m[m.length-1].t){
+    const last=m[m.length-1];
+    const k=muYeast(last.t)/Math.max(muYeast(T),1e-4);
+    return {rise:last.rise, lo:last.lo*k, hi:last.hi*k, mid:(last.lo+last.hi)/2*k, out:T>last.t?'above':null};
+  }
+  for(let i=0;i<m.length-1;i++){
+    if(T>=m[i].t&&T<=m[i+1].t){
+      const f=(T-m[i].t)/(m[i+1].t-m[i].t);
+      const lo=lerp(m[i].lo,m[i+1].lo,f), hi=lerp(m[i].hi,m[i+1].hi,f);
+      return {rise:lerp(m[i].rise,m[i+1].rise,f), lo, hi, mid:(lo+hi)/2, out:null};
+    }
+  }
+  return {rise:50,lo:5,hi:7,mid:6,out:null};
+}
+
+/* Hydration changes gas production. Codină 2011 measured 90-minute gas
+   volume across a hydration series: ~11% more gas climbing to the
+   farinograph optimum, ~1.6% more beyond it. Slope below optimum
+   ≈1.7%/pp, above ≈0.3%/pp. */
+function hydrationRateFactor(actual,optimum){
+  const d=actual-optimum;
+  if(d<0) return Math.max(0.70, 1+d*0.017);
+  return Math.min(1.04, 1+d*0.003);
+}
+
+/* Enrichment. There is NO published coefficient for fat, sugar, egg or
+   dairy effects on fermentation rate anywhere in the knowledge base —
+   the one study that would have covered it could not have its
+   authorship confirmed and was dropped. These are craft numbers.
+   Treat them as a dial to calibrate, not a result. */
+function enrichFactor(st){
+  const load=(st.sugar||0)+(st.fat||0)+(st.egg||0);
+  if(load<=2)return 1.00;
+  if(load<=8)return 1.15;
+  if(load<=20)return 1.40;
+  return 1.80;
+}
+
+/* Bulk duration for a given dough temperature and inoculation.
+   base    = Cucuzza midpoint at that temperature          [PRAC]
+   shift   = (1/µ)·ln(PFF_ref/PFF), exponential-growth inference
+             from the yeast's published µ                  [PR, derived] */
+function bulkHours(T,pff,opts){
+  opts=opts||{};
+  const m=matrixAt(T);
+  const mu=Math.max(muYeast(T),1e-3);
+  const shift=Math.log(PFF_REF/Math.max(pff,0.05))/mu;
+  let h=(m.mid+shift);
+  h/=hydrationRateFactor(opts.hydration==null?HYD_REF:opts.hydration, opts.optimum==null?HYD_REF:opts.optimum);
+  h*=(opts.enrich||1);
+  return Math.max(0.25,h);
+}
+/* Inverse: what inoculation lands the bulk on a given number of hours */
+function pffForHours(T,hours,opts){
+  opts=opts||{};
+  const m=matrixAt(T);
+  const mu=Math.max(muYeast(T),1e-3);
+  let target=hours/(opts.enrich||1)*hydrationRateFactor(opts.hydration==null?HYD_REF:opts.hydration, opts.optimum==null?HYD_REF:opts.optimum);
+  return PFF_REF*Math.exp(mu*(m.mid-target));
+}
+/* Inverse: what dough temperature lands the bulk on a given number of hours */
+function tempForHours(pff,hours,opts){
+  let lo=12,hi=32;
+  for(let i=0;i<60;i++){
+    const mid=(lo+hi)/2;
+    if(bulkHours(mid,pff,opts)>hours) lo=mid; else hi=mid;
+  }
+  return (lo+hi)/2;
+}
+
+/* Cold retard. Cucuzza instrumented the cooling ramp of a domestic
+   fridge: 27→21 °C in ~1 h gaining up to 20% rise, 21→10 °C over ~3 h
+   gaining a further 10–20%, 8–10 h in total to reach 3 °C. Once
+   equilibrated, 24 h at 3 °C is worth at most 30 min of peak-rate
+   bulk. Most of a "retard" is a cooling ramp, not storage. [PRAC] */
+function retardRise(hours,entryC){
+  if(hours<=0)return 0;
+  const warmth=Math.max(0,Math.min(1,(entryC-10)/17));   // 27 °C → 1.0, 10 °C → 0
+  const rampFull=35*warmth;                              // 20% + 10–20% over the first ~4 h
+  const ramp=rampFull*Math.min(1,hours/4);
+  const cold=Math.max(0,hours-9)*(20*0.5/24);            // ≈0.42 %/h once equilibrated
+  return ramp+cold;
+}
+
+/* ---------- flour and water ---------------------------------------
+   Hydration is predicted as ANCHOR + DELTAS, never as an absolute.
+   No farinograph-to-sourdough offset has ever been published, so an
+   absolute number handed down from a farinograph figure would be a
+   fabrication. You supply the hydration that works for you on a flour
+   you know; the calculator moves off it.
+   ------------------------------------------------------------------ */
+
+const ABS_COEF={
+  protein   :{lo:1.5, hi:2.0, cite:'hamelman'},   // pp hydration per pp flour protein
+  bran      :{lo:0.55,hi:0.55,cite:'campbell'},   // pp per 1% bran
+  stone     :{lo:3.0, hi:4.0, cite:'carcea22'},   // pp for stone-milled, via damaged starch
+  scald     :{lo:0.58,hi:0.58,cite:'parenti'},    // pp per 1% of total flour gelatinised
+  acid      :{lo:-1.9,hi:-1.9,cite:'koceva'},     // pp for a long-fermented, acidified dough
+  einkorn   :{lo:-6.2,hi:-6.2,cite:'brandolini'}  // pp, measured against a 58.8% bread-wheat control
+};
+/* bran % of total flour ≈ whole-grain flour share × 0.14.
+   Cross-check, not agreement: roller-mill stream yields put total bran
+   at 21.2–26.7% of the kernel (Carcea 2020), which would give 0.21–0.27.
+   The two are not reconciled anywhere. 0.14 is used because that is the
+   figure the formula-engineering reference carries; the higher
+   multiplier is shown alongside so you can see the spread. */
+const BRAN_PER_WG=0.14;
+const BRAN_PER_WG_ALT=0.24;
+
+function flourByName(n){
+  const k=norm(n);
+  return (S.flours||[]).find(f=>norm(f.name)===k)||null;
+}
+/* Blend properties. pct values are shares of total flour. */
+function blendProps(blend){
+  const tot=blend.reduce((a,b)=>a+(+b.pct||0),0)||100;
+  let protein=0,wg=0,stone=0,fiber=0,haveFiber=0,rye=0,einkorn=0,spelt=0,kernza=0,unknown=[];
+  blend.forEach(b=>{
+    const w=(+b.pct||0)/tot;
+    const f=flourByName(b.flour)||{};
+    protein+=w*(f.protein==null?11.5:+f.protein);
+    wg     +=w*(f.whole==null?0:+f.whole);
+    if(f.mill==='stone')stone+=w*100;
+    if(f.fiber!=null){ fiber+=w*(+f.fiber); haveFiber+=w; }
+    const g=(f.grain||'').toLowerCase();
+    if(g==='rye')rye+=w*100;
+    if(g==='einkorn')einkorn+=w*100;
+    if(g==='spelt')spelt+=w*100;
+    if(g==='kernza')kernza+=w*100;
+    if(f.protein==null&&b.flour)unknown.push(b.flour);
+  });
+  /* If fibre is on the label, use it: refined wheat flour runs
+     1.8–2.7% dietary fibre dry matter, whole meal 10.2–11.5%
+     (Carcea 2020). Interpolating between those gives a whole-grain
+     equivalent that beats guessing from the flour's name. */
+  let wgFromFiber=null;
+  if(haveFiber>0.5){
+    const f=fiber/haveFiber;
+    wgFromFiber=Math.max(0,Math.min(100,(f-2.25)/8.6*100));
+  }
+  const wgUse=wgFromFiber==null?wg:Math.max(wg,wgFromFiber);
+  return {protein,wholegrain:wgUse,wgDeclared:wg,wgFromFiber,stone,fiber:haveFiber>0.5?fiber/haveFiber:null,
+          rye,einkorn,spelt,kernza,unknown:uniq(unknown),bran:wgUse*BRAN_PER_WG,branAlt:wgUse*BRAN_PER_WG_ALT};
+}
+
+function hydrationPlan(blend,opts){
+  opts=opts||{};
+  const p=blendProps(blend);
+  const anchorH=opts.anchorHydration==null?70:+opts.anchorHydration;
+  const anchorP=opts.anchorProtein==null?11.5:+opts.anchorProtein;
+  const deltas=[];
+  const push=(label,lo,hi,cite,note)=>{ if(Math.abs(lo)<0.05&&Math.abs(hi)<0.05)return; deltas.push({label,lo,hi,cite,note}); };
+
+  const dP=p.protein-anchorP;
+  push('Protein '+fx(p.protein,1)+'% vs your anchor '+fx(anchorP,1)+'%',
+       dP*ABS_COEF.protein.lo, dP*ABS_COEF.protein.hi,'hamelman');
+  push('Bran '+fx(p.bran,1)+'% of flour (from '+fx(p.wholegrain,0)+'% whole grain)',
+       p.bran*0.55, p.bran*0.55,'campbell',
+       'At the alternative 0.24 multiplier this term would be '+fx(p.branAlt*0.55,1)+' pp instead.');
+  push(fx(p.stone,0)+'% stone-milled', p.stone/100*3.0, p.stone/100*4.0,'carcea22');
+  if(opts.scaldPct>0) push('Scald / tangzhong on '+fx(opts.scaldPct,1)+'% of the flour',
+       opts.scaldPct*0.58, opts.scaldPct*0.58,'parenti');
+  if(opts.sourdough!==false) push('Acidified, long-fermented dough',-1.9,-1.9,'koceva');
+  if(p.einkorn>0) push(fx(p.einkorn,0)+'% einkorn', p.einkorn/100*-6.2, p.einkorn/100*-6.2,'brandolini');
+
+  const lo=anchorH+deltas.reduce((a,d)=>a+d.lo,0);
+  const hi=anchorH+deltas.reduce((a,d)=>a+d.hi,0);
+  const target=(lo+hi)/2;
+  return {anchor:anchorH,anchorProtein:anchorP,deltas,lo,hi,target,props:p};
+}
+
+/* ---------- grain ceilings ------------------------------------------
+   Answers "how much can I use before it goes dense," but only where a
+   number has actually been published. Where none has, it says so.
+   -------------------------------------------------------------------- */
+function grainLimits(blend){
+  const p=blendProps(blend), out=[];
+  /* Whole wheat, via bran dose. Campbell measured loaf volume at three
+     bran levels: 858 cm³ control, 855 at 7.5% bran (no loss), 768 at
+     15% (−11%). Converted through bran ≈ whole-grain × 0.14, 7.5% bran
+     is about 54% whole-grain flour. */
+  if(p.wholegrain>0){
+    const bran=p.bran;
+    let loss=0, verdict;
+    if(bran<=7.5){ loss=0; verdict='No measured volume loss at this bran level — 7.5% bran gave 855 cm³ against an 858 cm³ control.'; }
+    else { loss=(bran-7.5)/7.5*11; verdict='Expect roughly '+fx(loss,0)+'% less loaf volume. Campbell measured −11% at 15% bran; you are at '+fx(bran,1)+'%.'; }
+    out.push({grain:'Whole grain',pct:p.wholegrain,ceiling:54,cite:'campbell',
+      text:verdict+' The break point works out near 54% whole-grain flour.',
+      warn:bran>7.5?(bran>13?'hard':'soft'):null,
+      caveat:'Campbell is a paywalled chapter whose tables were not independently retrieved, and the bran-per-whole-grain multiplier is disputed (0.14 vs 0.24). If you use 0.24 your bran is '+fx(p.branAlt,1)+'% and the ceiling drops to about 31% whole grain.'});
+    out.push({grain:'Whole grain, particle size',pct:p.wholegrain,cite:'alzuwaid',
+      text:'Grind matters and the direction is counterintuitive: fine bran did MORE volume damage while needing 1.0–1.4% LESS water (Alzuwaid 2021). A second study found farinograph absorption flat at 68.3 ± 0.4% right across 77–1687 µm (Jacobs 2015). Two peer-reviewed sources, opposite implications. Coarse grind is the safer bet for volume.'});
+  }
+  if(p.rye>0){
+    out.push({grain:'Rye',pct:p.rye,ceiling:null,cite:'ireks',warn:'soft',
+      text:'No published % threshold exists. The circulating 20/40/60% breakpoints have no traceable source. What IS established: rye must be acidified below the α-amylase optimum of pH 5.0–5.5 or the starch framework is digested during the bake and the crumb goes gummy and unsliceable. This is structural, not a flavour preference. A rye at falling number ~120 needed 5% acidifier — a LOW falling number needs MORE acid, not less.',
+      caveat:'Ginsberg: put at least 30% of the total flour through the rye sour. [PRAC]'});
+  }
+  if(p.spelt>0){
+    out.push({grain:'Spelt',pct:p.spelt,ceiling:null,cite:'geisslitz',
+      text:'No published maximum. Spelt has MORE gluten than common wheat (111.6 vs 80.4 mg/g), not less — it is weaker, not scarcer. Its gliadin:glutenin ratio of 3.3 sits closest to common wheat of the ancient species. Underdevelop it and watch for sudden slackening; the numeric rheology tables for spelt are behind a paywall and were not retrieved.'});
+  }
+  if(p.einkorn>0){
+    out.push({grain:'Einkorn',pct:p.einkorn,ceiling:null,cite:'brandolini',warn:'soft',
+      text:'Takes about 6 points LESS water (52.6% vs 58.8% on the same instrument) and ferments faster — dough development 120.8 min against 175.0 for the control, gas retention 99.1% vs 88.7%. Shorten the bulk. No published substitution ceiling.'});
+  }
+  if(p.kernza>0){
+    out.push({grain:'Kernza',pct:p.kernza,ceiling:15,cite:'cetiner',warn:p.kernza>15?'hard':null,
+      text:'Two sources that cannot be reconciled: Çetiner 2023 found a 45% ceiling with 15% optimal (loaf volume 485 mL at 15%, 420 at 30%, 380 at 45%, 360 with structural collapse at 60%, against a 445 mL control). AURI says 10–15% and flatbreads only. Both are reported; neither is averaged.'});
+  }
+  const sb=blend.find(b=>/salish/i.test(b.flour||''));
+  if(sb&&+sb.pct>0){
+    out.push({grain:'Salish Blue',pct:+sb.pct,ceiling:null,cite:'morgan23',warn:'soft',
+      text:'There is no published baking dataset for Salish Blue. No protein, ash, falling number, farinograph absorption, alveograph W or loaf volume figure exists in any peer-reviewed source, WSU publication or variety release. The 8–9% protein number is a vendor product target, not a lab measurement. Its parentage is Triticum aestivum × Thinopyrum ponticum (tall wheatgrass) — NOT intermediate wheatgrass, so Kernza data do not transfer to it.',
+      caveat:'What can honestly be inferred: a soft-white-equivalent flour at 8–9% protein used at high inclusion will dilute gluten and cut loaf volume — that is the direction the perennial-wheat data already shows (Murphy 2009 found reduced mix time and reduced loaf volume). Treat it as a flavour grain blended into a strong base and establish your own ceiling by test bake. The ladder below is mine, not data.',
+      protocol:['Bake your usual formula at 0% Salish Blue and record crumb height, loaf volume by seed displacement, and how the dough felt at shaping.',
+                'Repeat at 15%, changing NOTHING else. Same flour lot, same dough temperature, same % rise, same oven.',
+                'Repeat at 30%. Then 45% if 30% still holds.',
+                'Your ceiling is the step before the one where crumb height drops or the dough stops holding shape. Write it down — it is now the only Salish Blue data that exists for your kitchen.']});
+  }
+  if(p.unknown.length){
+    out.push({grain:'No protein figure',pct:0,cite:'nodata',warn:'soft',
+      text:'Nothing on file for: '+p.unknown.join(', ')+'. They are being treated as 11.5% protein, refined, roller-milled, which is a placeholder and not a measurement. Put the numbers off the bag into your flour list and the hydration prediction becomes real.'});
+  }
+  return out;
+}
+
+/* ---------- styles -------------------------------------------------
+   These are conventional starting formulas, tagged [craft]. The
+   knowledge base has no style-indexed data at all — no % rise by
+   style, no oven temperature by style, no protein minimum for bagels
+   or baguettes or anything else. What the science gives you is the
+   engine above; the styles are the shape you pour it into. Edit them.
+   -------------------------------------------------------------------- */
+const STYLES=[
+ {id:'country',  name:'Country sourdough',      hyd:75, salt:2.0, pff:14, sugar:0,fat:0,egg:0,
+  bench:30, proofFrac:0.35, bake:'245 °C in a covered pot, lid off at 20 min, 230 °C to finish', core:'93–99 °C',
+  blurb:'The default. Open crumb, thick crust, long bulk.'},
+ {id:'baguette', name:'Baguette',               hyd:70, salt:2.0, pff:10, sugar:0,fat:0,egg:0,
+  bench:25, proofFrac:0.28, bake:'250 °C with heavy steam for the first 15 min, then dry', core:'93–99 °C',
+  blurb:'Short proof, hard steam, thin crust. Underproof rather than over.'},
+ {id:'ciabatta', name:'Ciabatta',               hyd:82, salt:2.2, pff:12, sugar:0,fat:0,egg:0,
+  bench:20, proofFrac:0.25, bake:'240 °C with steam 15 min', core:'93–99 °C',
+  blurb:'Very wet, barely shaped. Folds instead of kneading.'},
+ {id:'pizza-nap',name:'Pizza, Neapolitan',      hyd:62, salt:2.8, pff:4,  sugar:0,fat:0,egg:0,
+  bench:0, proofFrac:0.5, bake:'As hot as your oven goes — steel or stone, 60–90 s at 450 °C+ if you have it', core:'n/a',
+  blurb:'Low inoculation, long slow ferment, small tight balls.'},
+ {id:'pizza-ny', name:'Pizza, New York / pan',  hyd:65, salt:2.2, pff:7,  sugar:1,fat:2,egg:0,
+  bench:0, proofFrac:0.5, bake:'260–290 °C on a steel, 8–12 min', core:'n/a',
+  blurb:'A little oil and sugar. Takes a cold retard well and freezes.'},
+ {id:'focaccia', name:'Focaccia',               hyd:80, salt:2.0, pff:12, sugar:0,fat:5,egg:0,
+  bench:0, proofFrac:0.45, bake:'230 °C, 20–25 min, oil in the pan', core:'93–96 °C',
+  blurb:'Wet, oiled, dimpled, proofed in the pan.'},
+ {id:'sandwich', name:'Sandwich loaf, butter and honey', hyd:68, salt:2.0, pff:10, sugar:8,fat:6,egg:0,
+  bench:20, proofFrac:0.5, bake:'190 °C, 35–40 min in a tin', core:'93–96 °C',
+  blurb:'Enriched, so it ferments slower than the lean doughs. Proof to the tin rim, not past it.'},
+ {id:'ww-sand',  name:'Whole-wheat sandwich',   hyd:76, salt:2.0, pff:11, sugar:5,fat:4,egg:0,
+  bench:20, proofFrac:0.5, bake:'190 °C, 40 min in a tin', core:'93–96 °C',
+  blurb:'More water, shorter bulk than white — the bran and enzymes both move faster.'},
+ {id:'bagel',    name:'Bagels',                 hyd:55, salt:2.0, pff:8,  sugar:2,fat:0,egg:0,
+  bench:15, proofFrac:0.3, bake:'Boil 30–60 s a side, then 230 °C, 18–22 min', core:'93–99 °C',
+  blurb:'Very stiff. Long cold retard shaped, boiled straight from the fridge.'},
+ {id:'brioche',  name:'Brioche',                hyd:52, salt:2.0, pff:8,  sugar:12,fat:50,egg:35,
+  bench:0, proofFrac:0.6, bake:'175 °C, 30–40 min', core:'88–91 °C (enriched — no published figure, this is craft)',
+  blurb:'Heavily enriched, so everything takes far longer. Cold-retard the shaped dough or it will not hold.'},
+ {id:'rye40',    name:'Rye, 40% medium',        hyd:78, salt:2.0, pff:20, sugar:0,fat:0,egg:0,
+  bench:15, proofFrac:0.35, bake:'240 °C falling to 200 °C, 45–55 min', core:'96–99 °C',
+  blurb:'Must be acidified. Short proof — rye overproofs without showing you first.'},
+ {id:'muffin',   name:'English muffins',        hyd:80, salt:2.0, pff:10, sugar:2,fat:2,egg:0,
+  bench:15, proofFrac:0.4, bake:'Griddle, 6–8 min a side, lid on', core:'93–96 °C',
+  blurb:'Slack batter-dough, cooked on a griddle not baked.'},
+ {id:'pita',     name:'Pita',                   hyd:63, salt:2.0, pff:8,  sugar:0,fat:2,egg:0,
+  bench:20, proofFrac:0.3, bake:'Hottest possible stone, 2–4 min — it has to shock to puff', core:'n/a',
+  blurb:'Underproof deliberately. The puff comes from steam, not from gas already in there.'},
+ {id:'pretzel',  name:'Pretzels',               hyd:55, salt:2.0, pff:6,  sugar:1,fat:3,egg:0,
+  bench:15, proofFrac:0.3, bake:'Lye or baking-soda bath, then 220 °C, 12–15 min', core:'93–96 °C',
+  blurb:'Stiff and cold-retarded. Chill hard before the bath or they slump.'}
+];
+const styleById=id=>STYLES.find(s=>s.id===id)||STYLES[0];
+
+const PATHS=[
+ {id:'same-day',  name:'Same day',            blurb:'Mix in the morning, eat it tonight.'},
+ {id:'overnight', name:'Overnight bulk',      blurb:'Cool room-temperature bulk while you sleep, bake when you get up.'},
+ {id:'retard',    name:'Bulk today, bake tomorrow', blurb:'Warm bulk today, shape, fridge overnight, bake straight from cold.'},
+ {id:'freeze',    name:'Freeze it',           blurb:'Bulk, divide, ball, freeze. For pizza dough.'}
+];
+
+/* ---------- the solver --------------------------------------------- */
+function solveBake(inp){
+  const st=styleById(inp.styleId);
+  const blend=(inp.blend||[]).filter(b=>b.flour&&+b.pct>0);
+  const hyd=hydrationPlan(blend,{anchorHydration:inp.anchorHydration,anchorProtein:inp.anchorProtein,
+                                 scaldPct:inp.scaldPct,sourdough:inp.leaven!=='yeast'});
+  const hydration=inp.hydrationLocked&&inp.hydration!=null?+inp.hydration:round1(hyd.target);
+  const enrich=enrichFactor(st);
+  const opt={hydration,optimum:hyd.target,enrich};
+
+  const warn=[],note=[];
+  let T=inp.doughTemp==null?24:+inp.doughTemp;
+  let pff=inp.pff==null?st.pff:+inp.pff;
+  const locks=inp.locks||{};
+
+  /* the fixed steps that bracket fermentation */
+  const bench=(st.bench||20)/60;
+  const mixTime=0.5;
+  const bakeTime=inp.path==='freeze'?0:0.75;
+  const coolTime=inp.path==='freeze'?0:2;    // ≥2 h before slicing — Vanin 2017 gummy-crumb result
+
+  /* how much time is actually available for fermentation */
+  let budget=null;
+  if(locks.time&&inp.startAt&&inp.outAt){
+    budget=(inp.outAt-inp.startAt)/3600000 - mixTime - bench - bakeTime;
+    if(inp.path==='freeze')budget=(inp.outAt-inp.startAt)/3600000 - mixTime - bench;
+  }
+
+  /* retard consumes part of the rise budget before we solve anything */
+  const retardH=inp.path==='retard'?(+inp.retardHours||12):(inp.path==='freeze'?0:0);
+  const rTarget=matrixAt(T).rise;
+  const shapingRise=T>=24?10:5;   // shaping alone adds this — Cucuzza [PRAC]
+  const rRetard=retardRise(retardH,T);
+
+  /* solve */
+  let bulk,solvedFor=null;
+  if(budget!=null){
+    const proofShare=inp.path==='retard'?0:st.proofFrac;
+    // bulk + proof + retard must fit the budget; proof is a fraction of an
+    // equivalent bulk at the proofing temperature
+    const proofT=inp.useProofBox?(+inp.proofBoxTemp||27):T;
+    let avail=budget-(inp.path==='retard'?retardH:0);
+    // iterate: proof length depends on the same rate model
+    bulk=Math.max(0.25,avail);
+    for(let i=0;i<40;i++){
+      const proofH=proofShare>0?bulkHours(proofT,pff,opt)*proofShare:0;
+      const nb=avail-proofH;
+      if(Math.abs(nb-bulk)<0.01){ bulk=nb; break; }
+      bulk=nb;
+      if(!locks.pff) pff=clamp(pffForHours(T,Math.max(bulk,0.25),opt),0.1,80);
+    }
+    if(locks.pff&&!locks.temp){
+      T=tempForHours(pff,Math.max(bulk,0.25),opt); solvedFor='temperature';
+    }else if(!locks.pff){
+      pff=pffForHours(T,Math.max(bulk,0.25),opt); solvedFor='levain';
+    }else{
+      solvedFor='nothing — you locked time, levain and temperature together';
+    }
+  }else{
+    bulk=bulkHours(T,pff,opt);
+  }
+
+  const proofT=inp.useProofBox?(+inp.proofBoxTemp||27):T;
+  const proofH=inp.path==='retard'?0.5:bulkHours(proofT,pff,opt)*st.proofFrac;
+
+  /* ---- feasibility ---- */
+  if(budget!=null&&!locks.pff){
+    if(pff>PFF_MAX) warn.push({level:'hard',t:'Not enough time. Even at the practical ceiling of 35% prefermented flour this needs about '+hm(bulkHours(T,PFF_MAX,opt))+' of bulk, and you have allowed '+hm(bulk)+'. Push the bake later, warm the dough, or use commercial yeast instead of a levain.',c:'dumonceaux'});
+    else if(pff>25) warn.push({level:'soft',t:'At '+fx(pff,1)+'% prefermented flour you are above the 10–25% range documented for sourdough levains. It will work, but the bread will be markedly more sour and the dough will slacken faster than you expect.',c:'dumonceaux'});
+    if(pff<PFF_MIN) warn.push({level:'hard',t:'Too much time. This wants only '+fx(pff,2)+'% prefermented flour, which is below anything you can measure accurately. It will overferment: expect a flat spread loaf, no oven spring, and a score that closes flat instead of lifting. Start later, cool the bulk, or accept a longer, colder ferment.',c:'nodata'});
+    else if(pff<3) warn.push({level:'soft',t:'Only '+fx(pff,1)+'% prefermented flour. That is a very small levain — weigh it on a scale that reads to 1 g, and expect the timing to be sensitive to a degree or two of dough temperature.',c:'nodata'});
+  }
+  if(T>30) warn.push({level:'soft',t:'Above 30 °C the temperature rule stops holding. The yeast optimum is 27 °C and its ceiling is 36 °C, while the bacteria peak at 32–33 °C — so every degree past 28 tilts the dough toward acid and away from gas. You will get sour bread with poor spring, not fast bread.',c:'ganzle'});
+  if(T<15) warn.push({level:'soft',t:'Below 18 °C the published matrix runs out and this is an extrapolation from the yeast growth model. Treat the time as a rough bracket and go by the % rise.',c:'ganzle'});
+  if(inp.path==='retard'&&rRetard>=rTarget) warn.push({level:'hard',t:'The retard alone overshoots. A '+fx(retardH,0)+' h fridge stay starting at '+fx(T,0)+' °C is worth about '+fx(rRetard,0)+'% rise on its own, and your whole target is '+fx(rTarget,0)+'%. Chill the dough before it goes in, shorten the retard, or cut the bulk to almost nothing.',c:'cucuzza'});
+  if((+inp.saltPct||st.salt)>=4) warn.push({level:'hard',t:'At 4% salt the sourdough bacteria stop completely. The yeast tolerates up to 8%, so the dough will still rise — it just will not acidify, and rye in particular depends on that acid for structure.',c:'ganzle'});
+  const p=hyd.props;
+  if(p.rye>=20&&inp.leaven==='yeast') warn.push({level:'hard',t:'At '+fx(p.rye,0)+'% rye with commercial yeast and no sour, the α-amylase digests the starch during the bake and the crumb will be gummy and unsliceable. Acidify it — that is structural, not a flavour choice.',c:'ireks'});
+  if(hydration>88&&p.protein<12) warn.push({level:'soft',t:'That is '+fx(hydration,0)+'% hydration on a '+fx(p.protein,1)+'% protein blend. Hold back the last 5% of the water and add it at the mixer only if the dough takes it.',c:'aaccfar'});
+  if(p.einkorn>30) warn.push({level:'soft',t:'Einkorn ferments visibly faster than bread wheat — dough development in 120.8 min against 175.0 for a control. Cut the bulk and go by the dough, not the clock.',c:'brandolini'});
+
+  /* ---- the formula ---- */
+  const flourG=+inp.flourGrams||1000;
+  const levainHyd=+inp.levainHydration||100;
+  const FL=flourG*pff/100;
+  const ML=FL*(1+levainHyd/100);
+  const WL=ML-FL;
+  const WT=flourG*hydration/100;
+  const WD=WT-WL;
+  const FD=flourG-FL;
+  const salt=flourG*((+inp.saltPct||st.salt)/100);
+
+  const rows=[];
+  blend.forEach(b=>{
+    const tot=blend.reduce((a,x)=>a+(+x.pct||0),0)||100;
+    rows.push({name:b.flour,pct:(+b.pct||0)/tot*100,g:FD*((+b.pct||0)/tot),kind:'flour'});
+  });
+  rows.push({name:'Water (into the dough)',pct:WD/flourG*100,g:WD,kind:'water'});
+  rows.push({name:'Levain at '+fx(levainHyd,0)+'% hydration',pct:ML/flourG*100,g:ML,kind:'levain',
+             sub:fx(FL,0)+' g flour + '+fx(WL,0)+' g water — '+fx(pff,1)+'% of the total flour is prefermented'});
+  rows.push({name:'Salt',pct:(+inp.saltPct||st.salt),g:salt,kind:'salt'});
+  if(st.fat)   rows.push({name:'Fat / butter / oil',pct:st.fat,g:flourG*st.fat/100,kind:'enrich'});
+  if(st.sugar) rows.push({name:'Sugar / honey',pct:st.sugar,g:flourG*st.sugar/100,kind:'enrich'});
+  if(st.egg)   rows.push({name:'Egg',pct:st.egg,g:flourG*st.egg/100,kind:'enrich'});
+  if(inp.scaldPct>0){
+    const sf=flourG*inp.scaldPct/100;
+    rows.push({name:'— of which scalded (tangzhong)',pct:inp.scaldPct,g:sf,kind:'note',
+               sub:'Cook '+fx(sf,0)+' g of the flour with '+fx(sf*5,0)+' g of the water to 80 °C, cool, then mix in. At 1:5 that is the ratio in the published method.'});
+  }
+  const doughG=rows.filter(r=>r.kind!=='note'&&r.kind!=='enrich').reduce((a,r)=>a+r.g,0)
+              +rows.filter(r=>r.kind==='enrich').reduce((a,r)=>a+r.g,0);
+
+  /* ---- water temperature ---- */
+  const ff=inp.frictionFactor==null?1:+inp.frictionFactor;
+  const n=inp.levainTemp!=null?3:2;
+  const known=(+inp.roomTemp||20)+(+inp.flourTemp||20)+(inp.levainTemp!=null?+inp.levainTemp:0);
+  const waterTemp=(n+1)*T-known-ff;
+
+  /* ---- schedule ---- */
+  const steps=[];
+  const add=(label,hours,detail)=>steps.push({label,hours,detail});
+  add('Mix',mixTime,'Water at '+fx(waterTemp,0)+' °C to land the dough at '+fx(T,0)+' °C. Take the dough temperature after mixing — if it is off, your friction factor is wrong, not the arithmetic.');
+  if(inp.path==='retard'){
+    const bulkTarget=Math.max(5,rTarget-rRetard-shapingRise);
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Stop at about +'+fx(bulkTarget,0)+'%, not the usual +'+fx(rTarget,0)+'%. The fridge is going to add roughly '+fx(rRetard,0)+'% on the way down and shaping another '+fx(shapingRise,0)+'%. Measure it in a straight-sided container with a mark.');
+    add('Bench and shape',bench,'Preshape, rest '+fx(st.bench,0)+' min, shape. The rest is for the gluten to let go — recovery is measurable on this timescale.');
+    add('Fridge at 3–4 °C',retardH,'Most of this is a cooling ramp, not storage. It takes 8–10 h for a domestic fridge to bring dough to 3 °C, and the first hour alone is worth up to 20% rise. Once it is actually cold, 24 h is worth at most 30 min of real fermentation.');
+    add('Bake straight from cold',bakeTime,st.bake+'. Score it cold — it holds the cut.');
+  }else if(inp.path==='freeze'){
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Stop short — about +'+fx(rTarget*0.75,0)+'% instead of +'+fx(rTarget,0)+'%. The dough will keep working while it cools.');
+    add('Divide and ball',bench,'Into individual portions, tight balls, lightly oiled.');
+    add('30–60 min at room temperature',0.75,'Let them relax before they go in, or they freeze mid-tension and tear on stretch.');
+    add('Freeze',0,'Wrapped individually. There is NO published data on yeast or bacterial survival through a freeze–thaw anywhere in this knowledge base — this schedule is craft, not evidence, and you should expect the first rise after thawing to be slower than a fresh dough. Calibrate it once and write the number down.');
+    add('To use: fridge overnight',14,'12–18 h in the fridge, then 2–4 h at room temperature to finish. Do not thaw on the counter from frozen — the outside overproofs before the middle thaws.');
+  }else{
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Target +'+fx(Math.max(5,rTarget-shapingRise),0)+'% rise; shaping will add the last '+fx(shapingRise,0)+'%. Full target is +'+fx(rTarget,0)+'% at this temperature. Mark the container — the eye is not good at this.');
+    add('Bench and shape',bench,'Preshape, rest '+fx(st.bench,0)+' min, shape.');
+    add('Final proof at '+fx(proofT,0)+' °C',proofH,'No published proof duration exists for any bread style, and the poke test has never been validated in any tier of evidence. This number is '+fx(st.proofFrac*100,0)+'% of an equivalent bulk — a starting point. Go by an aliquot in a straight-sided jar at the same temperature.');
+    add('Bake',bakeTime,st.bake);
+    add('Cool',coolTime,'At least 2 hours before slicing. Cutting hot bread is what makes it read as gummy, not underbaking.');
+  }
+  /* absolute times */
+  let cursor=inp.startAt?new Date(inp.startAt):null;
+  let outOfOven=null;
+  if(cursor)steps.forEach(s=>{ s.at=new Date(cursor); cursor=new Date(cursor.getTime()+s.hours*3600000);
+                               if(/^Bake|^Freeze/.test(s.label))outOfOven=new Date(cursor); });
+  const finish=cursor;
+
+  /* ---- oven and finish ---- */
+  const oven=[
+    {t:'Finish temperature',v:st.core,c:'vanin',
+     n:'A lean crumb cannot exceed the local boiling point of its own water while free water remains, so 93–99 °C is a physical endpoint, not a preference. 88 °C measured gummy.'},
+    {t:'Oven spring window',v:'roughly the first third of the bake',c:'tucker',
+     n:'Fermentation actually restarts about 5 minutes in and runs hard for another 10 until the dough passes about 54 °C. Yeast death is a decimal reduction, not a switch: D = 18.73 min at 52 °C, 5.67 at 55 °C, 1.03 at 58 °C.'},
+    {t:'Gelatinisation',v:'above 60 °C, moisture-limited',c:'tucker',
+     n:'There is no single sharp temperature. The foam-to-sponge transition is usually placed near 70 °C but the mechanism is not settled.'}
+  ];
+
+  return {style:st,blend,hyd,hydration,pff,doughTemp:T,bulk,proofH,proofT,retardH,rRetard,rTarget,shapingRise,
+          rows,doughG,flourG,waterTemp,ff,steps,finish,outOfOven,warn,note,oven,enrich,solvedFor,budget,
+          limits:grainLimits(blend),mu:muYeast(T),muLab:muLab(T),matrix:matrixAt(T)};
+}
+
+/* ---------- reading somebody else's recipe --------------------------
+   Keeps the recipe exactly as written and hangs tags off it. The tags
+   come from a fixed vocabulary — no prose generation, no guessing.
+   -------------------------------------------------------------------- */
+const DOUGH_WORDS=/\b(flour|starter|levain|sourdough|yeast|dough|knead|proof|prove|bulk ferment|rise)\b/i;
+function looksLikeDough(r){
+  const txt=(r.ingredients||[]).map(i=>i.item).join(' ')+' '+(r.tags||[]).join(' ')+' '+(r.name||'');
+  const hasFlour=/\bflour\b|\bsemolina\b|\brye\b/i.test(txt);
+  const hasLeaven=/\bstarter\b|\blevain\b|\byeast\b|\bsourdough\b/i.test(txt);
+  return hasFlour&&(hasLeaven||DOUGH_WORDS.test((r.steps||[]).join(' ')));
+}
+function readDough(r){
+  const g=(item,unit)=>toBase(item,unit);
+  let flour=0,water=0,salt=0,levain=0,fat=0,sugar=0,egg=0,yeast=0,rye=0,ww=0,unknown=[];
+  (r.ingredients||[]).forEach(i=>{
+    const n=norm(i.item);
+    const grams=gramsOf(i);
+    if(grams==null){ if(/flour|water|salt|starter|levain/.test(n))unknown.push(i.item); return; }
+    if(/flour|semolina/.test(n)){ flour+=grams; if(/rye/.test(n))rye+=grams; if(/whole|wholemeal|graham/.test(n))ww+=grams; }
+    else if(/^water$|warm water|cold water|ice water/.test(n))water+=grams;
+    else if(/salt/.test(n))salt+=grams;
+    else if(/starter|levain|poolish|biga|sponge/.test(n))levain+=grams;
+    else if(/yeast/.test(n))yeast+=grams;
+    else if(/butter|oil|lard|shortening/.test(n))fat+=grams;
+    else if(/sugar|honey|malt|molasses|syrup/.test(n))sugar+=grams;
+    else if(/^eggs?$/.test(n))egg+=grams;
+  });
+  if(!flour)return null;
+  const FL=levain/2, WL=levain/2;         // assume 100% hydration levain unless told otherwise
+  const FT=flour+FL, WT=water+WL;
+  return {flourG:FT,hydration:WT/FT*100,salt:salt/FT*100,pff:FL/FT*100,
+          fat:fat/FT*100,sugar:sugar/FT*100,egg:egg/FT*100,yeast:yeast>0,
+          rye:rye/FT*100,ww:ww/FT*100,unknown:uniq(unknown),volEst:volumeMeasured(r)};
+}
+/* Volume-to-weight for the handful of things a dough recipe contains.
+   Cup measures for flour are worth about ±20% depending on how you
+   scoop, so anything converted this way gets flagged rather than
+   quietly folded into the hydration figure. [craft] */
+const DOUGH_DENSITY=[
+  [/flour|semolina/, 0.53],      // ~125 g per US cup
+  [/water|milk|buttermilk|juice/, 1.00],
+  [/oil/, 0.92],
+  [/butter|lard|shortening/, 0.911],
+  [/honey|molasses|syrup/, 1.42],
+  [/sugar/, 0.85],
+  [/salt/, 1.15],                // table salt; kosher is roughly half — weigh it
+  [/starter|levain|poolish|biga|sponge/, 1.05],
+  [/yeast/, 0.68],
+  [/egg/, 1.03]
+];
+function gramsOf(i){
+  const b=toBase(i.qty,i.unit);
+  if(!b)return null;
+  if(b.fam==='weight')return b.n;
+  if(b.fam==='volume'){
+    const n=norm(i.item);
+    for(const [re,d] of DOUGH_DENSITY) if(re.test(n))return {g:b.n*d,est:true}.g;
+    return null;
+  }
+  if(b.fam==='count'&&/egg/.test(norm(i.item)))return b.n*50;   // large egg, in shell ~57 g
+  return null;
+}
+function volumeMeasured(r){
+  return (r.ingredients||[]).some(i=>{
+    const b=toBase(i.qty,i.unit);
+    return b&&b.fam==='volume'&&/flour|water/.test(norm(i.item));
+  });
+}
+
+function bakeTags(d,cond){
+  /* d from readDough, cond = {ambientC, doughTemp, statedBulkH} */
+  const tags=[];
+  const T=cond.doughTemp==null?(cond.ambientC==null?21:+cond.ambientC+1):+cond.doughTemp;
+  const m=matrixAt(T);
+  const enrich=enrichFactor({sugar:d.sugar,fat:d.fat,egg:d.egg});
+  const mine=bulkHours(T,Math.max(d.pff,0.4),{hydration:d.hydration,optimum:d.hydration,enrich});
+
+  tags.push({tag:'BULK → '+hm(mine),why:'At '+fx(T,0)+' °C with '+fx(d.pff,1)+'% prefermented flour. The published matrix puts a '+fx(T,0)+' °C bulk at '+hm(m.lo)+'–'+hm(m.hi)+' for a 20% starter; yours is '+(d.pff<PFF_REF?'smaller, so it needs longer':'larger, so it goes faster')+'.',c:'cucuzza'});
+  tags.push({tag:'RISE TO +'+fx(m.rise,0)+'%',why:'That is the endpoint for '+fx(T,0)+' °C. Warmer dough needs LESS rise, not more — at 27 °C the target is +30%, at 18 °C it is +100%. Measure it, do not eyeball it.',c:'cucuzza'});
+
+  if(cond.statedBulkH>0){
+    const ratio=mine/cond.statedBulkH;
+    if(ratio>1.6) tags.push({tag:'IT IS COLD — ROUGHLY '+(ratio>2.4?'TRIPLE':'DOUBLE')+' THE BULK',why:'The recipe says '+hm(cond.statedBulkH)+'. At '+fx(T,0)+' °C in your kitchen the same dough needs about '+hm(mine)+'. Recipes almost never state the temperature they were written at.',c:'cucuzza'});
+    else if(ratio<0.65) tags.push({tag:'IT IS WARM — CUT THE BULK',why:'The recipe says '+hm(cond.statedBulkH)+'; at '+fx(T,0)+' °C this wants about '+hm(mine)+'. Going the full stated time will overferment it.',c:'cucuzza'});
+  }
+  if(d.hydration<58) tags.push({tag:'STIFF — EXPECT A LONGER FERMENT',why:fx(d.hydration,0)+'% hydration. Gas production measured about 11% lower at 51% water than at the farinograph optimum, so a dry dough is a slow dough as well as a tight one.',c:'codina'});
+  if(d.hydration>85) tags.push({tag:'HOLD BACK 5% OF THE WATER',why:fx(d.hydration,0)+'% is high enough that a 3% error in either direction visibly degrades the mix. Add the last of it at the mixer only if the dough takes it.',c:'aaccfar'});
+  if(d.salt<1.5) tags.push({tag:'LOW SALT — WATCH THE TIMING',why:'Only '+fx(d.salt,1)+'%. Convention is 1.8–2.2%. Less salt means a faster, slacker dough, so treat every time in the recipe as an upper bound.',c:'hamelman'});
+  if(d.salt>=4) tags.push({tag:'SALT WILL STOP THE SOUR',why:fx(d.salt,1)+'% salt completely inhibits the sourdough bacteria. The yeast keeps going to 8%, so it will still rise — it just will not acidify.',c:'ganzle'});
+  if(d.rye>=20) tags.push({tag:'ACIDIFY — STRUCTURAL',why:fx(d.rye,0)+'% rye. Rye α-amylase peaks at pH 5.0–5.5 and rye starch gelatinises right into that window during the bake. Without a sour the starch framework is digested and the crumb goes gummy. Put at least 30% of the flour through the rye sour.',c:'ireks'});
+  if(d.ww>=54) tags.push({tag:'DENSE RISK — '+fx(d.ww,0)+'% WHOLE GRAIN',why:'That is about '+fx(d.ww*BRAN_PER_WG,1)+'% bran. Measured loaf volume was unchanged at 7.5% bran and down 11% at 15%. Also take the water up.',c:'campbell'});
+  if(enrich>1.2) tags.push({tag:'ENRICHED — ALLOW '+fx((enrich-1)*100,0)+'% LONGER',why:'Butter, sugar and egg total '+fx(d.fat+d.sugar+d.egg,0)+'% of flour weight. There is NO published coefficient for how much enrichment slows fermentation — this multiplier is craft convention and you should calibrate it against your own bakes.',c:'craft'});
+  if(d.yeast&&d.pff>0) tags.push({tag:'MIXED LEAVEN',why:'Both commercial yeast and a starter. The yeast will drive the gas and the bacteria the flavour, and the timing follows the yeast, not the matrix above.',c:'nodata'});
+  if(d.volEst) tags.push({tag:'MEASURED BY VOLUME',why:'The flour or water is in cups, so the hydration figure above is an estimate — a cup of flour is worth about ±20% depending on how you scoop it. Weigh one batch and write the grams on the recipe; every number here gets sharper.',c:'craft'});
+  if(d.unknown.length) tags.push({tag:'UNWEIGHED INGREDIENTS',why:'Could not convert: '+d.unknown.join(', ')+'. Baker’s percentages below ignore them, so treat the hydration figure as approximate.',c:'nodata'});
+  return tags;
+}
+
+/* ---------- small formatters ---------- */
+function fx(n,d){ if(n==null||!isFinite(n))return '—'; return (+n).toFixed(d==null?0:d).replace(/\.0+$/,''); }
+function round1(n){ return Math.round(n*10)/10; }
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+function hm(hours){
+  if(hours==null||!isFinite(hours))return '—';
+  if(hours<=0)return '0 m';
+  const h=Math.floor(hours), m=Math.round((hours-h)*60);
+  if(m===60)return (h+1)+' h';
+  if(!h)return m+' m';
+  return h+' h'+(m?' '+m+' m':'');
+}
+function clockOf(d){
+  if(!d)return '';
+  return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'});
+}
+/* ============================================================
    UI
    ============================================================ */
 const TABS=[
-  ['cook','Cook'],['plan','Plan'],['grocery','Groceries'],['library','Library'],
+  ['cook','Cook'],['bake','Bake'],['plan','Plan'],['grocery','Groceries'],['library','Library'],
   ['add','Add'],['money','Money'],['refactor','Refactor'],['files','Files'],['settings','Settings']
 ];
 let TAB=LS.get('tab','cook');
@@ -2458,8 +3454,8 @@ function addPantry(inp,sel){
 function render(){
   const v=$('#view'); v.innerHTML='';
   if(UI.scanMode){ v.append(viewScan()); return; }
-  if(!Drive.clientId() && TAB!=='settings'){ v.append(viewFirstRun()); return; }
-  const VIEWS={cook:viewCook,plan:viewPlan,grocery:viewGrocery,library:viewLibrary,
+  if(!Drive.clientId() && TAB!=='settings' && TAB!=='bake'){ v.append(viewFirstRun()); return; }
+  const VIEWS={cook:viewCook,bake:viewBake,plan:viewPlan,grocery:viewGrocery,library:viewLibrary,
     add:viewAdd,money:viewMoney,refactor:viewRefactor,files:viewFiles,settings:viewSettings};
   v.append((VIEWS[TAB]||viewCook)());
 }
@@ -3700,6 +4696,510 @@ function showModal(box){
 function closeModal(){ $('#modalHost').innerHTML=''; document.body.style.overflow=''; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal(); });
 
+/* ============================================================
+   BAKE — the UI
+   ============================================================ */
+
+let BK=Object.assign({
+  styleId:'country', path:'same-day',
+  blend:[{flour:'Bread flour',pct:80},{flour:'Whole wheat flour',pct:20}],
+  flourGrams:900, anchorHydration:70, anchorProtein:11.3,
+  saltPct:null, pff:null, hydration:null, hydrationLocked:false,
+  doughTemp:null, ambientC:20, useProofBox:false, proofBoxTemp:27,
+  levainHydration:100, scaldPct:0, leaven:'sourdough',
+  retardHours:12, frictionFactor:1, roomTemp:20, flourTemp:20, levainTemp:22,
+  locks:{time:false,pff:false,temp:false},
+  startAt:null, outAt:null,
+  sub:'calc', showWork:false, adaptId:null, statedBulkH:null
+}, LS.get('bake',{}));
+function bkSave(){ LS.set('bake',BK); }
+function bkSet(k,v){ BK[k]=v; bkSave(); render(); }
+
+function bkDefaults(){
+  const st=styleById(BK.styleId);
+  return {salt:BK.saltPct==null?st.salt:+BK.saltPct,
+          pff:BK.pff==null?st.pff:+BK.pff,
+          temp:BK.doughTemp==null?Math.min(27,Math.max(18,(+BK.ambientC||20)+2)):+BK.doughTemp};
+}
+function bkInput(){
+  const d=bkDefaults();
+  return Object.assign({},BK,{saltPct:d.salt,pff:d.pff,doughTemp:d.temp,
+    startAt:BK.startAt?new Date(BK.startAt):null, outAt:BK.outAt?new Date(BK.outAt):null});
+}
+
+/* ---------- tiny form bits ---------- */
+function fieldNum(label,val,onch,opts){
+  opts=opts||{};
+  const inp=el('input',{type:'number',value:val==null?'':val,step:opts.step||'1',
+    min:opts.min==null?null:opts.min,max:opts.max==null?null:opts.max,
+    placeholder:opts.ph||'',
+    onchange:e=>onch(e.target.value===''?null:parseFloat(e.target.value))});
+  return h('label','fld',h('span','fldl',label),inp,opts.suffix?h('span','fldu',opts.suffix):null);
+}
+function fieldSel(label,val,options,onch){
+  const s=el('select',{onchange:e=>onch(e.target.value)});
+  options.forEach(([v,t])=>s.append(el('option',{value:v,selected:v===val?'selected':null},t)));
+  return h('label','fld',h('span','fldl',label),s);
+}
+function fieldTime(label,val,onch){
+  const v=val?isoLocal(new Date(val)):'';
+  const inp=el('input',{type:'datetime-local',value:v,onchange:e=>onch(e.target.value?new Date(e.target.value).toISOString():null)});
+  return h('label','fld',h('span','fldl',label),inp);
+}
+function isoLocal(d){
+  const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+}
+function tierChip(key){
+  const c=CITE[key]; if(!c)return null;
+  const cls='tier t-'+c.k.replace(/[^a-z]/gi,'').toLowerCase();
+  return el('span',{class:cls,title:c.s+(c.flag?' — '+c.flag:'')},c.k);
+}
+function why(key,text){
+  const c=CITE[key];
+  return h('div','why',text?h('span',null,text+' '):null,tierChip(key),
+    c?h('div','src',c.s+(c.flag?'  ⚠ '+c.flag:'')):null);
+}
+
+/* ---------- the tab ---------- */
+function viewBake(){
+  const wrap=h('div');
+  const subs=[['calc','Calculator'],['adapt','Someone else’s recipe'],['flours','Flours'],['evidence','What this is built on']];
+  const bar=h('div','subbar');
+  subs.forEach(([id,t])=>bar.append(el('button',{class:BK.sub===id?'on':'',onclick:()=>bkSet('sub',id)},t)));
+  wrap.append(bar);
+  if(BK.sub==='adapt')     wrap.append(viewBakeAdapt());
+  else if(BK.sub==='flours')wrap.append(viewBakeFlours());
+  else if(BK.sub==='evidence')wrap.append(viewBakeEvidence());
+  else wrap.append(viewBakeCalc());
+  return wrap;
+}
+
+function viewBakeCalc(){
+  const wrap=h('div','bakelayout');
+  const st=styleById(BK.styleId);
+  let R;
+  try{ R=solveBake(bkInput()); }
+  catch(e){ return h('div','card',h('p','err','The calculator fell over: '+e.message)); }
+
+  /* ---------------- left: the controls ---------------- */
+  const side=h('div','bakeside');
+
+  const c1=h('div','card');
+  c1.append(h('h2',null,'What are you making'));
+  c1.append(fieldSel('Bread',BK.styleId,STYLES.map(s=>[s.id,s.name]),v=>{
+    BK.styleId=v; BK.saltPct=null; BK.pff=null; BK.hydration=null; bkSave(); render();
+  }));
+  c1.append(h('p','muted',st.blurb));
+  c1.append(fieldSel('When',BK.path,PATHS.map(p=>[p.id,p.name]),v=>bkSet('path',v)));
+  c1.append(h('p','muted',(PATHS.find(p=>p.id===BK.path)||{}).blurb||''));
+  if(BK.path==='retard')c1.append(fieldNum('Hours in the fridge',BK.retardHours,v=>bkSet('retardHours',v),{suffix:'h',min:1,max:72}));
+  c1.append(fieldNum('Total flour',BK.flourGrams,v=>bkSet('flourGrams',v),{suffix:'g',step:'10',min:100}));
+  side.append(c1);
+
+  /* flour blend */
+  const c2=h('div','card');
+  c2.append(h('h2',null,'Flour blend'));
+  const names=(S.flours||[]).map(f=>f.name);
+  BK.blend.forEach((b,i)=>{
+    const row=h('div','blendrow');
+    const sel=el('select',{onchange:e=>{ BK.blend[i].flour=e.target.value; bkSave(); render(); }});
+    const opts=names.includes(b.flour)?names:names.concat([b.flour]);
+    opts.forEach(n=>sel.append(el('option',{value:n,selected:n===b.flour?'selected':null},n)));
+    row.append(sel);
+    row.append(el('input',{type:'number',class:'pctin',value:b.pct,min:0,max:100,step:'1',
+      onchange:e=>{ BK.blend[i].pct=parseFloat(e.target.value)||0; bkSave(); render(); }}));
+    row.append(h('span','fldu','%'));
+    row.append(el('button',{class:'x',title:'remove',onclick:()=>{ BK.blend.splice(i,1); bkSave(); render(); }},'×'));
+    c2.append(row);
+  });
+  const tot=BK.blend.reduce((a,b)=>a+(+b.pct||0),0);
+  c2.append(h('p',tot===100?'muted':'warnline',
+    tot===100?'100% of the flour.':'Adds up to '+fx(tot,0)+'%. The shares are normalised, so it still works — it is just easier to read at 100.'));
+  c2.append(el('button',{class:'btn',onclick:()=>{ BK.blend.push({flour:names[0]||'Bread flour',pct:10}); bkSave(); render(); }},'Add a flour'));
+  side.append(c2);
+
+  /* conditions */
+  const c3=h('div','card');
+  c3.append(h('h2',null,'Your kitchen right now'));
+  c3.append(fieldNum('Room temperature',BK.ambientC,v=>bkSet('ambientC',v),{suffix:'°C',step:'0.5'}));
+  c3.append(h('p','muted',fx((+BK.ambientC||20)*9/5+32,0)+' °F. Port Townsend in August sits around 18–21 °C indoors; in February nearer 15.'));
+  const d=bkDefaults();
+  c3.append(fieldNum('Dough temperature',BK.doughTemp==null?null:BK.doughTemp,v=>bkSet('doughTemp',v),
+    {suffix:'°C',step:'0.5',ph:fx(d.temp,1)+' (room + 2)'}));
+  const pbox=el('input',{type:'checkbox',checked:BK.useProofBox?'checked':null,
+    onchange:e=>bkSet('useProofBox',e.target.checked)});
+  c3.append(h('label','chk',pbox,h('span',null,'Use the oven’s proof setting for the final proof')));
+  if(BK.useProofBox){
+    c3.append(fieldNum('Proof box temperature',BK.proofBoxTemp,v=>bkSet('proofBoxTemp',v),{suffix:'°C',step:'1'}));
+    if((+BK.proofBoxTemp||27)>30) c3.append(h('p','warnline','Most ovens hold their proof setting near 38 °C, which is past the yeast’s ceiling for useful work and well into the bacteria’s range — you will get acid instead of lift. If yours runs that hot, prop the door.'));
+    c3.append(why('ganzle','Yeast peaks at 27 °C and stops at 36; the bacteria peak at 32–33 and run to 41. Warming the proof past 28 buys acid, not gas.'));
+  }
+  side.append(c3);
+
+  /* levain + salt */
+  const c4=h('div','card');
+  c4.append(h('h2',null,'Levain and salt'));
+  c4.append(fieldSel('Leavening',BK.leaven,[['sourdough','Sourdough starter'],['yeast','Commercial yeast']],v=>bkSet('leaven',v)));
+  c4.append(fieldNum('Prefermented flour',BK.pff==null?null:BK.pff,v=>bkSet('pff',v),{suffix:'%',step:'0.5',ph:fx(st.pff,1)}));
+  c4.append(h('p','muted','Quoted as a share of the total flour, not "20% starter" — that phrase means different things at different starter hydrations.'));
+  c4.append(fieldNum('Starter hydration',BK.levainHydration,v=>bkSet('levainHydration',v),{suffix:'%',step:'5'}));
+  c4.append(fieldNum('Salt',BK.saltPct==null?null:BK.saltPct,v=>bkSet('saltPct',v),{suffix:'%',step:'0.1',ph:fx(st.salt,1)}));
+  c4.append(fieldNum('Flour cooked into a scald',BK.scaldPct,v=>bkSet('scaldPct',v),{suffix:'%',step:'1',min:0,max:30}));
+  side.append(c4);
+
+  /* anchor */
+  const c5=h('div','card');
+  c5.append(h('h2',null,'Your hydration anchor'));
+  c5.append(h('p','muted','This is the one number the calculator cannot work out for you. Nobody has ever published a farinograph-to-sourdough conversion, so an absolute hydration handed down from a lab figure would be made up. Tell it what already works in your kitchen and it moves off that.'));
+  c5.append(fieldNum('Hydration that works for you',BK.anchorHydration,v=>bkSet('anchorHydration',v),{suffix:'%',step:'1'}));
+  c5.append(fieldNum('…on flour of this protein',BK.anchorProtein,v=>bkSet('anchorProtein',v),{suffix:'%',step:'0.1'}));
+  side.append(c5);
+
+  /* timing + locks */
+  const c6=h('div','card');
+  c6.append(h('h2',null,'Timing'));
+  const now=new Date();
+  c6.append(fieldTime('Start mixing',BK.startAt,v=>bkSet('startAt',v)));
+  c6.append(fieldTime(BK.path==='freeze'?'Into the freezer by':'Out of the oven by',BK.outAt,v=>bkSet('outAt',v)));
+  const row=h('div','lockrow');
+  const mk=(k,label,note)=>{
+    const cb=el('input',{type:'checkbox',checked:BK.locks[k]?'checked':null,
+      onchange:e=>{ BK.locks[k]=e.target.checked; bkSave(); render(); }});
+    return h('label','chk',cb,h('span',null,label),note?h('em','muted',' '+note):null);
+  };
+  row.append(mk('time','Lock the schedule','— solve everything else around it'));
+  row.append(mk('pff','Lock the levain','— then temperature moves instead'));
+  row.append(mk('temp','Lock the dough temperature',''));
+  c6.append(row);
+  if(!BK.startAt||!BK.outAt) c6.append(h('p','muted','Put both times in and tick "Lock the schedule" and it will solve for how much starter you need.'));
+  c6.append(el('button',{class:'btn',onclick:()=>{
+    BK.startAt=new Date(Math.ceil(now.getTime()/900000)*900000).toISOString();
+    const out=new Date(new Date(BK.startAt).getTime()+ (BK.path==='retard'?26:9)*3600000);
+    BK.outAt=out.toISOString(); BK.locks.time=true; bkSave(); render();
+  }},'Start now, bake '+(BK.path==='retard'?'tomorrow':'today')));
+  side.append(c6);
+
+  /* DDT */
+  const c7=h('div','card');
+  c7.append(h('h2',null,'Water temperature'));
+  c7.append(h('p','big',fx(R.waterTemp,0)+' °C'),h('p','muted',fx(R.waterTemp*9/5+32,0)+' °F — to land the dough at '+fx(R.doughTemp,1)+' °C'));
+  c7.append(fieldNum('Room',BK.roomTemp,v=>bkSet('roomTemp',v),{suffix:'°C',step:'0.5'}));
+  c7.append(fieldNum('Flour',BK.flourTemp,v=>bkSet('flourTemp',v),{suffix:'°C',step:'0.5'}));
+  c7.append(fieldNum('Levain',BK.levainTemp,v=>bkSet('levainTemp',v),{suffix:'°C',step:'0.5'}));
+  c7.append(fieldNum('Friction factor',BK.frictionFactor,v=>bkSet('frictionFactor',v),{suffix:'°C',step:'0.5'}));
+  c7.append(why('alpern','Friction factor is a residual, not a constant: it soaks up every bit of heat the equation does not model. Measure your own — mix a batch, take the dough temperature at the end, then work backwards. It changes if you change mixer, batch size or mixing time, so measure it for the way you actually mix. 1 °C is about right for hand mixing, 3 °C for a machine.'));
+  side.append(c7);
+
+  wrap.append(side);
+
+  /* ---------------- right: the answer ---------------- */
+  const main=h('div','bakemain');
+
+  /* warnings first */
+  if(R.warn.length){
+    const w=h('div','card');
+    R.warn.forEach(x=>{
+      w.append(h('div',x.level==='hard'?'alert hard':'alert soft',
+        h('div',null,x.t), tierChip(x.c),
+        CITE[x.c]?h('div','src',CITE[x.c].s+(CITE[x.c].flag?'  ⚠ '+CITE[x.c].flag:'')):null));
+    });
+    main.append(w);
+  }
+
+  /* the formula */
+  const f=h('div','card');
+  f.append(h('h2',null,st.name));
+  const tbl=h('table','formula');
+  const thead=h('thead',null,h('tr',null,h('th',null,'Ingredient'),h('th','r','Baker’s %'),h('th','r','Grams')));
+  tbl.append(thead);
+  const tb=h('tbody');
+  R.rows.forEach(r=>{
+    const tr=h('tr','k-'+r.kind,h('td',null,r.name),h('td','r',fx(r.pct,1)+'%'),h('td','r',fx(r.g,0)+' g'));
+    tb.append(tr);
+    if(r.sub)tb.append(h('tr','subrow',el('td',{colspan:3},r.sub)));
+  });
+  tbl.append(tb);
+  tbl.append(h('tfoot',null,h('tr',null,h('td',null,'Dough'),h('td','r',''),h('td','r',fx(R.doughG,0)+' g'))));
+  f.append(tbl);
+  f.append(h('p','big',fx(R.hydration,1)+'% hydration'));
+  main.append(f);
+
+  /* hydration reasoning */
+  const hy=h('div','card');
+  hy.append(h('h2',null,'Where that water number comes from'));
+  hy.append(h('p','muted','Anchor plus deltas. Every line is a published coefficient, and the tier chip tells you how hard each one will push back if you lean on it.'));
+  const ht=h('table','deltas');
+  ht.append(h('tbody',null,
+    h('tr','anchor',h('td',null,'Your anchor'),h('td','r',fx(R.hyd.anchor,1)+'%'),h('td',null,'')),
+    ...R.hyd.deltas.map(dd=>h('tr',null,
+      h('td',null,dd.label),
+      h('td','r',(dd.lo>=0?'+':'')+fx(dd.lo,1)+(Math.abs(dd.hi-dd.lo)>0.05?' to '+(dd.hi>=0?'+':'')+fx(dd.hi,1):'')+' pp'),
+      h('td',null,tierChip(dd.cite)))),
+    h('tr','tot',h('td',null,'Predicted'),h('td','r',fx(R.hyd.lo,1)+'–'+fx(R.hyd.hi,1)+'%'),h('td',null,''))
+  ));
+  hy.append(ht);
+  R.hyd.deltas.filter(dd=>dd.note).forEach(dd=>hy.append(h('p','muted',dd.note)));
+  hy.append(h('div','alert soft','These deltas are added together because that is the only thing to do with them, but nobody has tested whether they actually are additive. Treat the top of the range as a ceiling, hold back the last 3–5% of the water, and add it at the mixer only if the dough takes it.'));
+  hy.append(why('aaccfar','Farinograph absorption is measured at 500 BU with no salt, no leaven, no acid and no rest — none of which describes your dough. A ±3% deviation from optimum visibly degrades the mix, which is why the hold-back matters.'));
+  const lockH=el('input',{type:'checkbox',checked:BK.hydrationLocked?'checked':null,
+    onchange:e=>{ BK.hydrationLocked=e.target.checked; if(e.target.checked&&BK.hydration==null)BK.hydration=round1(R.hyd.target); bkSave(); render(); }});
+  hy.append(h('label','chk',lockH,h('span',null,'Override it and use my number instead')));
+  if(BK.hydrationLocked)hy.append(fieldNum('Hydration',BK.hydration,v=>bkSet('hydration',v),{suffix:'%',step:'0.5'}));
+  main.append(hy);
+
+  /* the schedule */
+  const sc=h('div','card');
+  sc.append(h('h2',null,'The schedule'));
+  if(R.solvedFor)sc.append(h('p','muted','You locked the clock, so the calculator solved for '+R.solvedFor+'.'));
+  const timeline=h('div','timeline');
+  R.steps.forEach(s=>{
+    timeline.append(h('div','tstep',
+      h('div','twhen',s.at?clockOf(s.at):''),
+      h('div','tbody',
+        h('div','tlabel',s.label,s.hours?h('span','tdur',hm(s.hours)):null),
+        h('div','tdetail',s.detail))));
+  });
+  sc.append(timeline);
+  if(R.outOfOven)sc.append(h('p','big',(BK.path==='freeze'?'In the freezer ':'Out of the oven ')+clockOf(R.outOfOven)));
+  if(R.finish&&BK.path!=='freeze'&&R.finish>R.outOfOven)sc.append(h('p','muted','Cool enough to cut at '+clockOf(R.finish)+'. Cutting it before then is what makes bread read as gummy.'));
+  main.append(sc);
+
+  /* fermentation reasoning */
+  const fm=h('div','card');
+  fm.append(h('h2',null,'Where the times come from'));
+  fm.append(h('table','deltas',h('tbody',null,
+    h('tr',null,h('td',null,'Dough temperature'),h('td','r',fx(R.doughTemp,1)+' °C'),h('td',null,'')),
+    h('tr',null,h('td',null,'Published bulk window at that temperature'),h('td','r',hm(R.matrix.lo)+'–'+hm(R.matrix.hi)),h('td',null,tierChip('cucuzza'))),
+    h('tr',null,h('td',null,'Rise target at that temperature'),h('td','r','+'+fx(R.rTarget,0)+'%'),h('td',null,tierChip('cucuzza'))),
+    h('tr',null,h('td',null,'Your levain vs the calibration’s 9.1%'),h('td','r',fx(R.pff,1)+'%'),h('td',null,tierChip('ganzle'))),
+    h('tr',null,h('td',null,'Hydration effect on gas'),h('td','r','×'+fx(hydrationRateFactor(R.hydration,R.hyd.target),2)),h('td',null,tierChip('codina'))),
+    h('tr',null,h('td',null,'Enrichment'),h('td','r','×'+fx(R.enrich,2)),h('td',null,tierChip('craft'))),
+    R.retardH?h('tr',null,h('td',null,'Rise the fridge adds by itself'),h('td','r','+'+fx(R.rRetard,0)+'%'),h('td',null,tierChip('cucuzza'))):null,
+    h('tr','tot',h('td',null,'Bulk'),h('td','r',hm(R.bulk)),h('td',null,''))
+  )));
+  fm.append(h('div','alert soft','That temperature-to-rise matrix is one practitioner’s data, from one calibration formula: 90% bread flour with 10% whole wheat, 75% hydration, 20% starter, 2% salt. No controlled peer-reviewed trial of % rise as a bulk endpoint exists at all. It is still the best thing published, and it is worlds better than a recipe that says "2 hours" without saying at what temperature — but it is a single source and you should recalibrate it against your own bakes.'));
+  fm.append(why('cucuzza','27 °C → +30% in 3–5½ h. 24 °C → +50% in 5–7 h. 21 °C → +75% in 8–12 h. 18 °C → +100% in 12–18 h. Note the direction: colder dough wants MORE rise, not less.'));
+  fm.append(why('ganzle','Moving off that 20% starter uses the yeast’s published growth rate through a cardinal-temperature model — halving the levain costs you about ln(2)/µ hours. That inference is mine, from their measured constants; it has not been validated against actual dough rise.'));
+  fm.append(why('codina','Gas production measured 1270 cm³ at 51.4% water, 1410 at the farinograph optimum, 1433 above it. A drier dough really is a slower dough — about 1.7% less gas per point of water below optimum, and almost nothing gained above it.'));
+  main.append(fm);
+
+  /* grain ceilings */
+  if(R.limits.length){
+    const gl=h('div','card');
+    gl.append(h('h2',null,'How far you can push these grains'));
+    R.limits.forEach(l=>{
+      const box=h('div','limit'+(l.warn==='hard'?' hard':l.warn==='soft'?' soft':''));
+      box.append(h('div','lhead',l.grain+(l.pct?' — '+fx(l.pct,0)+'%':''),tierChip(l.cite)));
+      box.append(h('p',null,l.text));
+      if(l.caveat)box.append(h('p','muted',l.caveat));
+      if(l.protocol){
+        const ol=h('ol','proto');
+        l.protocol.forEach(s=>ol.append(h('li',null,s)));
+        box.append(ol);
+      }
+      if(CITE[l.cite])box.append(h('div','src',CITE[l.cite].s+(CITE[l.cite].flag?'  ⚠ '+CITE[l.cite].flag:'')));
+      gl.append(box);
+    });
+    main.append(gl);
+  }
+
+  /* the oven */
+  const ov=h('div','card');
+  ov.append(h('h2',null,'The oven'));
+  ov.append(h('p',null,st.bake));
+  R.oven.forEach(o=>{
+    ov.append(h('div','ovrow',h('div','lhead',o.t,tierChip(o.c)),h('div','ovv',o.v),h('p','muted',o.n)));
+  });
+  ov.append(h('div','alert soft','There is no published oven temperature for any bread style anywhere in the evidence base — not one. The setting above is convention. The finish temperature is not: 93–99 °C is a physical endpoint, because the crumb cannot get past the boiling point of its own water while free water is still in there.'));
+  main.append(ov);
+
+  /* save */
+  const sv=h('div','card');
+  sv.append(h('h2',null,'Keep this one'));
+  sv.append(h('p','muted','Saves to bakes.md in your Drive folder as plain text, so you can edit it there or on the other computer.'));
+  const nm=el('input',{type:'text',placeholder:'e.g. Tuesday 30% Salish'});
+  sv.append(nm);
+  sv.append(el('button',{class:'btn pri',onclick:async()=>{
+    const name=(nm.value||'').trim(); if(!name){ toast('Give it a name first.'); return; }
+    const rec={name,style:BK.styleId,blend:BK.blend.slice(),flour:BK.flourGrams,
+      hydration:round1(R.hydration),salt:R.rows.filter(x=>x.kind==='salt')[0].pct,
+      pff:round1(R.pff),temp:round1(R.doughTemp),levainhyd:BK.levainHydration,
+      anchor:BK.anchorHydration,anchorprotein:BK.anchorProtein,friction:BK.frictionFactor,
+      path:BK.path,notes:''};
+    S.bakes=(S.bakes||[]).filter(b=>norm(b.name)!==norm(name)).concat([rec]);
+    render();
+    try{ await saveFile('bakes.md',serializeBakes(S.bakes)); toast('Saved.'); }
+    catch(e){ toast('Saved here, but Drive said: '+e.message); }
+  }},'Save this bake'));
+  if((S.bakes||[]).length){
+    const list=h('div','saved');
+    S.bakes.forEach(b=>{
+      list.append(h('div','savedrow',
+        el('button',{class:'link',onclick:()=>{
+          BK.styleId=b.style||BK.styleId;
+          if(b.blend&&b.blend.length)BK.blend=b.blend.slice();
+          if(b.flour)BK.flourGrams=b.flour;
+          if(b.hydration){BK.hydration=b.hydration;BK.hydrationLocked=true;}
+          if(b.salt)BK.saltPct=b.salt;
+          if(b.pff)BK.pff=b.pff;
+          if(b.temp)BK.doughTemp=b.temp;
+          if(b.levainhyd)BK.levainHydration=b.levainhyd;
+          if(b.anchor)BK.anchorHydration=b.anchor;
+          if(b.anchorprotein)BK.anchorProtein=b.anchorprotein;
+          if(b.path)BK.path=b.path;
+          bkSave(); render();
+        }},b.name),
+        h('span','muted',(b.blend||[]).map(x=>x.flour+' '+x.pct+'%').join(' · '))));
+    });
+    sv.append(list);
+  }
+  main.append(sv);
+
+  wrap.append(main);
+  return wrap;
+}
+
+/* ---------------- adapt somebody else's recipe ---------------- */
+function viewBakeAdapt(){
+  const wrap=h('div');
+  const doughs=(S.recipes||[]).filter(looksLikeDough);
+  const c=h('div','card');
+  c.append(h('h2',null,'Somebody else’s bread recipe'));
+  c.append(h('p','muted','The recipe stays exactly as it is written. This just hangs tags off it, worked out from your kitchen’s temperature and the numbers in the recipe itself. Nothing gets rewritten and nothing gets saved.'));
+  if(!doughs.length)c.append(h('p','muted','No bread recipes found in the library yet. Anything with flour and a starter or yeast in the ingredient list will show up here.'));
+  const sel=el('select',{onchange:e=>bkSet('adaptId',e.target.value)});
+  sel.append(el('option',{value:''},'— pick a recipe —'));
+  doughs.forEach(r=>sel.append(el('option',{value:r.slug||r.name,selected:(r.slug||r.name)===BK.adaptId?'selected':null},r.name)));
+  c.append(h('label','fld',h('span','fldl','Recipe'),sel));
+  c.append(fieldNum('Room temperature',BK.ambientC,v=>bkSet('ambientC',v),{suffix:'°C',step:'0.5'}));
+  c.append(fieldNum('Bulk time the recipe states',BK.statedBulkH,v=>bkSet('statedBulkH',v),{suffix:'h',step:'0.5',ph:'optional'}));
+  wrap.append(c);
+
+  const r=doughs.find(x=>(x.slug||x.name)===BK.adaptId);
+  if(!r)return wrap;
+  const d=readDough(r);
+  if(!d){ wrap.append(h('div','card',h('p','muted','Could not find enough weighed flour in that recipe to work from. Add gram weights to the ingredients and it will pick them up.'))); return wrap; }
+
+  const rd=h('div','card');
+  rd.append(h('h2',null,r.name));
+  rd.append(h('table','deltas',h('tbody',null,
+    h('tr',null,h('td',null,'Total flour'),h('td','r',fx(d.flourG,0)+' g')),
+    h('tr',null,h('td',null,'Hydration'),h('td','r',fx(d.hydration,1)+'%')),
+    h('tr',null,h('td',null,'Salt'),h('td','r',fx(d.salt,2)+'%')),
+    h('tr',null,h('td',null,'Prefermented flour'),h('td','r',fx(d.pff,1)+'%')),
+    d.fat?h('tr',null,h('td',null,'Fat'),h('td','r',fx(d.fat,1)+'%')):null,
+    d.sugar?h('tr',null,h('td',null,'Sugar'),h('td','r',fx(d.sugar,1)+'%')):null,
+    d.rye?h('tr',null,h('td',null,'Rye'),h('td','r',fx(d.rye,0)+'%')):null,
+    d.ww?h('tr',null,h('td',null,'Whole grain'),h('td','r',fx(d.ww,0)+'%')):null
+  )));
+  wrap.append(rd);
+
+  const tg=h('div','card');
+  tg.append(h('h2',null,'Tags for tonight'));
+  bakeTags(d,{ambientC:BK.ambientC,doughTemp:BK.doughTemp,statedBulkH:BK.statedBulkH}).forEach(t=>{
+    tg.append(h('div','btag',
+      h('div','btaghead',h('code',null,t.tag),tierChip(t.c)),
+      h('p',null,t.why),
+      CITE[t.c]?h('div','src',CITE[t.c].s+(CITE[t.c].flag?'  ⚠ '+CITE[t.c].flag:'')):null));
+  });
+  wrap.append(tg);
+  return wrap;
+}
+
+/* ---------------- flour library ---------------- */
+function viewBakeFlours(){
+  const wrap=h('div');
+  const c=h('div','card');
+  c.append(h('h2',null,'Flours'));
+  c.append(h('p','muted','This is flours.md in your Drive folder. Everything here is a published class average, not your bag — crop year moves a class mean by one to two protein points, and one variety spread 8.8 to 12.0% across four fields in a single season. Put your own lot numbers in when you have them.'));
+  const list=h('div');
+  (S.flours||[]).forEach((f,i)=>{
+    const box=h('div','flourrow');
+    box.append(el('input',{type:'text',class:'fname',value:f.name,onchange:e=>{ f.name=e.target.value; }}));
+    const nums=h('div','fnums');
+    const num=(label,key,step)=>{
+      const inp=el('input',{type:'number',step:step||'0.1',value:f[key]==null?'':f[key],placeholder:'—',
+        onchange:e=>{ f[key]=e.target.value===''?null:parseFloat(e.target.value); }});
+      return h('label','fld small',h('span','fldl',label),inp);
+    };
+    nums.append(num('Protein %','protein'));
+    nums.append(num('Fiber %','fiber'));
+    nums.append(num('Whole grain %','whole','1'));
+    const ms=el('select',{onchange:e=>{ f.mill=e.target.value; }});
+    [['roller','Roller'],['stone','Stone']].forEach(([v,t])=>ms.append(el('option',{value:v,selected:v===f.mill?'selected':null},t)));
+    nums.append(h('label','fld small',h('span','fldl','Mill'),ms));
+    box.append(nums);
+    if(f.source)box.append(h('div','src',f.source));
+    if(f.note)box.append(h('p','muted',f.note));
+    box.append(el('button',{class:'x',onclick:()=>{ S.flours.splice(i,1); render(); }},'×'));
+    list.append(box);
+  });
+  c.append(list);
+  c.append(el('button',{class:'btn',onclick:()=>{ S.flours.push({name:'New flour',protein:null,fiber:null,whole:0,mill:'roller',grain:'wheat'}); render(); }},'Add a flour'));
+  c.append(el('button',{class:'btn pri',onclick:async()=>{
+    try{ status('Saving…','busy'); await saveFile('flours.md',serializeFlours(S.flours)); status('Saved','ok'); toast('Flours saved to Drive.'); }
+    catch(e){ toast('Could not save: '+e.message); }
+  }},'Save to Drive'));
+  wrap.append(c);
+  return wrap;
+}
+
+/* ---------------- the evidence ---------------- */
+function viewBakeEvidence(){
+  const wrap=h('div');
+  const c=h('div','card');
+  c.append(h('h2',null,'What this calculator is built on'));
+  c.append(h('p',null,'Every number in the bake tab traces to something published. The chips tell you which kind of something. That matters more than it sounds: a vendor spec sheet is a product target, a practitioner blog post is one person’s kitchen, and a peer-reviewed measurement is a measurement. The calculator will not pretend they weigh the same.'));
+  const key=h('div','tierkey');
+  [['PR','Peer-reviewed journal article. Strongest thing here.'],
+   ['PR, derived','Computed from published data, not reported directly. The arithmetic is mine.'],
+   ['STD','A standard method or official specification.'],
+   ['BK','A published book.'],
+   ['IND','An industry or institutional lab publication.'],
+   ['PRAC','A named practitioner with data behind them.'],
+   ['craft','Convention. Nobody has published a coefficient. Edit it freely.'],
+   ['no data','The evidence base is silent. Said so rather than invented a number.']
+  ].forEach(([k,t])=>key.append(h('div','tkrow',el('span',{class:'tier t-'+k.replace(/[^a-z]/gi,'').toLowerCase()},k),h('span',null,t))));
+  c.append(key);
+  wrap.append(c);
+
+  const hon=h('div','card');
+  hon.append(h('h2',null,'Where it is thin, and where the field disagrees'));
+  [['The bulk matrix is one source.','The temperature-to-% rise table is Cucuzza’s, from a single calibration formula, and no controlled peer-reviewed trial of % rise as a bulk endpoint exists in any tier. It is still the best published thing that maps a dough temperature to a real bulk time.'],
+   ['The bran coefficient rests on a paywalled chapter.','+0.55 hydration points per 1% bran is the most-reused number in the whole knowledge base, and its tables were never independently retrieved. Everything about whole-grain hydration and the whole-wheat ceiling leans on it.'],
+   ['Bran per whole grain is disputed.','This uses 0.14. Roller-mill stream yields imply 0.21–0.27. Nothing reconciles them. At the higher figure your whole-wheat ceiling drops from about 54% to about 31%.'],
+   ['Fine bran breaks the obvious explanation.','Alzuwaid 2021 found fine bran needed 1.0–1.4% LESS water while doing MORE volume damage — which falsifies "bran hurts by competing for water". Jacobs 2015 found absorption flat at 68.3 ± 0.4% across the whole particle-size range. Two peer-reviewed studies, opposite implications. Both are shown; neither is averaged away.'],
+   ['Deltas are assumed additive.','Nobody has tested that. The sum is a ceiling, not a prediction.'],
+   ['There is no data on enrichment.','No published coefficient exists for how butter, sugar, egg or milk change fermentation rate. The one study that would have covered it could not have its authorship confirmed and was dropped from the base. The enrichment multiplier here is craft convention with a plausible mechanism and nothing else.'],
+   ['There is no data on freezing dough.','Nothing on yeast or bacterial survival through a freeze–thaw, nothing on thaw times, nothing on the effect on the first rise. The freeze schedule is entirely craft. Calibrate it once and write the number down.'],
+   ['There is no proof-time data either.','No published final-proof duration for any style, and the poke test has never been validated in any tier. The proof number here is a fraction of an equivalent bulk.'],
+   ['Salish Blue has no dataset at all.','No protein, ash, falling number, absorption, or loaf volume figure has ever been published for it. Its parent is tall wheatgrass, not intermediate wheatgrass, so Kernza data do not transfer. The test-bake ladder in the calculator is mine, not evidence.'],
+   ['Kernza has two ceilings that do not agree.','45% with 15% optimal (peer-reviewed) versus 10–15% and flatbreads only (institutional). Both are shown.']
+  ].forEach(([t,b])=>hon.append(h('div','honest',h('h3',null,t),h('p',null,b))));
+  wrap.append(hon);
+
+  const myth=h('div','card');
+  myth.append(h('h2',null,'Four things everyone says that the data does not support'));
+  [['“Warm fermentation makes it more sour.”','Acetate formation actually FELL at 35 °C. Warmth shifts the ratio of acid to gas, which is a different claim from raising total acid.'],
+   ['“The fridge favours the bacteria, so a retard gets sourer.”','Below 26 °C the bacteria and the yeast grow at similar rates, and a domestic fridge takes 8–10 hours just to bring dough to 3 °C. What a retard mostly gives you is time, not selection.'],
+   ['“Technique X opens the crumb.”','Gas cells cannot be created after mixing. Handling redistributes a population that already exists.'],
+   ['“Modern wheat has more gluten than heritage wheat.”','A 120-year German cultivar series found protein and gliadin went DOWN while glutenin went up. Spelt has more gluten than common wheat, 111.6 vs 80.4 mg/g — what ancient wheats have is weaker gluten, not less of it.']
+  ].forEach(([t,b])=>myth.append(h('div','honest',h('h3',null,t),h('p',null,b))));
+  myth.append(h('p','muted','One that is NOT a myth: stiff levain really does read as more acetic. What is not established is why — firm and liquid propagation select different dominant species, so it may be species selection rather than water activity doing the work.'));
+  wrap.append(myth);
+
+  const src=h('div','card');
+  src.append(h('h2',null,'Sources'));
+  const ul=h('ul','srclist');
+  Object.keys(CITE).filter(k=>k!=='craft'&&k!=='nodata').forEach(k=>{
+    ul.append(h('li',null,tierChip(k),' ',CITE[k].s,CITE[k].flag?h('em','muted',' — '+CITE[k].flag):null));
+  });
+  src.append(ul);
+  src.append(h('p','muted','Compiled August 2026. Where a figure could not be pulled from full text, it says so on the chip.'));
+  wrap.append(src);
+  return wrap;
+}
 /* ---------------- boot ---------------- */
 $('#btnSync').addEventListener('click',async()=>{ await syncAll(); render(); });
 $('#btnSignin').addEventListener('click',async()=>{
@@ -3708,6 +5208,7 @@ $('#btnSignin').addEventListener('click',async()=>{
 
 async function boot(){
   renderNav();
+  seedBakeData();
   if(UI.scanMode)document.querySelector('header').classList.add('hide');
   const cached=loadCache();
   render();
