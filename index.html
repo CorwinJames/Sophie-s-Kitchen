@@ -155,6 +155,8 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
 .pitem.on{background:var(--hot);color:#1a1005;font-weight:600}
 .pitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pitem .lvl{font-size:10px;letter-spacing:.04em;opacity:.55;white-space:nowrap}
+.pitem .frz{font-size:10px;opacity:.45;flex:none}
+.pitem.on .frz{opacity:.8}
 .pitem.on .lvl{opacity:.7}
 .pitem .kill{opacity:0;font-weight:700;font-size:14px;line-height:1;padding:1px 5px;
   border-radius:5px;color:var(--bad);flex:none}
@@ -242,7 +244,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.9'
+  VER: '2.0'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -590,7 +592,10 @@ function parseRules(text){
     });
     proteins[norm(o.name)]=o;
   });
+  const shelf=bullets(S['shelf order']).map(x=>norm(x).replace(/s$/,''))
+    .map(x=>CAT_DEFAULT.find(c=>c.startsWith(x)||x.startsWith(c))).filter(Boolean);
   return {
+    shelf: shelf.length?uniq(shelf.concat(CAT_DEFAULT)):CAT_DEFAULT.slice(),
     never:bullets(S['never']), swap, always, drop, proteins,
     prefer:bullets(S['prefer']), thaw, portions,
     raw:text
@@ -822,6 +827,58 @@ function familyOf(item){
   return null;
 }
 function isProtein(item){ const f=familyOf(item); return f&&PROTEIN_FAMILIES.includes(f)?f:null; }
+
+/* ---------- what kind of thing is this? ----------
+   Storage groups say WHERE a thing lives; this says WHAT IT IS, which is how
+   you actually scan a list. Meat is in both the fridge and the freezer, and
+   you think of it as one thing. */
+const CAT_WORDS={
+  meat:['beef','chicken','pork','lamb','veal','duck','turkey','bacon','sausage','ham','chorizo',
+        'prosciutto','pancetta','salami','steak','rib','brisket','chuck','mince','meatball','frank',
+        'hot dog','fish','salmon','cod','halibut','tuna','trout','snapper','sole','anchovy','sardine',
+        'shrimp','prawn','scallop','mussel','clam','squid','crab','lobster','oyster','tofu','tempeh',
+        'bone','back','wing','thigh','breast','drumstick','shoulder','loin','belly','carcass'],
+  dairy:['milk','butter','cheese','cream','yogurt','yoghurt','parmesan','cheddar','mozzarella','ricotta',
+         'feta','gruyere','brie','buttermilk','ghee','egg','custard','mascarpone','creme fraiche'],
+  fruit:['apple','banana','peach','plum','pear','cherry','grape','berry','strawberry','blueberry',
+         'raspberry','blackberry','cranberry','melon','watermelon','mango','pineapple','orange','lemon',
+         'lime','apricot','nectarine','fig','date','kiwi','pomegranate','avocado','raisin'],
+  vegetable:['onion','garlic','shallot','leek','carrot','celery','potato','broccoli','cauliflower',
+             'cabbage','lettuce','spinach','kale','chard','arugula','rocket','pepper bell','bell pepper',
+             'zucchini','courgette','squash','eggplant','aubergine','mushroom','ginger','tomato',
+             'cucumber','pea','bean','corn','asparagus','beet','radish','turnip','parsnip','rutabaga',
+             'bok choy','sprout','scallion','green onion','fennel','artichoke','okra','rhubarb','green',
+             'herb','parsley','cilantro','basil','mint','dill','tarragon','chive','sage','rosemary'],
+  staples:['flour','rice','pasta','noodle','oil','vinegar','sugar','stock','broth','canned','paste',
+           'sauce','lentil','quinoa','barley','oat','honey','syrup','mustard','ketchup','mayonnaise',
+           'cornstarch','cornflour','baking','yeast','nut','pecan','walnut','almond','cashew','pistachio',
+           'seed','coconut','peanut','chocolate','cocoa','bread','tortilla','cracker','gelatin',
+           'wine','extract','molasses','quinoa','couscous','polenta','semolina']
+};
+function catByWords(n,cat){
+  const words=String(n||'').split(' ').filter(Boolean);
+  return CAT_WORDS[cat].some(w=>{
+    if(w.includes(' '))return n.includes(w);            // multi-word terms match as phrases
+    return words.some(x=>x===w||x===w+'s'||x===w+'es'); // …single words match whole, never inside
+  });
+}
+function categoryOf(item,group){
+  const g=String(group||'').toLowerCase();
+  const n=norm(item)||String(item||'').toLowerCase();
+  if(/season|spice/.test(g))return 'seasonings';
+  if(/snack|treat|sweet/.test(g))return 'snacks';
+  if(/staple|pantry|dry/.test(g))return 'staples';      // trust the file first
+  if(catByWords(n,'dairy'))return 'dairy';             // eggs included, that is where you look
+  if(isProtein(item)||catByWords(n,'meat'))return 'meat';
+  if(catByWords(n,'fruit'))return 'fruit';
+  if(catByWords(n,'vegetable'))return 'vegetable';
+  if(/produce|veg/.test(g))return 'vegetable';
+  if(catByWords(n,'staples'))return 'staples';
+  return 'other';
+}
+const CAT_LABEL={meat:'Meat & protein',staples:'Staples',dairy:'Dairy & eggs',
+  vegetable:'Vegetables',fruit:'Fruit',snacks:'Snacks',seasonings:'Seasonings',other:'Everything else'};
+const CAT_DEFAULT=['meat','staples','dairy','vegetable','fruit','snacks','seasonings','other'];
 
 /* ---------- steps library ---------- */
 function parseSteps(text){
@@ -2423,12 +2480,13 @@ function renderPantrySide(){
         'Clear '+UI.selected.length+' filter'+(UI.selected.length>1?'s':''))));
   }
 
-  const row=(i,gone)=>{
+  const row=(i,gone,group)=>{
     const on=UI.selected.some(s=>sameThing(s,i.name));
     const node=el('div',{class:'pitem'+(on?' on':'')+(gone?' gone':''),
       title:gone?'we are out — click to say we have it again'
                 :(LEVEL_LABEL[i.level]+' · click to filter, × or hold to mark it gone')},
       el('span',{class:'nm'},i.name));
+    if(!gone && /freezer/i.test(group||'')) node.append(el('span',{class:'frz',title:'in the freezer'},'\u2744'));
     if(!gone && i.level!=='plenty')
       node.append(el('span',{class:'lvl'},i.level==='low'?'LOW':'SOME'));
     if(!gone && i.qty)
@@ -2444,12 +2502,22 @@ function renderPantrySide(){
     return node;
   };
 
+  /* grouped by what a thing is, not where it lives — order set in house-rules.md */
+  const buckets={};
+  S.pantry.groups.forEach(g=>g.items.forEach(i=>{
+    if(i.out)return;
+    if(q && !i.name.toLowerCase().includes(q))return;
+    const c=categoryOf(i.name,g.name);
+    (buckets[c]=buckets[c]||[]).push({item:i,group:g.name});
+  }));
   let shown=0;
-  S.pantry.groups.forEach(g=>{
-    const items=g.items.filter(i=>!i.out && (!q||i.name.toLowerCase().includes(q)));
-    if(!items.length)return;
-    side.append(h('div','pgroup',g.name));
-    items.forEach(i=>{ side.append(row(i,false)); shown++; });
+  (S.rules.shelf||CAT_DEFAULT).forEach(c=>{
+    const items=buckets[c];
+    if(!items||!items.length)return;
+    side.append(el('div',{class:'pgroup'},CAT_LABEL[c]||c,
+      el('span',{style:'float:right;opacity:.6;letter-spacing:0'},String(items.length))));
+    items.sort((a,b)=>a.item.name.localeCompare(b.item.name));
+    items.forEach(x=>{ side.append(row(x.item,false,x.group)); shown++; });
   });
   if(!shown) side.append(h('p','small dim',q?'Nothing matches “'+q+'”.':'Nothing in the house.'));
 
