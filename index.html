@@ -373,7 +373,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.4'
+  VER: '2.5'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -554,7 +554,9 @@ const DISTINCT=new Set(['green','spring','sesame','olive','avocado','coconut','a
  'oyster','hoisin','tomato','chili','chilli','brown','powdered','confectioners','heavy','sour','rice',
  'apple','balsamic','red','white','peanut','sunflower','canola','vegetable','chicken','beef','pork',
  'lamb','wine','smoked','sweet','condensed','evaporated','buttermilk','almond','oat','goat','blue',
- 'cream','corn','potato','sweet','bread','pastry','puff','self-raising','baking']);
+ 'cream','corn','potato','sweet','bread','pastry','puff','self-raising','baking',
+ /* modifiers that turn tap water into something you have to go and buy */
+ 'rose','tonic','sparkling','seltzer','soda','mineral','blossom','orange','barley','tamarind']);
 /* do two ingredient names refer to the same thing? */
 function sameThing(a,b){
   const x=norm(a),y=norm(b);
@@ -710,6 +712,11 @@ function parseRules(text){
   bullets(S['portions']).forEach(l=>{ const m=/^(.+?):\s*(.+)$/.exec(l); if(m)portions[m[1].trim().toLowerCase()]=m[2].trim(); });
   /* things that can just be left out when we don't have them */
   const drop=bullets(S['drop']);
+  /* things that are never shopping. Water comes out of the wall; being told
+     we are "missing water" is noise, and worse, it drags a recipe's coverage
+     score down and pushes it out of "can make now". Editable, because what
+     counts as always-on-hand is a fact about your kitchen, not about food. */
+  const free=bullets(S['always have']);
   /* swapping the whole protein: what to add, and how the method changes.
      "fish -> add: lemon, butter | technique: never braise | time: 15 minutes" */
   const proteins={};
@@ -729,10 +736,13 @@ function parseRules(text){
   return {
     shelf: shelf.length?uniq(shelf.concat(CAT_DEFAULT)):CAT_DEFAULT.slice(),
     never:bullets(S['never']), swap, always, drop, proteins,
+    free: free.length?free:FREE_DEFAULT.slice(),
     prefer:bullets(S['prefer']), thaw, portions,
     raw:text
   };
 }
+
+const FREE_DEFAULT=['water','ice','ice cubes'];
 
 /* ---------- pantry / inventory ----------
    A line is just the name. Everything else is optional and lives in a
@@ -1410,6 +1420,15 @@ const SEED={
 ## Prefer
 - cast iron for searing
 
+## Always have
+Things that are never shopping and never "missing". Water comes out of the
+wall. Add anything else you always have — a bag of kosher salt you never
+run out of, tap water, ice.
+
+- water
+- ice
+- ice cubes
+
 ## Thaw
 - chicken breast: 10
 - chicken thigh: 10
@@ -1877,6 +1896,30 @@ function scratchPlan(r){
   return out;
 }
 
+/* Comes out of the tap, or is otherwise always there. Never missing, never
+   shopping, never costed, never deducted, and never counted against a
+   recipe's coverage. Matches the way everything else does, so one entry of
+   "water" also covers warm water, ice water and water for boiling. */
+function freeHead(item){
+  /* "water, for boiling the pasta" and "water for the sauce" are both just
+     water. The general purpose-stripper only knows a fixed vocabulary of
+     cooking verbs, and widening it would change matching everywhere; this
+     narrow pass only ever runs against the short always-have list. */
+  let t=String(item||'').split(',')[0];
+  t=t.replace(/\s+\bfor\b\s+.*$/i,'');
+  return t.trim();
+}
+function isFree(item){
+  if(!item)return false;
+  const head=freeHead(item);
+  /* sameThing, not satisfies. satisfies is deliberately loose about a
+     one-word request — any oil answers "oil" — and that looseness would
+     make coconut water and tonic water come out of the tap. sameThing
+     keeps the DISTINCT guard, so "warm water" is free and "rose water"
+     is shopping. */
+  return (S.rules.free||FREE_DEFAULT).some(f=>sameThing(f,item)||(head&&sameThing(f,head)));
+}
+
 function scoreRecipe(r,selected,have){
   const hv=have||haveKeys();
   const sel=(selected||[]).map(norm).filter(Boolean);
@@ -1885,6 +1928,7 @@ function scoreRecipe(r,selected,have){
   const scratch=[];
   r.ingredients.forEach(i=>{
     if(!i.key)return;
+    if(isFree(i.item))return;                 // doesn't count for or against
     const inSel=sel.some(s=>satisfies(s,i.item));
     const held=hv.some(k=>satisfies(k,i.item));
     if(inSel)usedSel++;
@@ -1893,7 +1937,7 @@ function scoreRecipe(r,selected,have){
     if(mk){ matched++; scratch.push(mk); return; }
     missing.push(i);
   });
-  const total=r.ingredients.filter(i=>i.key).length||1;
+  const total=r.ingredients.filter(i=>i.key&&!isFree(i.item)).length||1;
   const selHits=sel.filter(s=>r.ingredients.some(i=>sameThing(s,i.item))).length;
   const coverage=matched/total;
   const rating=parseFloat(r.meta.rating||0)||0;
@@ -2000,8 +2044,8 @@ function bestPrice(item){
 /* seasonings used by the pinch are not worth pricing and should not
    make the total look uncertain */
 function negligible(ing){
+  if(isFree(ing.item))return true;                          // it comes out of the wall
   const n=norm(ing.item);
-  if(n==='water'||n==='ice'||n==='tap water')return true;   // it comes out of the wall
   const seasonings=S.pantry.groups.filter(g=>/seasoning|spice/.test(g.name)).flatMap(g=>g.items);
   if(seasonings.some(x=>sameThing(x.name,ing.item)))return true;
   if(!ing.qty && /salt|pepper|oil|water/.test(norm(ing.item)))return true;
@@ -2226,12 +2270,13 @@ function buildGrocery(planRows){
     const mult=row.portions?Math.max(1,row.portions/serves):1;
     row.recipe.ingredients.forEach(i=>{
       if(!i.key)return;
+      if(isFree(i.item))return;                          // never shopping
       if(have.some(h=>satisfies(h.name,i.item)))return;
       if(canMake(i.item))return;                       // we can make this from what's here
       const comp=componentFor(i.item);
       if(comp){                                        // we make this, but are short an input
         comp.ingredients.forEach(ci=>{
-          if(!ci.key||negligible(ci))return;
+          if(!ci.key||isFree(ci.item)||negligible(ci))return;
           if(have.some(h=>satisfies(h.name,ci.item)))return;
           const ck=ci.key;
           if(!bucket.has(ck))bucket.set(ck,{item:ci.item,parts:[],forr:new Set()});
@@ -2487,7 +2532,7 @@ function makeIt(recipe,opts={}){
   const scratchUsed=[];
   for(let n=r.ingredients.length-1;n>=0;n--){
     const i=r.ingredients[n];
-    if(!i.key||hasIt(i.item))continue;
+    if(!i.key||isFree(i.item)||hasIt(i.item))continue;
     if(i.chosen){ missing.push(i.item); continue; }   // you asked for this one — never drop it
     if(!opts.noScratch){
       const mk=canMake(i.item);
@@ -2552,7 +2597,7 @@ function deductPlan(recipe){
   const rows=[];
   S.pantry.groups.forEach(g=>g.items.forEach(i=>{
     if(i.out)return;
-    const used=recipe.ingredients.find(x=>satisfies(i.name,x.item));
+    const used=recipe.ingredients.find(x=>satisfies(i.name,x.item)&&!isFree(x.item));
     if(!used)return;
     const perishable=/fridge|freezer|produce|veg|meat/.test(g.name);
     let suggestion='keep';
@@ -3763,8 +3808,10 @@ function openRecipe(r){
     h('div','split',
       h('div',null,h('h3',null,'Ingredients'),
         el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const got=pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
+          const free=isFree(i.item);
+          const got=free||pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
           return el('li',{},el('span',{class:got?'':'miss'},ingLine(i)),
+            free?el('span',{class:'tiny dim'},'  from the tap'):
             got?el('span',{class:'tiny dim'},'  have'):'');
         }))),
       h('div',null,h('h3',null,'Steps'),
@@ -3888,7 +3935,8 @@ function openMakeIt(recipe,protein){
     h('div','split',
       h('div',null,h('h3',null,'Ingredients'),
         el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const got=pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
+          const free=isFree(i.item);
+          const got=free||pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
           return el('li',{},
             el('span',{class:i.forScratch?'scratch':(i.sub?'subbed':(got?'':'miss'))},ingLine(i)),
             i.forScratch?el('span',{class:'tiny scratch'},'  for the '+i.forScratch):null,
