@@ -244,7 +244,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.0'
+  VER: '2.1'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -254,7 +254,10 @@ const LS = (()=>{
   try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch(e){ ok=false; }
   return {
     get(k,d){ try{ const v = ok?localStorage.getItem(k):mem[k]; return v==null?d:JSON.parse(v);}catch(e){return d;} },
-    set(k,v){ const s=JSON.stringify(v); try{ ok?localStorage.setItem(k,s):(mem[k]=s);}catch(e){mem[k]=s;} },
+    set(k,v){ const s=JSON.stringify(v);
+      if(!ok){ mem[k]=s; return; }
+      try{ localStorage.setItem(k,s); }
+      catch(e){ mem[k]=s; if(/quota|exceeded/i.test((e&&(e.name+' '+e.message))||''))throw e; } },
     del(k){ try{ ok?localStorage.removeItem(k):delete mem[k];}catch(e){} }
   };
 })();
@@ -1008,25 +1011,57 @@ const Drive = {
     });
   },
 
-  async req(url,opts={}){
+  async req(url,opts={},attempt){
+    attempt=attempt||0;
     const tok=await this.auth(false);
     const o=Object.assign({},opts);
     o.headers=Object.assign({Authorization:'Bearer '+tok},opts.headers||{});
-    let r=await fetch(url,o);
+    let r;
+    try{ r=await fetch(url,o); }
+    catch(netErr){                                    // dropped connection, flaky wifi
+      if(attempt<4){ await this.backoff(attempt); return this.req(url,opts,attempt+1); }
+      throw new Error('Could not reach Google Drive. Check the connection and press Sync.');
+    }
     if(r.status===401){
       this.token=null; LS.del('tok');
       const t2=await this.auth(true);
       o.headers.Authorization='Bearer '+t2;
       r=await fetch(url,o);
     }
+    /* Google throttles a burst of requests with 429, or 403 + a rate-limit
+       reason. Both are "slow down", not "give up". */
+    if(r.status===429 || r.status===403 || r.status>=500){
+      const body=await r.text();
+      const throttled = r.status===429 || r.status>=500 ||
+        /rateLimitExceeded|userRateLimitExceeded|backendError|internalError/i.test(body);
+      if(throttled && attempt<5){
+        await this.backoff(attempt);
+        return this.req(url,opts,attempt+1);
+      }
+      throw new Error('Drive '+r.status+': '+body.slice(0,300));
+    }
     if(!r.ok){ const t=await r.text(); throw new Error('Drive '+r.status+': '+t.slice(0,300)); }
     return r;
   },
+  backoff(attempt){
+    const ms=Math.min(16000, 500*Math.pow(2,attempt)) + Math.floor(Math.random()*400);
+    return new Promise(r=>setTimeout(r,ms));
+  },
 
-  async list(q,fields='files(id,name,mimeType,modifiedTime,size)'){
-    const url='https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)
-      +'&fields='+encodeURIComponent('nextPageToken,'+fields)+'&pageSize=200&orderBy=name';
-    const r=await this.req(url); const j=await r.json(); return j.files||[];
+  /* Drive pages at 1000 max. Follow nextPageToken to the end — otherwise a
+     library bigger than one page silently loses everything past it. */
+  async list(q,fields='files(id,name,mimeType,modifiedTime,size)',onPage){
+    let out=[],token=null,guard=0;
+    do{
+      const url='https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)
+        +'&fields='+encodeURIComponent('nextPageToken,'+fields)
+        +'&pageSize=1000&orderBy=name'+(token?'&pageToken='+encodeURIComponent(token):'');
+      const r=await this.req(url); const j=await r.json();
+      out=out.concat(j.files||[]);
+      token=j.nextPageToken||null;
+      if(onPage)onPage(out.length);
+    }while(token && ++guard<50);
+    return out;
   },
 
   async findFolder(name,parent){
@@ -1279,13 +1314,18 @@ function serializeReceipts(r){
 
 /* cache so the app opens instantly and works offline (read-only) */
 function saveCache(){
+  try{ writeCache(true); }
+  catch(e){ try{ writeCache(false); }catch(e2){ LS.del('cache'); } }
+}
+function writeCache(withRecipes){
   LS.set('cache',{
     at:Date.now(), ids:S.ids,
     files:Object.fromEntries(Object.entries(S.files).map(([k,v])=>[k,{id:v.id,modifiedTime:v.modifiedTime}])),
     raw:{
       rules:S.rules.raw,pantry:S.pantry.raw,steps:S.steps.raw,plan:S.plan.raw,grocery:S.grocery.raw
     },
-    recipes:S.recipes.map(r=>({fileId:r.fileId,fileName:r.fileName,modifiedTime:r.modifiedTime,raw:r.raw}))
+    recipes:withRecipes?S.recipes.map(r=>({fileId:r.fileId,fileName:r.fileName,
+      modifiedTime:r.modifiedTime,raw:r.raw})):[]
   });
 }
 function loadCache(){
@@ -1319,11 +1359,43 @@ async function syncAll(){
       S.files[name]=f;
       apply(await Drive.readText(f));
     }
-    const libFiles=(await Drive.list(`'${S.ids.library}' in parents and trashed=false`))
+    const libFiles=(await Drive.list(`'${S.ids.library}' in parents and trashed=false`,
+      'files(id,name,mimeType,modifiedTime,size)',
+      n=>status('Finding recipes… '+n,'busy')))
       .filter(f=>/\.(md|txt)$/i.test(f.name));
-    const recipes=[];
-    for(const f of libFiles){ recipes.push(parseRecipe(await Drive.readText(f),f)); }
-    S.recipes=recipes;
+
+    /* Anything whose modifiedTime hasn't moved since we last saw it doesn't
+       need fetching again — with 300 recipes that is the difference between
+       a two-minute sync and a two-second one. */
+    const known={};
+    S.recipes.forEach(r=>{ if(r.fileId&&r.modifiedTime)known[r.fileId]={t:r.modifiedTime,raw:r.raw}; });
+    const recipes=new Array(libFiles.length);
+    let fetched=0,reused=0,failed=0;
+    const CONCURRENCY=8;
+    let cursor=0;
+    async function worker(){
+      while(cursor<libFiles.length){
+        const idx=cursor++;
+        const f=libFiles[idx];
+        const k=known[f.id];
+        if(k && k.t===f.modifiedTime && k.raw){
+          recipes[idx]=parseRecipe(k.raw,f); reused++;
+        }else{
+          try{
+            recipes[idx]=parseRecipe(await Drive.readText(f),f);
+            fetched++;
+          }catch(e){
+            failed++;
+            if(k&&k.raw)recipes[idx]=parseRecipe(k.raw,f);   // keep the old copy rather than lose it
+          }
+        }
+        if(((fetched+reused)&7)===0)
+          status(`Reading recipes… ${fetched+reused}/${libFiles.length}`,'busy');
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(CONCURRENCY,libFiles.length||1)},worker));
+    S.recipes=recipes.filter(Boolean);
+    if(failed)toast(failed+' recipe'+(failed>1?'s':'')+' could not be read — the rest synced fine.');
 
     S.inbox=(await Drive.list(`'${S.ids.inbox}' in parents and trashed=false`))
       .filter(f=>f.mimeType!=='application/vnd.google-apps.folder');
