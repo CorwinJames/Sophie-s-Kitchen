@@ -109,6 +109,23 @@ label.f>span{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
 .scratch{color:#9ad0c8}
 .pill.scratch{background:#1d3330;color:#9ad0c8}
 .steps-scratch{color:#9ad0c8;font-weight:600;margin-top:6px}
+
+/* the cook's log */
+.logentry{border-left:2px solid var(--line);padding:2px 0 2px 12px;margin:0 0 12px}
+.logentry:hover{border-left-color:var(--hot)}
+.logdate{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;
+  display:flex;align-items:center;gap:8px}
+.logdate .del{opacity:0;cursor:pointer;color:var(--bad);font-weight:700}
+.logentry:hover .logdate .del{opacity:.6}
+.logdate .del:hover{opacity:1}
+.logtext{white-space:pre-wrap;margin-top:2px}
+.lastnote{background:#231d16;border:1px solid #4a3b28;border-left:3px solid var(--warn);
+  border-radius:8px;padding:10px 12px;margin:10px 0}
+.lastnote .h{font-size:11.5px;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.jot{background:#0e0c0a;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:12px}
+.jot textarea{border:0;background:transparent;padding:0;min-height:70px}
+.jot .h{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.jot .saved{font-size:11.5px;color:var(--ok)}
 .was{color:var(--ink3);text-decoration:line-through}
 .subbed{color:var(--ok)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -225,7 +242,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.8'
+  VER: '1.9'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -483,12 +500,49 @@ function parseRecipe(text,file){
       .map(l=>l.replace(/^(\d+[.)]\s+|[-*]\s+)/,'').trim())
       .filter(Boolean);
   const notes=(S['notes']||[]).join('\n').trim();
+  const log=parseLog(S['log']);
   return {
     fileId:file&&file.id, fileName:file&&file.name, modifiedTime:file&&file.modifiedTime,
-    name, meta, tags, ingredients, steps, notes, raw:text,
+    name, meta, tags, ingredients, steps, notes, log, raw:text,
     slug:file&&file.name?file.name.replace(/\.md$/,''):slug(name)
   };
 }
+/* ---------- the cook's log ----------
+   Every time you make it, what you changed and what went wrong. Kept in the
+   recipe file itself so the history travels with the recipe, and so it is
+   still readable in twenty years by anything that can open a text file.
+
+   ## Log
+   ### 2026-08-15
+   Doubled the garlic. Better. Oven runs hot — 15 min, not 20.
+*/
+function parseLog(lines){
+  const ls=lines||[];
+  const dated=ls.some(l=>/^###\s+/.test(l.trim()));
+  const out=[]; let cur=null;
+  ls.forEach(l=>{
+    const m=/^###\s+(.+?)\s*$/.exec(l.trim());
+    if(m){ cur={date:m[1].trim(),text:''}; out.push(cur); return; }
+    if(!cur){
+      /* prose before the first dated heading is the section's own explanation,
+         not something you wrote after cooking — unless there are no headings
+         at all, in which case you clearly just typed a note by hand */
+      if(!dated && l.trim()){ cur={date:'',text:l.trim()}; out.push(cur); }
+      return;
+    }
+    cur.text += (cur.text?'\n':'')+l;
+  });
+  out.forEach(e=>e.text=e.text.trim());
+  return out.filter(e=>e.text);
+}
+function addLogEntry(r,text,date){
+  const t=String(text||'').trim();
+  if(!t)return false;
+  r.log=r.log||[];
+  r.log.unshift({date:date||todayISO(),text:t});
+  return true;
+}
+
 function serializeRecipe(r){
   const out=['# '+r.name,''];
   const meta=Object.assign({},r.meta);
@@ -499,6 +553,10 @@ function serializeRecipe(r){
   out.push('','## Steps');
   r.steps.forEach((s,n)=>out.push((n+1)+'. '+s));
   if(r.notes&&r.notes.trim()){ out.push('','## Notes',r.notes.trim()); }
+  if(r.log&&r.log.length){
+    out.push('','## Log','Newest first. One entry per time we made it.');
+    r.log.forEach(e=>{ out.push('','### '+(e.date||todayISO()),e.text); });
+  }
   return out.join('\n')+'\n';
 }
 
@@ -882,9 +940,14 @@ const Drive = {
     if(this.signedIn()) return Promise.resolve(this.token);
     if(!this.client && !this.init()) return Promise.reject(new Error('Google sign-in not configured'));
     return new Promise((res,rej)=>{
-      this._resolve=res; this._reject=rej;
+      let done=false;
+      const finish=(fn,v)=>{ if(done)return; done=true; clearTimeout(t); fn(v); };
+      this._resolve=v=>finish(res,v);
+      this._reject=e=>finish(rej,e);
+      const t=setTimeout(()=>finish(rej,new Error(
+        'Google sign-in did not answer. A blocked popup is the usual cause — allow popups for this page and press Sync.')),45000);
       try{ this.client.requestAccessToken({prompt: interactive?'consent':''}); }
-      catch(e){ rej(e); }
+      catch(e){ finish(rej,e); }
     });
   },
 
@@ -2465,6 +2528,7 @@ function recipeCard(x){
           : h('span','pill '+(shoppable.length<=2?'warn':'bad'),'need '+shoppable.length))),
     el('div',{class:'bar',style:'margin:8px 0'},el('i',{style:'width:'+pct+'%'})),
     r.tags.slice(0,5).map(t=>h('span','tag',t)),
+    (r.log&&r.log.length)?h('span','tag','\u270e '+r.log.length):null,
     x.scratch&&x.scratch.length?h('div','small',
       h('span','scratch','From scratch: '),
       x.scratch.map((c,n)=>(n?', ':'')+c.item+' ('+c.recipe.name+')').join('')):null,
@@ -2523,6 +2587,7 @@ function openRecipe(r){
       h('div',null,h('h3',null,'Steps'),
         el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
     r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
+    logSection(r),
     el('div',{class:'row',style:'margin-top:14px'},
       el('button',{class:'btn pri',onclick:()=>{closeModal();openMakeIt(r);}},'Make it'),
       el('button',{class:'btn',onclick:()=>{tonight(r);closeModal();}},'Plan it'),
@@ -2539,6 +2604,77 @@ async function markMade(r){
   try{ await saveRecipe(r); }catch(e){ toast(e.message); }
 }
 
+/* ============================================================
+   THE COOK'S LOG
+   What you did differently, and what went wrong, every time you made it.
+   Written into the recipe file itself, so it travels with the recipe.
+   ============================================================ */
+function logSection(r){
+  const wrap=h('div',null);
+  const log=r.log||[];
+  wrap.append(el('div',{class:'row',style:'margin-top:16px'},
+    h('h3','grow','Cook\u2019s log'),
+    h('span','tiny dim',log.length?log.length+(log.length===1?' entry':' entries'):'nothing yet'),
+    el('button',{class:'btn sm',onclick:()=>promptLogEntry(r)},'Add a note')));
+  if(!log.length){
+    wrap.append(h('p','small dim','Every time you make this, jot down what you changed and what went wrong. It all shows up here, and at the top of the page next time you cook it.'));
+    return wrap;
+  }
+  log.forEach((e,n)=>{
+    wrap.append(h('div','logentry',
+      el('div',{class:'logdate'},
+        (e.date?niceDate(e.date)+' \u00b7 '+e.date:'undated'),
+        el('span',{class:'del',title:'delete this entry',onclick:async()=>{
+          if(!confirm('Delete this note?\n\n'+e.text.slice(0,120)))return;
+          r.log.splice(n,1);
+          try{ await saveRecipe(r); toast('Deleted.'); openRecipe(r); }catch(err){ toast(err.message); }
+        }},'\u00d7')),
+      h('div','logtext',e.text)));
+  });
+  return wrap;
+}
+async function promptLogEntry(r,prefill){
+  const ta=el('textarea',{rows:5,placeholder:'Doubled the garlic \u2014 better. Oven runs hot, 15 min not 20. Forgot to salt the water.'},prefill||'');
+  const dateIn=el('input',{type:'date',value:todayISO(),style:'width:auto'});
+  showModal(h('div','box',
+    h('div','row',h('h2','grow','Note on '+r.name),el('button',{class:'btn sm',onclick:()=>openRecipe(r)},'Back')),
+    h('p','small dim','What did you do differently, and what would you tell yourself next time?'),
+    el('div',{class:'row',style:'margin-bottom:8px'},h('span','small muted','When'),dateIn),
+    ta,
+    el('div',{class:'row',style:'margin-top:10px'},
+      el('button',{class:'btn pri',onclick:()=>{
+        if(!addLogEntry(r,ta.value,dateIn.value))return toast('Nothing to save.');
+        LS.del(jotKey(r));
+        status('Saving\u2026','busy');
+        saveRecipe(r).then(()=>status('Saved','good'))
+                     .catch(e=>{ status('Not saved yet — '+e.message,'err');
+                                 toast('Kept here, but Drive did not take it. Press Sync.'); });
+        toast('Noted.'); openRecipe(r);
+      }},'Save the note'))));
+}
+/* the scratchpad you type into while actually cooking */
+function jotKey(r){ return 'jot:'+(r.fileId||r.name); }
+function jotBox(r){
+  const box=h('div','jot');
+  const saved=h('span','saved','');
+  const ta=el('textarea',{placeholder:'Notes as you go \u2014 what you changed, what went wrong, what to do next time.'},
+    LS.get(jotKey(r),''));
+  ta.addEventListener('input',()=>{
+    LS.set(jotKey(r),ta.value);
+    saved.textContent=ta.value.trim()?'kept on this device':'';
+  });
+  box.append(el('div',{class:'row'},h('span','h grow','While you cook'),saved),ta);
+  return box;
+}
+/* what you told yourself last time — the whole point */
+function lastNotes(r,n){
+  const log=(r.log||[]).slice(0,n||2);
+  if(!log.length)return null;
+  return h('div','lastnote',
+    h('div','h','Last time you said'),
+    log.map(e=>h('div',{},el('b',{},niceDate(e.date)+': '),e.text)));
+}
+
 /* ---------------- MAKE IT ---------------- */
 function openMakeIt(recipe,protein){
   const {recipe:r,changes,missing}=makeIt(recipe,{protein});
@@ -2553,6 +2689,7 @@ function openMakeIt(recipe,protein){
   const box=h('div','box',
     h('div','row',h('h1','grow',r.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
     h('p','small dim','Adapted to what is actually in the house right now. Everything that changed is listed below and marked in the ingredients.'),
+    lastNotes(recipe,3),
 
     el('div',{class:'row'},h('span','small muted','Make it with:'),
       el('select',{style:'width:auto',onchange:e=>openMakeIt(recipe,e.target.value||undefined)},
@@ -2580,6 +2717,7 @@ function openMakeIt(recipe,protein){
         el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>
           el('li',{class:/^First, the /.test(s)?'steps-scratch':'',style:'margin-bottom:7px'},expand(s)))))),
     r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
+    jotBox(recipe),
     (()=>{
       const was=recipeCost(recipe), now=recipeCost(r);
       if(!was.priced.length && !now.priced.length)
@@ -2611,8 +2749,14 @@ async function saveAsVariant(orig,adapted,protein){
 /* ---------------- COOKED IT — deduct what it used ---------------- */
 function openCooked(recipe,adapted){
   const rows=deductPlan(adapted||recipe);
+  const note=el('textarea',{rows:4,
+    placeholder:'What did you do differently? What went wrong? Anything you want to know next time.'},
+    LS.get(jotKey(recipe),''));
   const box=h('div','box',
     h('div','row',h('h2','grow','Cooked '+recipe.name),el('button',{class:'btn sm',onclick:closeModal},'Close')),
+    h('div',null,h('h3',null,'How did it go?'),note,
+      h('p','tiny dim','Saved against today\u2019s date in the recipe\u2019s log, and shown at the top of the page next time you cook it.')),
+    hr(),
     rows.length
       ? h('p','small dim','Best guess at what that used up. Seasonings are left alone — a pinch of paprika is not a shopping trip. Change anything that is wrong, then save.')
       : h('p','muted','Nothing in this recipe is tracked in the pantry, so there is nothing to knock down.'),
@@ -2631,18 +2775,25 @@ function openCooked(recipe,adapted){
         seg);
     })),
     el('div',{class:'row',style:'margin-top:14px'},
-      el('button',{class:'btn pri',onclick:async()=>{
+      el('button',{class:'btn pri',onclick:()=>{
         const nowOut=applyDeduct(rows);
         const gained=applyLeaves(recipe);
-        await markMade(recipe);
+        const noted=addLogEntry(recipe,note.value);
+        if(noted)LS.del(jotKey(recipe));
         markStockDirty();
+        markMade(recipe);            // saves in the background; never blocks you
         closeModal();
-        toast([nowOut.length?nowOut.join(', ')+' went on the grocery list.':'',
+        toast([noted?'Note saved.':'',
+               nowOut.length?nowOut.join(', ')+' went on the grocery list.':'',
                gained.length?'You now have '+gained.join(', ')+'.':''].filter(Boolean).join(' ')||'Logged.');
         render();
       }},'Save'),
-      el('button',{class:'btn',onclick:async()=>{ await markMade(recipe); closeModal(); toast('Logged, inventory untouched.'); }},
-        'Just log it, change nothing')));
+      el('button',{class:'btn',onclick:()=>{
+        const noted=addLogEntry(recipe,note.value);
+        if(noted)LS.del(jotKey(recipe));
+        markMade(recipe);
+        closeModal(); toast(noted?'Note saved, inventory untouched.':'Logged, inventory untouched.');
+      }},'Just log it, change nothing')));
   showModal(box);
 }
 
