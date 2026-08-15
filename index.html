@@ -229,29 +229,30 @@ ul.clean li:last-child{border-bottom:0}
 .fld .fldl{flex:1;color:var(--ink2);font-size:13px}
 .fld input,.fld select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
   padding:6px 8px;width:112px;text-align:right}
+.fld .fldl{cursor:pointer}
 /* our own stepper — the native arrows sit on top of right-aligned digits */
-.numwrap{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel2)}
+.numwrap{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  background:var(--panel2);flex:none}
 .numwrap input[type=number]{border:none;background:none;border-radius:0;width:66px;text-align:center;padding:6px 2px;
   -moz-appearance:textfield}
+.numwrap.tight input[type=number]{width:48px;padding:5px 2px;font-size:13px}
+.numwrap.tight button.stp{width:26px;font-size:14px}
 .numwrap input[type=number]::-webkit-inner-spin-button,
 .numwrap input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0}
 .numwrap input:focus{outline:none;background:rgba(224,112,58,.10)}
 .numwrap:focus-within{border-color:var(--hot)}
 button.stp{background:var(--panel);border:none;color:var(--ink2);width:30px;cursor:pointer;
-  font-size:16px;line-height:1;padding:0;user-select:none;-webkit-user-select:none;flex:none}
+  font-size:16px;line-height:1;padding:0;user-select:none;-webkit-user-select:none;flex:none;
+  transition:background .08s}
 button.stp:hover{background:var(--hot);color:#1a120c}
 button.stp:active{background:var(--hot2);color:#1a120c}
-button.stp:focus-visible{outline:2px solid var(--hot);outline-offset:-2px}
 .fld select:focus{outline:2px solid var(--hot);outline-offset:-1px;border-color:var(--hot)}
 .fld input[type=datetime-local]{width:auto;min-width:184px;text-align:left}
 .fld select{width:auto;max-width:190px;text-align:left}
-.fld .fldu{color:var(--ink3);font-size:12px;width:26px}
+.fld .fldu{color:var(--ink3);font-size:12px;width:22px;flex:none}
 .fld.small{margin:4px 0}
-.fld.small .numwrap input[type=number]{width:52px;font-size:13px}
-.fld.small button.stp{width:24px;font-size:14px}
-.fld.small select{width:86px;padding:4px 6px;font-size:13px}
+.fld.small select{width:96px;padding:4px 6px;font-size:13px}
 .fld.small .fldl{font-size:12px}
-.blendrow .pctin{width:56px;text-align:center}
 .hint{font-size:12px;line-height:1.55;color:var(--ink3);margin:2px 0 12px;border-left:2px solid var(--line);padding-left:9px}
 input.wide{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;text-align:left}
 .howto{margin-top:14px;padding:12px 14px;background:var(--panel2);border-radius:8px;border-left:3px solid var(--hot)}
@@ -261,9 +262,14 @@ input.wide{width:100%;background:var(--panel2);border:1px solid var(--line);bord
 .chk input{margin-top:3px}
 .lockrow{display:flex;flex-direction:column;gap:2px;margin:8px 0;padding:8px;background:var(--panel2);border-radius:8px}
 
-.blendrow{display:flex;gap:6px;align-items:center;margin:6px 0}
-.blendrow select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
-.blendrow .pctin{width:62px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:right}
+.blendrow{display:flex;flex-direction:column;gap:5px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.blendrow:last-of-type{border-bottom:none}
+.blendrow select.fname{width:100%;max-width:none;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:6px 8px;text-align:left}
+.blendfoot{display:flex;gap:6px;align-items:center}
+.blendfoot .fldu{color:var(--ink3);font-size:12px}
+.blendfoot button.x{margin-left:auto}
+.blendrow .pctin{text-align:center}
 button.x{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
 button.x:hover{color:var(--bad)}
 button.link{background:none;border:none;color:var(--hot2);cursor:pointer;padding:0;text-align:left;text-decoration:underline}
@@ -367,7 +373,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.3'
+  VER: '2.4'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -4769,18 +4775,25 @@ function bkInput(){
     startAt:BK.startAt?new Date(BK.startAt):null, outAt:BK.outAt?new Date(BK.outAt):null});
 }
 
-/* ---------- tiny form bits ---------- */
-function fieldNum(label,val,onch,opts){
+/* ---------- tiny form bits ----------
+   These wrappers are <div>, deliberately, not <label>. A <label> with no
+   "for" adopts its first labelable descendant as its control — and a
+   <button> is labelable. Wrapping the row in a label therefore made the
+   minus button light up when the mouse crossed the empty space beside the
+   text, and a click on that empty space would have fired it. The text is
+   now its own <label for=…> pointing at the input, which is what we
+   actually wanted: click the words, land in the box.
+   ------------------------------------------------------------------- */
+let _fldSeq=0;
+const nextFldId=()=>'fld'+(++_fldSeq);
+
+/* The shared stepper. The browser's own arrows sit on top of the digits
+   and are a two-pixel target; these are ours. They repeat when held, and
+   they survive a recalculation because the controls are never rebuilt. */
+function stepper(inp,opts){
   opts=opts||{};
   const step=parseFloat(opts.step||'1')||1;
   const dec=(String(opts.step||'1').split('.')[1]||'').length;
-  const inp=el('input',{type:'number',id:opts.id||null,value:val==null?'':val,step:opts.step||'1',
-    min:opts.min==null?null:opts.min,max:opts.max==null?null:opts.max,
-    placeholder:opts.ph||'',
-    onchange:e=>onch(e.target.value===''?null:parseFloat(e.target.value))});
-  /* The browser's own up/down arrows sit on top of the digits and are a
-     two-pixel target. These are ours: bigger, out of the way, and they
-     keep working when held because the controls are never rebuilt. */
   const bump=dir=>{
     let n=parseFloat(inp.value);
     if(!isFinite(n))n=parseFloat(opts.ph)||0;
@@ -4788,33 +4801,48 @@ function fieldNum(label,val,onch,opts){
     if(opts.min!=null)n=Math.max(opts.min,n);
     if(opts.max!=null)n=Math.min(opts.max,n);
     n=parseFloat(n.toFixed(dec));
+    if(String(n)===String(inp.value))return;
     inp.value=n;
-    onch(n);
+    if(opts.onstep)opts.onstep(n);
   };
   const hold=(btn,dir)=>{
     let t=null,r=null;
-    const stop=()=>{ clearTimeout(t); clearInterval(r); };
-    btn.addEventListener('mousedown',e=>{ e.preventDefault(); bump(dir);
+    const stop=()=>{ clearTimeout(t); clearInterval(r); t=r=null; };
+    btn.addEventListener('mousedown',e=>{ if(e.button!==0)return; e.preventDefault(); bump(dir);
       t=setTimeout(()=>{ r=setInterval(()=>bump(dir),90); },450); });
     ['mouseup','mouseleave','blur'].forEach(ev=>btn.addEventListener(ev,stop));
+    btn.addEventListener('click',e=>e.preventDefault());
     btn.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); bump(dir); } });
     return btn;
   };
-  const dn=hold(el('button',{class:'stp',type:'button','aria-label':'less '+label},'−'),-1);
-  const up=hold(el('button',{class:'stp',type:'button','aria-label':'more '+label},'+'),1);
-  return h('label','fld',h('span','fldl',label),
-    h('div','numwrap',dn,inp,up),
+  const dn=hold(el('button',{class:'stp',type:'button',tabindex:'-1','aria-label':'decrease '+(opts.label||'value')},'−'),-1);
+  const up=hold(el('button',{class:'stp',type:'button',tabindex:'-1','aria-label':'increase '+(opts.label||'value')},'+'),1);
+  return h('div','numwrap'+(opts.tight?' tight':''),dn,inp,up);
+}
+
+function fieldNum(label,val,onch,opts){
+  opts=opts||{};
+  const id=opts.id||nextFldId();
+  const inp=el('input',{type:'number',id:id,value:val==null?'':val,step:opts.step||'1',
+    min:opts.min==null?null:opts.min,max:opts.max==null?null:opts.max,
+    placeholder:opts.ph||'',
+    onchange:e=>onch(e.target.value===''?null:parseFloat(e.target.value))});
+  const wrap=stepper(inp,Object.assign({},opts,{label:label,onstep:onch}));
+  return h('div','fld',el('label',{class:'fldl',for:id},label),wrap,
     opts.suffix?h('span','fldu',opts.suffix):null);
 }
 function fieldSel(label,val,options,onch){
-  const s=el('select',{onchange:e=>onch(e.target.value)});
+  const id=nextFldId();
+  const s=el('select',{id:id,onchange:e=>onch(e.target.value)});
   options.forEach(([v,t])=>s.append(el('option',{value:v,selected:v===val?'selected':null},t)));
-  return h('label','fld',h('span','fldl',label),s);
+  return h('div','fld',el('label',{class:'fldl',for:id},label),s);
 }
 function fieldTime(label,val,onch){
+  const id=nextFldId();
   const v=val?isoLocal(new Date(val)):'';
-  const inp=el('input',{type:'datetime-local',value:v,onchange:e=>onch(e.target.value?new Date(e.target.value).toISOString():null)});
-  return h('label','fld',h('span','fldl',label),inp);
+  const inp=el('input',{type:'datetime-local',id:id,value:v,
+    onchange:e=>onch(e.target.value?new Date(e.target.value).toISOString():null)});
+  return h('div','fld',el('label',{class:'fldl',for:id},label),inp);
 }
 function isoLocal(d){
   const p=n=>String(n).padStart(2,'0');
@@ -4907,19 +4935,35 @@ function viewBakeCalc(){
   const names=(S.flours||[]).map(f=>f.name);
   BK.blend.forEach((b,i)=>{
     const row=h('div','blendrow');
-    const sel=el('select',{onchange:e=>{ BK.blend[i].flour=e.target.value; bkSave(); bkRender(); }});
+    const sel=el('select',{class:'fname',onchange:e=>{ BK.blend[i].flour=e.target.value; bkSave(); bkRender(); }});
     const opts=names.includes(b.flour)?names:names.concat([b.flour]);
     opts.forEach(n=>sel.append(el('option',{value:n,selected:n===b.flour?'selected':null},n)));
     row.append(sel);
-    row.append(el('input',{type:'number',class:'pctin',value:b.pct,min:0,max:100,step:'5',
-      onchange:e=>{ BK.blend[i].pct=parseFloat(e.target.value)||0; bkSave(); refreshBake(); }}));
-    row.append(h('span','fldu','%'));
-    row.append(el('button',{class:'x',title:'remove',onclick:()=>{ BK.blend.splice(i,1); bkSave(); bkRender(); }},'×'));
+    const setPct=v=>{ BK.blend[i].pct=isFinite(v)?v:0; bkSave(); refreshBake(); pctNote(); };
+    const inp=el('input',{type:'number',class:'pctin',value:b.pct,min:0,max:100,step:'5',
+      onchange:e=>setPct(parseFloat(e.target.value))});
+    const foot=h('div','blendfoot',
+      stepper(inp,{step:'5',min:0,max:100,tight:true,label:b.flour+' share',onstep:setPct}),
+      h('span','fldu','%'),
+      el('button',{class:'x',title:'Remove '+b.flour,
+        onclick:()=>{ BK.blend.splice(i,1); bkSave(); bkRender(); }},'×'));
+    row.append(foot);
     c2.append(row);
   });
+  /* the total updates in place so nudging a share never redraws the row
+     you are still holding the mouse over */
+  function pctNote(){
+    const n=document.getElementById('bkBlendTot');
+    if(!n)return;
+    const t=BK.blend.reduce((a,b)=>a+(+b.pct||0),0);
+    n.className=Math.round(t)===100?'muted':'warnline';
+    n.textContent=Math.round(t)===100?'100% of the flour.'
+      :'Adds up to '+fx(t,0)+'%. The shares get normalised, so it still works — 100 is just easier to read.';
+  }
   const tot=BK.blend.reduce((a,b)=>a+(+b.pct||0),0);
-  c2.append(h('p',Math.round(tot)===100?'muted':'warnline',
-    Math.round(tot)===100?'100% of the flour.':'Adds up to '+fx(tot,0)+'%. The shares get normalised, so it still works — 100 is just easier to read.'));
+  c2.append(el('p',{id:'bkBlendTot',class:Math.round(tot)===100?'muted':'warnline'},
+    Math.round(tot)===100?'100% of the flour.'
+      :'Adds up to '+fx(tot,0)+'%. The shares get normalised, so it still works — 100 is just easier to read.'));
   c2.append(el('button',{class:'btn',onclick:()=>{ BK.blend.push({flour:names[0]||'Bread flour',pct:10}); bkSave(); bkRender(); }},'Add a flour'));
   side.append(c2);
 
@@ -5251,16 +5295,19 @@ function viewBakeFlours(){
     box.append(el('input',{type:'text',class:'fname',value:f.name,onchange:e=>{ f.name=e.target.value; }}));
     const nums=h('div','fnums');
     const num=(label,key,step)=>{
-      const inp=el('input',{type:'number',step:step||'0.1',value:f[key]==null?'':f[key],placeholder:'—',
+      const id=nextFldId();
+      const inp=el('input',{type:'number',id:id,step:step||'0.1',value:f[key]==null?'':f[key],placeholder:'—',
         onchange:e=>{ f[key]=e.target.value===''?null:parseFloat(e.target.value); }});
-      return h('label','fld small',h('span','fldl',label),inp);
+      return h('div','fld small',el('label',{class:'fldl',for:id},label),
+        stepper(inp,{step:step||'0.1',min:0,tight:true,label:label,onstep:v=>{ f[key]=v; }}));
     };
     nums.append(num('Protein %','protein'));
     nums.append(num('Fiber %','fiber'));
     nums.append(num('Whole grain %','whole','1'));
-    const ms=el('select',{onchange:e=>{ f.mill=e.target.value; }});
+    const mid=nextFldId();
+    const ms=el('select',{id:mid,onchange:e=>{ f.mill=e.target.value; }});
     [['roller','Roller'],['stone','Stone']].forEach(([v,t])=>ms.append(el('option',{value:v,selected:v===f.mill?'selected':null},t)));
-    nums.append(h('label','fld small',h('span','fldl','Mill'),ms));
+    nums.append(h('div','fld small',el('label',{class:'fldl',for:mid},'Mill'),ms));
     box.append(nums);
     if(f.source)box.append(h('div','src',f.source));
     if(f.note)box.append(h('p','muted',f.note));
