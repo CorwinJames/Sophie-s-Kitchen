@@ -228,12 +228,35 @@ ul.clean li:last-child{border-bottom:0}
 .fld{display:flex;align-items:center;gap:8px;margin:8px 0}
 .fld .fldl{flex:1;color:var(--ink2);font-size:13px}
 .fld input,.fld select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
-  padding:6px 8px;width:110px;text-align:right}
+  padding:6px 8px;width:112px;text-align:right}
+/* our own stepper — the native arrows sit on top of right-aligned digits */
+.numwrap{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel2)}
+.numwrap input[type=number]{border:none;background:none;border-radius:0;width:66px;text-align:center;padding:6px 2px;
+  -moz-appearance:textfield}
+.numwrap input[type=number]::-webkit-inner-spin-button,
+.numwrap input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+.numwrap input:focus{outline:none;background:rgba(224,112,58,.10)}
+.numwrap:focus-within{border-color:var(--hot)}
+button.stp{background:var(--panel);border:none;color:var(--ink2);width:30px;cursor:pointer;
+  font-size:16px;line-height:1;padding:0;user-select:none;-webkit-user-select:none;flex:none}
+button.stp:hover{background:var(--hot);color:#1a120c}
+button.stp:active{background:var(--hot2);color:#1a120c}
+button.stp:focus-visible{outline:2px solid var(--hot);outline-offset:-2px}
+.fld select:focus{outline:2px solid var(--hot);outline-offset:-1px;border-color:var(--hot)}
+.fld input[type=datetime-local]{width:auto;min-width:184px;text-align:left}
 .fld select{width:auto;max-width:190px;text-align:left}
 .fld .fldu{color:var(--ink3);font-size:12px;width:26px}
 .fld.small{margin:4px 0}
-.fld.small input,.fld.small select{width:78px;padding:4px 6px;font-size:13px}
+.fld.small .numwrap input[type=number]{width:52px;font-size:13px}
+.fld.small button.stp{width:24px;font-size:14px}
+.fld.small select{width:86px;padding:4px 6px;font-size:13px}
 .fld.small .fldl{font-size:12px}
+.blendrow .pctin{width:56px;text-align:center}
+.hint{font-size:12px;line-height:1.55;color:var(--ink3);margin:2px 0 12px;border-left:2px solid var(--line);padding-left:9px}
+input.wide{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;text-align:left}
+.howto{margin-top:14px;padding:12px 14px;background:var(--panel2);border-radius:8px;border-left:3px solid var(--hot)}
+.howto h3{margin-bottom:6px}
+.howto p{margin:6px 0;font-size:13px;line-height:1.6;color:var(--ink2)}
 .chk{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:13px;color:var(--ink2);cursor:pointer}
 .chk input{margin-top:3px}
 .lockrow{display:flex;flex-direction:column;gap:2px;margin:8px 0;padding:8px;background:var(--panel2);border-radius:8px}
@@ -344,7 +367,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.2'
+  VER: '2.3'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -3082,7 +3105,8 @@ function solveBake(inp){
   const locks=inp.locks||{};
 
   /* the fixed steps that bracket fermentation */
-  const bench=(st.bench||20)/60;
+  const benchMin=(st.bench==null?20:st.bench);
+  const bench=benchMin/60;
   const mixTime=0.5;
   const bakeTime=inp.path==='freeze'?0:0.75;
   const coolTime=inp.path==='freeze'?0:2;    // ≥2 h before slicing — Vanin 2017 gummy-crumb result
@@ -3190,20 +3214,24 @@ function solveBake(inp){
   add('Mix',mixTime,'Water at '+fx(waterTemp,0)+' °C to land the dough at '+fx(T,0)+' °C. Take the dough temperature after mixing — if it is off, your friction factor is wrong, not the arithmetic.');
   if(inp.path==='retard'){
     const bulkTarget=Math.max(5,rTarget-rRetard-shapingRise);
-    add('Bulk at '+fx(T,0)+' °C',bulk,'Stop at about +'+fx(bulkTarget,0)+'%, not the usual +'+fx(rTarget,0)+'%. The fridge is going to add roughly '+fx(rRetard,0)+'% on the way down and shaping another '+fx(shapingRise,0)+'%. Measure it in a straight-sided container with a mark.');
-    add('Bench and shape',bench,'Preshape, rest '+fx(st.bench,0)+' min, shape. The rest is for the gluten to let go — recovery is measurable on this timescale.');
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Let the dough grow until it is '+risePhrase(bulkTarget)+' — that is +'+fx(bulkTarget,0)+'% in volume. Stop there, short of the +'+fx(rTarget,0)+'% this temperature would normally want, because the fridge will add roughly '+fx(rRetard,0)+'% more while it cools and shaping adds about '+fx(shapingRise,0)+'%.');
+    add(benchMin?'Bench rest and shape':'Shape',bench,
+        benchMin?('Preshape into a loose round, leave it '+fx(benchMin,0)+' minutes, then shape properly. The wait is not idle — it is the gluten letting go so the dough will take a shape without tearing.')
+               :('This one does not need a bench rest — shape it straight away, it is slack enough to take it.'));
     add('Fridge at 3–4 °C',retardH,'Most of this is a cooling ramp, not storage. It takes 8–10 h for a domestic fridge to bring dough to 3 °C, and the first hour alone is worth up to 20% rise. Once it is actually cold, 24 h is worth at most 30 min of real fermentation.');
     add('Bake straight from cold',bakeTime,st.bake+'. Score it cold — it holds the cut.');
   }else if(inp.path==='freeze'){
-    add('Bulk at '+fx(T,0)+' °C',bulk,'Stop short — about +'+fx(rTarget*0.75,0)+'% instead of +'+fx(rTarget,0)+'%. The dough will keep working while it cools.');
-    add('Divide and ball',bench,'Into individual portions, tight balls, lightly oiled.');
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Stop short: let it grow to '+risePhrase(rTarget*0.75)+' rather than the full +'+fx(rTarget,0)+'%. It keeps working while it cools and again while it thaws.');
+    add('Divide and ball',Math.max(bench,0.25),'Into individual portions, tight balls, lightly oiled.');
     add('30–60 min at room temperature',0.75,'Let them relax before they go in, or they freeze mid-tension and tear on stretch.');
     add('Freeze',0,'Wrapped individually. There is NO published data on yeast or bacterial survival through a freeze–thaw anywhere in this knowledge base — this schedule is craft, not evidence, and you should expect the first rise after thawing to be slower than a fresh dough. Calibrate it once and write the number down.');
     add('To use: fridge overnight',14,'12–18 h in the fridge, then 2–4 h at room temperature to finish. Do not thaw on the counter from frozen — the outside overproofs before the middle thaws.');
   }else{
-    add('Bulk at '+fx(T,0)+' °C',bulk,'Target +'+fx(Math.max(5,rTarget-shapingRise),0)+'% rise; shaping will add the last '+fx(shapingRise,0)+'%. Full target is +'+fx(rTarget,0)+'% at this temperature. Mark the container — the eye is not good at this.');
-    add('Bench and shape',bench,'Preshape, rest '+fx(st.bench,0)+' min, shape.');
-    add('Final proof at '+fx(proofT,0)+' °C',proofH,'No published proof duration exists for any bread style, and the poke test has never been validated in any tier of evidence. This number is '+fx(st.proofFrac*100,0)+'% of an equivalent bulk — a starting point. Go by an aliquot in a straight-sided jar at the same temperature.');
+    add('Bulk at '+fx(T,0)+' °C',bulk,'Let the dough grow until it is '+risePhrase(Math.max(5,rTarget-shapingRise))+' — that is +'+fx(Math.max(5,rTarget-shapingRise),0)+'% in volume. Shaping adds the last '+fx(shapingRise,0)+'%, bringing it to the +'+fx(rTarget,0)+'% this temperature wants. The time above is a prediction; the height is the measurement, so go by the height.');
+    add(benchMin?'Bench rest and shape':'Shape',bench,
+        benchMin?('Preshape into a loose round, leave it '+fx(benchMin,0)+' minutes, then shape properly. The wait is the gluten letting go so the dough will take a shape without tearing.')
+               :('This one does not need a bench rest — shape it straight away.'));
+    add('Final proof at '+fx(proofT,0)+' °C',proofH,'Grown by roughly half again is the usual look, but no published proof duration exists for any bread style, and the poke test has never been validated in any tier of evidence. This number is '+fx(st.proofFrac*100,0)+'% of an equivalent bulk — a starting point. Go by an aliquot in a straight-sided jar at the same temperature.');
     add('Bake',bakeTime,st.bake);
     add('Cool',coolTime,'At least 2 hours before slicing. Cutting hot bread is what makes it read as gummy, not underbaking.');
   }
@@ -3224,8 +3252,8 @@ function solveBake(inp){
      n:'There is no single sharp temperature. The foam-to-sponge transition is usually placed near 70 °C but the mechanism is not settled.'}
   ];
 
-  return {style:st,blend,hyd,hydration,pff,doughTemp:T,bulk,proofH,proofT,retardH,rRetard,rTarget,shapingRise,
-          rows,doughG,flourG,waterTemp,ff,steps,finish,outOfOven,warn,note,oven,enrich,solvedFor,budget,
+  return {style:st,path:inp.path,blend,hyd,hydration,pff,doughTemp:T,bulk,proofH,proofT,retardH,rRetard,rTarget,shapingRise,
+          rows,doughG,flourG,waterTemp,ff,benchMin,steps,finish,outOfOven,warn,note,oven,enrich,solvedFor,budget,
           limits:grainLimits(blend),mu:muYeast(T),muLab:muLab(T),matrix:matrixAt(T)};
 }
 
@@ -3325,6 +3353,19 @@ function bakeTags(d,cond){
   if(d.volEst) tags.push({tag:'MEASURED BY VOLUME',why:'The flour or water is in cups, so the hydration figure above is an estimate — a cup of flour is worth about ±20% depending on how you scoop it. Weigh one batch and write the grams on the recipe; every number here gets sharper.',c:'craft'});
   if(d.unknown.length) tags.push({tag:'UNWEIGHED INGREDIENTS',why:'Could not convert: '+d.unknown.join(', ')+'. Baker’s percentages below ignore them, so treat the hydration figure as approximate.',c:'nodata'});
   return tags;
+}
+
+/* Percentage rise is the least intuitive number in baking, so never print
+   it without saying what it means in plain height. */
+function risePhrase(p){
+  if(p>=95)return 'twice the height it started at';
+  if(p>=85)return 'nearly twice the height it started at';
+  if(p>=70)return 'about three-quarters taller than it started';
+  if(p>=55)return 'about two-thirds taller than it started';
+  if(p>=45)return 'half again as tall as it started';
+  if(p>=29)return 'about a third taller than it started';
+  if(p>=20)return 'about a quarter taller than it started';
+  return 'about '+fx(p,0)+'% taller than it started';
 }
 
 /* ---------- small formatters ---------- */
@@ -4708,6 +4749,7 @@ let BK=Object.assign({
   doughTemp:null, ambientC:20, useProofBox:false, proofBoxTemp:27,
   levainHydration:100, scaldPct:0, leaven:'sourdough',
   retardHours:12, frictionFactor:1, roomTemp:20, flourTemp:20, levainTemp:22,
+  doughTempAuto:true,
   locks:{time:false,pff:false,temp:false},
   startAt:null, outAt:null,
   sub:'calc', showWork:false, adaptId:null, statedBulkH:null
@@ -4719,7 +4761,7 @@ function bkDefaults(){
   const st=styleById(BK.styleId);
   return {salt:BK.saltPct==null?st.salt:+BK.saltPct,
           pff:BK.pff==null?st.pff:+BK.pff,
-          temp:BK.doughTemp==null?Math.min(27,Math.max(18,(+BK.ambientC||20)+2)):+BK.doughTemp};
+          temp:(BK.doughTempAuto||BK.doughTemp==null)?Math.min(28,Math.max(15,(+BK.ambientC||20)+2)):+BK.doughTemp};
 }
 function bkInput(){
   const d=bkDefaults();
@@ -4730,11 +4772,39 @@ function bkInput(){
 /* ---------- tiny form bits ---------- */
 function fieldNum(label,val,onch,opts){
   opts=opts||{};
-  const inp=el('input',{type:'number',value:val==null?'':val,step:opts.step||'1',
+  const step=parseFloat(opts.step||'1')||1;
+  const dec=(String(opts.step||'1').split('.')[1]||'').length;
+  const inp=el('input',{type:'number',id:opts.id||null,value:val==null?'':val,step:opts.step||'1',
     min:opts.min==null?null:opts.min,max:opts.max==null?null:opts.max,
     placeholder:opts.ph||'',
     onchange:e=>onch(e.target.value===''?null:parseFloat(e.target.value))});
-  return h('label','fld',h('span','fldl',label),inp,opts.suffix?h('span','fldu',opts.suffix):null);
+  /* The browser's own up/down arrows sit on top of the digits and are a
+     two-pixel target. These are ours: bigger, out of the way, and they
+     keep working when held because the controls are never rebuilt. */
+  const bump=dir=>{
+    let n=parseFloat(inp.value);
+    if(!isFinite(n))n=parseFloat(opts.ph)||0;
+    n=n+dir*step;
+    if(opts.min!=null)n=Math.max(opts.min,n);
+    if(opts.max!=null)n=Math.min(opts.max,n);
+    n=parseFloat(n.toFixed(dec));
+    inp.value=n;
+    onch(n);
+  };
+  const hold=(btn,dir)=>{
+    let t=null,r=null;
+    const stop=()=>{ clearTimeout(t); clearInterval(r); };
+    btn.addEventListener('mousedown',e=>{ e.preventDefault(); bump(dir);
+      t=setTimeout(()=>{ r=setInterval(()=>bump(dir),90); },450); });
+    ['mouseup','mouseleave','blur'].forEach(ev=>btn.addEventListener(ev,stop));
+    btn.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); bump(dir); } });
+    return btn;
+  };
+  const dn=hold(el('button',{class:'stp',type:'button','aria-label':'less '+label},'−'),-1);
+  const up=hold(el('button',{class:'stp',type:'button','aria-label':'more '+label},'+'),1);
+  return h('label','fld',h('span','fldl',label),
+    h('div','numwrap',dn,inp,up),
+    opts.suffix?h('span','fldu',opts.suffix):null);
 }
 function fieldSel(label,val,options,onch){
   const s=el('select',{onchange:e=>onch(e.target.value)});
@@ -4775,26 +4845,60 @@ function viewBake(){
   return wrap;
 }
 
+function bkRender(){
+  /* Full redraw, but do not throw the reader out of their place. Keeping
+     the scroll position and the caret is the difference between a form
+     you can nudge and a form that fights you. */
+  const a=document.activeElement, id=a&&a.id?a.id:null;
+  let pos=null; try{ pos=a&&a.selectionStart; }catch(e){}
+  const y=window.scrollY;
+  const side=document.querySelector('.bakeside'), sy=side?side.scrollTop:0;
+  render();
+  window.scrollTo(0,y);
+  const s2=document.querySelector('.bakeside'); if(s2)s2.scrollTop=sy;
+  if(id){ const n=document.getElementById(id);
+    if(n){ n.focus(); if(pos!=null){ try{ n.setSelectionRange(pos,pos); }catch(e){} } } }
+}
+/* Nudging a number redraws only the answer. The controls are never
+   rebuilt, so the spinner arrows keep working and nothing moves. */
+function refreshBake(){
+  const host=document.getElementById('bakeOut');
+  if(!host){ bkRender(); return; }
+  let R; try{ R=solveBake(bkInput()); }catch(e){ return; }
+  const y=window.scrollY;
+  host.innerHTML='';
+  bakeAnswer(R).forEach(n=>host.append(n));
+  window.scrollTo(0,y);
+  const dt=document.getElementById('bkDoughTemp');
+  if(dt&&BK.doughTempAuto)dt.value=fx(bkDefaults().temp,1);
+  const af=document.getElementById('bkAmbF');
+  if(af)af.textContent=fx((+BK.ambientC||20)*9/5+32,0)+' °F';
+}
+function bkNum(k,v){ BK[k]=v; bkSave(); refreshBake(); }
+function hint(t){ return h('p','hint',t); }
+
 function viewBakeCalc(){
   const wrap=h('div','bakelayout');
   const st=styleById(BK.styleId);
   let R;
   try{ R=solveBake(bkInput()); }
   catch(e){ return h('div','card',h('p','err','The calculator fell over: '+e.message)); }
+  const d=bkDefaults();
 
-  /* ---------------- left: the controls ---------------- */
+  /* ================= left: the controls ================= */
   const side=h('div','bakeside');
 
   const c1=h('div','card');
   c1.append(h('h2',null,'What are you making'));
   c1.append(fieldSel('Bread',BK.styleId,STYLES.map(s=>[s.id,s.name]),v=>{
-    BK.styleId=v; BK.saltPct=null; BK.pff=null; BK.hydration=null; bkSave(); render();
+    BK.styleId=v; BK.saltPct=null; BK.pff=null; BK.hydration=null; BK.hydrationLocked=false; bkSave(); bkRender();
   }));
   c1.append(h('p','muted',st.blurb));
-  c1.append(fieldSel('When',BK.path,PATHS.map(p=>[p.id,p.name]),v=>bkSet('path',v)));
+  c1.append(fieldSel('When',BK.path,PATHS.map(p=>[p.id,p.name]),v=>{ BK.path=v; bkSave(); bkRender(); }));
   c1.append(h('p','muted',(PATHS.find(p=>p.id===BK.path)||{}).blurb||''));
-  if(BK.path==='retard')c1.append(fieldNum('Hours in the fridge',BK.retardHours,v=>bkSet('retardHours',v),{suffix:'h',min:1,max:72}));
-  c1.append(fieldNum('Total flour',BK.flourGrams,v=>bkSet('flourGrams',v),{suffix:'g',step:'10',min:100}));
+  if(BK.path==='retard')c1.append(fieldNum('Hours in the fridge',BK.retardHours,v=>bkNum('retardHours',v),{suffix:'h',min:1,max:72,id:'bkRetard'}));
+  c1.append(fieldNum('Total flour',BK.flourGrams,v=>bkNum('flourGrams',v),{suffix:'g',step:'50',min:100,id:'bkFlourG'}));
+  c1.append(hint('Everything else is worked out as a percentage of this, so this is the only number that sets the size of the batch. 900 g makes two good loaves.'));
   side.append(c1);
 
   /* flour blend */
@@ -4803,100 +4907,120 @@ function viewBakeCalc(){
   const names=(S.flours||[]).map(f=>f.name);
   BK.blend.forEach((b,i)=>{
     const row=h('div','blendrow');
-    const sel=el('select',{onchange:e=>{ BK.blend[i].flour=e.target.value; bkSave(); render(); }});
+    const sel=el('select',{onchange:e=>{ BK.blend[i].flour=e.target.value; bkSave(); bkRender(); }});
     const opts=names.includes(b.flour)?names:names.concat([b.flour]);
     opts.forEach(n=>sel.append(el('option',{value:n,selected:n===b.flour?'selected':null},n)));
     row.append(sel);
-    row.append(el('input',{type:'number',class:'pctin',value:b.pct,min:0,max:100,step:'1',
-      onchange:e=>{ BK.blend[i].pct=parseFloat(e.target.value)||0; bkSave(); render(); }}));
+    row.append(el('input',{type:'number',class:'pctin',value:b.pct,min:0,max:100,step:'5',
+      onchange:e=>{ BK.blend[i].pct=parseFloat(e.target.value)||0; bkSave(); refreshBake(); }}));
     row.append(h('span','fldu','%'));
-    row.append(el('button',{class:'x',title:'remove',onclick:()=>{ BK.blend.splice(i,1); bkSave(); render(); }},'×'));
+    row.append(el('button',{class:'x',title:'remove',onclick:()=>{ BK.blend.splice(i,1); bkSave(); bkRender(); }},'×'));
     c2.append(row);
   });
   const tot=BK.blend.reduce((a,b)=>a+(+b.pct||0),0);
-  c2.append(h('p',tot===100?'muted':'warnline',
-    tot===100?'100% of the flour.':'Adds up to '+fx(tot,0)+'%. The shares are normalised, so it still works — it is just easier to read at 100.'));
-  c2.append(el('button',{class:'btn',onclick:()=>{ BK.blend.push({flour:names[0]||'Bread flour',pct:10}); bkSave(); render(); }},'Add a flour'));
+  c2.append(h('p',Math.round(tot)===100?'muted':'warnline',
+    Math.round(tot)===100?'100% of the flour.':'Adds up to '+fx(tot,0)+'%. The shares get normalised, so it still works — 100 is just easier to read.'));
+  c2.append(el('button',{class:'btn',onclick:()=>{ BK.blend.push({flour:names[0]||'Bread flour',pct:10}); bkSave(); bkRender(); }},'Add a flour'));
   side.append(c2);
 
   /* conditions */
   const c3=h('div','card');
   c3.append(h('h2',null,'Your kitchen right now'));
-  c3.append(fieldNum('Room temperature',BK.ambientC,v=>bkSet('ambientC',v),{suffix:'°C',step:'0.5'}));
-  c3.append(h('p','muted',fx((+BK.ambientC||20)*9/5+32,0)+' °F. Port Townsend in August sits around 18–21 °C indoors; in February nearer 15.'));
-  const d=bkDefaults();
-  c3.append(fieldNum('Dough temperature',BK.doughTemp==null?null:BK.doughTemp,v=>bkSet('doughTemp',v),
-    {suffix:'°C',step:'0.5',ph:fx(d.temp,1)+' (room + 2)'}));
+  c3.append(fieldNum('Room temperature',BK.ambientC,v=>{
+    BK.ambientC=v; bkSave(); refreshBake();
+  },{suffix:'°C',step:'0.5',id:'bkAmbient'}));
+  c3.append(h('p','muted',el('span',{id:'bkAmbF'},fx((+BK.ambientC||20)*9/5+32,0)+' °F'),
+    ' — this is the single biggest lever in the whole calculator. Port Townsend indoors runs about 18–21 °C in August, nearer 15 in February.'));
+  c3.append(fieldNum('Dough temperature',round1(d.temp),v=>{
+    BK.doughTemp=v; BK.doughTempAuto=(v==null); bkSave(); bkRender();
+  },{suffix:'°C',step:'0.5',id:'bkDoughTemp'}));
+  c3.append(hint(BK.doughTempAuto
+    ? 'Following your room temperature plus 2 °C, which is roughly where dough lands after mixing. Type over it if you measure something different — and you should measure, once, with a probe.'
+    : 'You set this by hand. Clear the box to go back to following the room.'));
   const pbox=el('input',{type:'checkbox',checked:BK.useProofBox?'checked':null,
-    onchange:e=>bkSet('useProofBox',e.target.checked)});
+    onchange:e=>{ BK.useProofBox=e.target.checked; bkSave(); bkRender(); }});
   c3.append(h('label','chk',pbox,h('span',null,'Use the oven’s proof setting for the final proof')));
   if(BK.useProofBox){
-    c3.append(fieldNum('Proof box temperature',BK.proofBoxTemp,v=>bkSet('proofBoxTemp',v),{suffix:'°C',step:'1'}));
-    if((+BK.proofBoxTemp||27)>30) c3.append(h('p','warnline','Most ovens hold their proof setting near 38 °C, which is past the yeast’s ceiling for useful work and well into the bacteria’s range — you will get acid instead of lift. If yours runs that hot, prop the door.'));
-    c3.append(why('ganzle','Yeast peaks at 27 °C and stops at 36; the bacteria peak at 32–33 and run to 41. Warming the proof past 28 buys acid, not gas.'));
+    c3.append(fieldNum('Proof box temperature',BK.proofBoxTemp,v=>bkNum('proofBoxTemp',v),{suffix:'°C',step:'1',id:'bkProofT'}));
+    if((+BK.proofBoxTemp||27)>30) c3.append(h('p','warnline','Most ovens hold their proof setting near 38 °C, which is past the yeast’s ceiling for useful work and well into the bacteria’s range — you get acid instead of lift. If yours runs that hot, prop the door open.'));
+    c3.append(why('ganzle','Yeast peaks at 27 °C and stops at 36; the bacteria peak at 32–33 and run to 41. Warming the proof past 28 buys sourness, not rise.'));
   }
   side.append(c3);
 
   /* levain + salt */
   const c4=h('div','card');
   c4.append(h('h2',null,'Levain and salt'));
-  c4.append(fieldSel('Leavening',BK.leaven,[['sourdough','Sourdough starter'],['yeast','Commercial yeast']],v=>bkSet('leaven',v)));
-  c4.append(fieldNum('Prefermented flour',BK.pff==null?null:BK.pff,v=>bkSet('pff',v),{suffix:'%',step:'0.5',ph:fx(st.pff,1)}));
-  c4.append(h('p','muted','Quoted as a share of the total flour, not "20% starter" — that phrase means different things at different starter hydrations.'));
-  c4.append(fieldNum('Starter hydration',BK.levainHydration,v=>bkSet('levainHydration',v),{suffix:'%',step:'5'}));
-  c4.append(fieldNum('Salt',BK.saltPct==null?null:BK.saltPct,v=>bkSet('saltPct',v),{suffix:'%',step:'0.1',ph:fx(st.salt,1)}));
-  c4.append(fieldNum('Flour cooked into a scald',BK.scaldPct,v=>bkSet('scaldPct',v),{suffix:'%',step:'1',min:0,max:30}));
+  c4.append(h('p','muted','If you are not sure, leave all four of these alone. They are already set to sensible values for '+st.name.toLowerCase()+'.'));
+  c4.append(fieldSel('Leavening',BK.leaven,[['sourdough','Sourdough starter'],['yeast','Commercial yeast']],v=>{ BK.leaven=v; bkSave(); bkRender(); }));
+  c4.append(fieldNum('Starter in the dough',round1(d.pff),v=>bkNum('pff',v),{suffix:'%',step:'1',id:'bkPff'}));
+  c4.append(hint('The share of your flour that goes through the starter first — '+fx(d.pff,0)+'% of '+fx(BK.flourGrams,0)+' g is '+fx(BK.flourGrams*d.pff/100,0)+' g of flour in the levain, which at '+fx(BK.levainHydration,0)+'% hydration means '+fx(BK.flourGrams*d.pff/100*(1+BK.levainHydration/100),0)+' g of ripe starter. More is faster and more sour, less is slower and milder. Tick “Lock the schedule” below and the calculator picks this for you.'));
+  c4.append(fieldNum('Starter hydration',BK.levainHydration,v=>bkNum('levainHydration',v),{suffix:'%',step:'10',id:'bkLevHyd'}));
+  c4.append(hint('How wet your starter is. Feed it equal weights of flour and water and it is 100% — that is the usual, and the right answer if you have never thought about it.'));
+  c4.append(fieldNum('Salt',round1(d.salt),v=>bkNum('saltPct',v),{suffix:'%',step:'0.1',id:'bkSalt'}));
+  c4.append(hint('2% of the flour weight is the convention, and it is only a convention — there is no published optimum. Below about 1.5% the dough goes slack and ferments faster than you expect; above 2.5% it drags and tastes salty. '+fx(BK.flourGrams*d.salt/100,0)+' g here.'));
+  c4.append(fieldNum('Flour cooked into a scald',BK.scaldPct,v=>bkNum('scaldPct',v),{suffix:'%',step:'1',min:0,max:30,id:'bkScald'}));
+  c4.append(hint('Leave at 0 unless you are doing tangzhong. Cooking a little of the flour with water first lets the dough carry more water and stay soft — measured +20% loaf volume and −35% crumb hardness at 6%.'));
   side.append(c4);
 
   /* anchor */
   const c5=h('div','card');
   c5.append(h('h2',null,'Your hydration anchor'));
-  c5.append(h('p','muted','This is the one number the calculator cannot work out for you. Nobody has ever published a farinograph-to-sourdough conversion, so an absolute hydration handed down from a lab figure would be made up. Tell it what already works in your kitchen and it moves off that.'));
-  c5.append(fieldNum('Hydration that works for you',BK.anchorHydration,v=>bkSet('anchorHydration',v),{suffix:'%',step:'1'}));
-  c5.append(fieldNum('…on flour of this protein',BK.anchorProtein,v=>bkSet('anchorProtein',v),{suffix:'%',step:'0.1'}));
+  c5.append(h('p','muted','This is the one thing the calculator genuinely cannot work out for you. No conversion from lab water-absorption to real sourdough hydration has ever been published, so an absolute number would be invented. Instead it starts from a hydration you already know and adjusts from there.'));
+  c5.append(fieldNum('A hydration that works for you',BK.anchorHydration,v=>bkNum('anchorHydration',v),{suffix:'%',step:'1',id:'bkAnchorH'}));
+  c5.append(fieldNum('…on flour of this protein',BK.anchorProtein,v=>bkNum('anchorProtein',v),{suffix:'%',step:'0.1',id:'bkAnchorP'}));
+  c5.append(hint('Not sure? Leave them. 70% water on 11.3% protein bread flour is an ordinary loaf at a hydration most hands can manage. After a bake you liked, come back and enter what you actually used and the protein off that bag — from then on every prediction here is calibrated to your flour, your kitchen and your hands.'));
   side.append(c5);
 
   /* timing + locks */
   const c6=h('div','card');
   c6.append(h('h2',null,'Timing'));
-  const now=new Date();
-  c6.append(fieldTime('Start mixing',BK.startAt,v=>bkSet('startAt',v)));
-  c6.append(fieldTime(BK.path==='freeze'?'Into the freezer by':'Out of the oven by',BK.outAt,v=>bkSet('outAt',v)));
-  const row=h('div','lockrow');
+  c6.append(fieldTime('Start mixing',BK.startAt,v=>{ BK.startAt=v; bkSave(); bkRender(); }));
+  c6.append(fieldTime(BK.path==='freeze'?'Into the freezer by':'Out of the oven by',BK.outAt,v=>{ BK.outAt=v; bkSave(); bkRender(); }));
+  const lockrow=h('div','lockrow');
   const mk=(k,label,note)=>{
     const cb=el('input',{type:'checkbox',checked:BK.locks[k]?'checked':null,
-      onchange:e=>{ BK.locks[k]=e.target.checked; bkSave(); render(); }});
-    return h('label','chk',cb,h('span',null,label),note?h('em','muted',' '+note):null);
+      onchange:e=>{ BK.locks[k]=e.target.checked; bkSave(); bkRender(); }});
+    return h('label','chk',cb,h('span',null,label,note?h('em','dim',' '+note):null));
   };
-  row.append(mk('time','Lock the schedule','— solve everything else around it'));
-  row.append(mk('pff','Lock the levain','— then temperature moves instead'));
-  row.append(mk('temp','Lock the dough temperature',''));
-  c6.append(row);
-  if(!BK.startAt||!BK.outAt) c6.append(h('p','muted','Put both times in and tick "Lock the schedule" and it will solve for how much starter you need.'));
+  lockrow.append(mk('time','Lock the schedule','— work everything else around those two times'));
+  lockrow.append(mk('pff','Lock the starter','— then the dough temperature moves instead'));
+  lockrow.append(mk('temp','Lock the dough temperature',''));
+  c6.append(lockrow);
+  if(!BK.startAt||!BK.outAt) c6.append(h('p','muted','Fill in both times and tick “Lock the schedule”, and it will tell you how much starter to use to hit them.'));
   c6.append(el('button',{class:'btn',onclick:()=>{
+    const now=new Date();
     BK.startAt=new Date(Math.ceil(now.getTime()/900000)*900000).toISOString();
-    const out=new Date(new Date(BK.startAt).getTime()+ (BK.path==='retard'?26:9)*3600000);
-    BK.outAt=out.toISOString(); BK.locks.time=true; bkSave(); render();
+    BK.outAt=new Date(new Date(BK.startAt).getTime()+(BK.path==='retard'?26:9)*3600000).toISOString();
+    BK.locks.time=true; bkSave(); bkRender();
   }},'Start now, bake '+(BK.path==='retard'?'tomorrow':'today')));
   side.append(c6);
 
-  /* DDT */
+  /* the temperatures that feed the water sum */
   const c7=h('div','card');
-  c7.append(h('h2',null,'Water temperature'));
-  c7.append(h('p','big',fx(R.waterTemp,0)+' °C'),h('p','muted',fx(R.waterTemp*9/5+32,0)+' °F — to land the dough at '+fx(R.doughTemp,1)+' °C'));
-  c7.append(fieldNum('Room',BK.roomTemp,v=>bkSet('roomTemp',v),{suffix:'°C',step:'0.5'}));
-  c7.append(fieldNum('Flour',BK.flourTemp,v=>bkSet('flourTemp',v),{suffix:'°C',step:'0.5'}));
-  c7.append(fieldNum('Levain',BK.levainTemp,v=>bkSet('levainTemp',v),{suffix:'°C',step:'0.5'}));
-  c7.append(fieldNum('Friction factor',BK.frictionFactor,v=>bkSet('frictionFactor',v),{suffix:'°C',step:'0.5'}));
-  c7.append(why('alpern','Friction factor is a residual, not a constant: it soaks up every bit of heat the equation does not model. Measure your own — mix a batch, take the dough temperature at the end, then work backwards. It changes if you change mixer, batch size or mixing time, so measure it for the way you actually mix. 1 °C is about right for hand mixing, 3 °C for a machine.'));
+  c7.append(h('h2',null,'For the water temperature'));
+  c7.append(h('p','muted','You do not choose the water temperature — it gets worked out from these, and the answer is on the right. Everything the dough touches at mixing shares its heat with it.'));
+  c7.append(fieldNum('Room',BK.roomTemp,v=>bkNum('roomTemp',v),{suffix:'°C',step:'0.5',id:'bkRoomT'}));
+  c7.append(fieldNum('Flour',BK.flourTemp,v=>bkNum('flourTemp',v),{suffix:'°C',step:'0.5',id:'bkFlourT'}));
+  c7.append(fieldNum('Starter',BK.levainTemp,v=>bkNum('levainTemp',v),{suffix:'°C',step:'0.5',id:'bkLevT'}));
+  c7.append(hint('Flour sitting in the cupboard is at room temperature. Starter that has been out overnight is a degree or two warmer. If you have not measured, room temperature for all three is a fine first guess.'));
+  c7.append(fieldNum('Friction factor',BK.frictionFactor,v=>bkNum('frictionFactor',v),{suffix:'°C',step:'0.5',id:'bkFF'}));
+  c7.append(hint('How much your mixing warms the dough: about 1 °C by hand, 3 °C in a stand mixer. Measure your own once — mix a batch, probe the dough at the end, and if it came out 2 °C warmer than planned, add 2 to this number. It is a residual, not a constant, so it changes if you change mixer, batch size or mixing time.'));
   side.append(c7);
 
   wrap.append(side);
 
-  /* ---------------- right: the answer ---------------- */
-  const main=h('div','bakemain');
+  /* ================= right: the answer ================= */
+  const out=el('div',{id:'bakeOut',class:'bakemain'});
+  bakeAnswer(R).forEach(n=>out.append(n));
+  wrap.append(out);
+  return wrap;
+}
 
-  /* warnings first */
+/* Everything that gets recomputed. Returns an array of cards so it can be
+   dropped back into #bakeOut without touching the controls. */
+function bakeAnswer(R){
+  const st=R.style, out=[];
+
   if(R.warn.length){
     const w=h('div','card');
     R.warn.forEach(x=>{
@@ -4904,31 +5028,40 @@ function viewBakeCalc(){
         h('div',null,x.t), tierChip(x.c),
         CITE[x.c]?h('div','src',CITE[x.c].s+(CITE[x.c].flag?'  ⚠ '+CITE[x.c].flag:'')):null));
     });
-    main.append(w);
+    out.push(w);
   }
 
   /* the formula */
   const f=h('div','card');
   f.append(h('h2',null,st.name));
   const tbl=h('table','formula');
-  const thead=h('thead',null,h('tr',null,h('th',null,'Ingredient'),h('th','r','Baker’s %'),h('th','r','Grams')));
-  tbl.append(thead);
+  tbl.append(h('thead',null,h('tr',null,h('th',null,'Ingredient'),h('th','r','Baker’s %'),h('th','r','Grams'))));
   const tb=h('tbody');
   R.rows.forEach(r=>{
-    const tr=h('tr','k-'+r.kind,h('td',null,r.name),h('td','r',fx(r.pct,1)+'%'),h('td','r',fx(r.g,0)+' g'));
-    tb.append(tr);
+    tb.append(h('tr','k-'+r.kind,h('td',null,r.name),h('td','r',fx(r.pct,1)+'%'),h('td','r',fx(r.g,0)+' g')));
     if(r.sub)tb.append(h('tr','subrow',el('td',{colspan:3},r.sub)));
   });
   tbl.append(tb);
   tbl.append(h('tfoot',null,h('tr',null,h('td',null,'Dough'),h('td','r',''),h('td','r',fx(R.doughG,0)+' g'))));
   f.append(tbl);
   f.append(h('p','big',fx(R.hydration,1)+'% hydration'));
-  main.append(f);
+  f.append(h('p','muted','Baker’s percentages are all relative to the total flour, which is why they add up to more than 100.'));
+  out.push(f);
+
+  /* water temperature — an answer, not a setting */
+  const wt=h('div','card');
+  wt.append(h('h2',null,'Mix with water at'));
+  wt.append(h('p','big',fx(R.waterTemp,0)+' °C  /  '+fx(R.waterTemp*9/5+32,0)+' °F'));
+  wt.append(h('p','muted','That lands the mixed dough at '+fx(R.doughTemp,1)+' °C, which is what every time on this page assumes. Take the dough’s temperature after mixing — if it missed, your friction factor is wrong, not the arithmetic.'));
+  if(R.waterTemp<4)wt.append(h('div','alert soft','That is below what a cold tap gives you. Use ice water, or accept a warmer dough and let the calculator re-time it.'));
+  if(R.waterTemp>50)wt.append(h('div','alert soft','Water above about 50 °C starts killing yeast on contact. Warm the flour instead, or mix at a lower dough temperature and give it longer.'));
+  wt.append(why('alpern','Multiply the dough temperature you want by the number of things you know the temperature of, plus one for the water. Subtract the ones you know, subtract the friction factor, and what is left is the water.'));
+  out.push(wt);
 
   /* hydration reasoning */
   const hy=h('div','card');
   hy.append(h('h2',null,'Where that water number comes from'));
-  hy.append(h('p','muted','Anchor plus deltas. Every line is a published coefficient, and the tier chip tells you how hard each one will push back if you lean on it.'));
+  hy.append(h('p','muted','Your anchor plus a delta for each thing about this blend that differs from it. Every line is a published coefficient; the chip says how much weight it will bear.'));
   const ht=h('table','deltas');
   ht.append(h('tbody',null,
     h('tr','anchor',h('td',null,'Your anchor'),h('td','r',fx(R.hyd.anchor,1)+'%'),h('td',null,'')),
@@ -4939,14 +5072,15 @@ function viewBakeCalc(){
     h('tr','tot',h('td',null,'Predicted'),h('td','r',fx(R.hyd.lo,1)+'–'+fx(R.hyd.hi,1)+'%'),h('td',null,''))
   ));
   hy.append(ht);
+  hy.append(h('p','hint','“pp” is percentage points — a change to the hydration number itself, not a percentage of it.'));
   R.hyd.deltas.filter(dd=>dd.note).forEach(dd=>hy.append(h('p','muted',dd.note)));
-  hy.append(h('div','alert soft','These deltas are added together because that is the only thing to do with them, but nobody has tested whether they actually are additive. Treat the top of the range as a ceiling, hold back the last 3–5% of the water, and add it at the mixer only if the dough takes it.'));
-  hy.append(why('aaccfar','Farinograph absorption is measured at 500 BU with no salt, no leaven, no acid and no rest — none of which describes your dough. A ±3% deviation from optimum visibly degrades the mix, which is why the hold-back matters.'));
+  hy.append(h('div','alert soft','These deltas get added together because that is the only thing to do with them, but nobody has tested whether they really are additive. Treat the top of the range as a ceiling: hold back the last 3–5% of the water and add it at the mixer only if the dough takes it.'));
+  hy.append(why('aaccfar','Lab absorption is measured with no salt, no leaven, no acid and no rest — none of which describes your dough. A ±3% error either way visibly degrades the mix, which is why the hold-back matters.'));
   const lockH=el('input',{type:'checkbox',checked:BK.hydrationLocked?'checked':null,
-    onchange:e=>{ BK.hydrationLocked=e.target.checked; if(e.target.checked&&BK.hydration==null)BK.hydration=round1(R.hyd.target); bkSave(); render(); }});
-  hy.append(h('label','chk',lockH,h('span',null,'Override it and use my number instead')));
-  if(BK.hydrationLocked)hy.append(fieldNum('Hydration',BK.hydration,v=>bkSet('hydration',v),{suffix:'%',step:'0.5'}));
-  main.append(hy);
+    onchange:e=>{ BK.hydrationLocked=e.target.checked; if(e.target.checked&&BK.hydration==null)BK.hydration=round1(R.hyd.target); bkSave(); bkRender(); }});
+  hy.append(h('label','chk',lockH,h('span',null,'Ignore that and use my own hydration')));
+  if(BK.hydrationLocked)hy.append(fieldNum('Hydration',BK.hydration,v=>bkNum('hydration',v),{suffix:'%',step:'1',id:'bkHydOverride'}));
+  out.push(hy);
 
   /* the schedule */
   const sc=h('div','card');
@@ -4961,9 +5095,15 @@ function viewBakeCalc(){
         h('div','tdetail',s.detail))));
   });
   sc.append(timeline);
-  if(R.outOfOven)sc.append(h('p','big',(BK.path==='freeze'?'In the freezer ':'Out of the oven ')+clockOf(R.outOfOven)));
-  if(R.finish&&BK.path!=='freeze'&&R.finish>R.outOfOven)sc.append(h('p','muted','Cool enough to cut at '+clockOf(R.finish)+'. Cutting it before then is what makes bread read as gummy.'));
-  main.append(sc);
+  if(R.outOfOven)sc.append(h('p','big',(R.path==='freeze'?'In the freezer ':'Out of the oven ')+clockOf(R.outOfOven)));
+  if(R.finish&&R.outOfOven&&R.finish>R.outOfOven)sc.append(h('p','muted','Cool enough to cut at '+clockOf(R.finish)+'. Slicing it before then is what makes bread read as gummy.'));
+  sc.append(h('div','howto',
+    h('h3',null,'What “+'+fx(R.rTarget,0)+'%” actually means'),
+    h('p',null,'It is how much bigger the dough gets, by volume, during the bulk. +50% means half again as tall as when you mixed it; +100% means twice as tall. It is not a percentage of time, and it is not the same as “doubled” unless it says 100.'),
+    h('p',null,'The way to see it: put the dough in a straight-sided container — a Cambro, a big measuring jug, anything with vertical walls — and put a rubber band or a tape mark at the top of the dough the moment you finish mixing. A bowl will lie to you, because the sides slope. Or pull off a small piece into a narrow jar and watch that instead; it rises at the same rate and is much easier to read.'),
+    h('p',null,'The clock time above is a prediction from your temperature. The mark on the jar is a measurement. When they disagree, believe the jar.'),
+    h('p','muted','And note which way the numbers run: colder dough needs MORE rise, not less. At 27 °C you stop at +30%; at 18 °C you go to +100%. That is not a typo — a cold dough has to travel further before it has fermented as much.')));
+  out.push(sc);
 
   /* fermentation reasoning */
   const fm=h('div','card');
@@ -4971,18 +5111,18 @@ function viewBakeCalc(){
   fm.append(h('table','deltas',h('tbody',null,
     h('tr',null,h('td',null,'Dough temperature'),h('td','r',fx(R.doughTemp,1)+' °C'),h('td',null,'')),
     h('tr',null,h('td',null,'Published bulk window at that temperature'),h('td','r',hm(R.matrix.lo)+'–'+hm(R.matrix.hi)),h('td',null,tierChip('cucuzza'))),
-    h('tr',null,h('td',null,'Rise target at that temperature'),h('td','r','+'+fx(R.rTarget,0)+'%'),h('td',null,tierChip('cucuzza'))),
-    h('tr',null,h('td',null,'Your levain vs the calibration’s 9.1%'),h('td','r',fx(R.pff,1)+'%'),h('td',null,tierChip('ganzle'))),
+    h('tr',null,h('td',null,'Rise target at that temperature'),h('td','r','+'+fx(R.rTarget,0)+'% volume'),h('td',null,tierChip('cucuzza'))),
+    h('tr',null,h('td',null,'Your starter vs the calibration’s 9.1%'),h('td','r',fx(R.pff,1)+'%'),h('td',null,tierChip('ganzle'))),
     h('tr',null,h('td',null,'Hydration effect on gas'),h('td','r','×'+fx(hydrationRateFactor(R.hydration,R.hyd.target),2)),h('td',null,tierChip('codina'))),
     h('tr',null,h('td',null,'Enrichment'),h('td','r','×'+fx(R.enrich,2)),h('td',null,tierChip('craft'))),
     R.retardH?h('tr',null,h('td',null,'Rise the fridge adds by itself'),h('td','r','+'+fx(R.rRetard,0)+'%'),h('td',null,tierChip('cucuzza'))):null,
     h('tr','tot',h('td',null,'Bulk'),h('td','r',hm(R.bulk)),h('td',null,''))
   )));
-  fm.append(h('div','alert soft','That temperature-to-rise matrix is one practitioner’s data, from one calibration formula: 90% bread flour with 10% whole wheat, 75% hydration, 20% starter, 2% salt. No controlled peer-reviewed trial of % rise as a bulk endpoint exists at all. It is still the best thing published, and it is worlds better than a recipe that says "2 hours" without saying at what temperature — but it is a single source and you should recalibrate it against your own bakes.'));
-  fm.append(why('cucuzza','27 °C → +30% in 3–5½ h. 24 °C → +50% in 5–7 h. 21 °C → +75% in 8–12 h. 18 °C → +100% in 12–18 h. Note the direction: colder dough wants MORE rise, not less.'));
-  fm.append(why('ganzle','Moving off that 20% starter uses the yeast’s published growth rate through a cardinal-temperature model — halving the levain costs you about ln(2)/µ hours. That inference is mine, from their measured constants; it has not been validated against actual dough rise.'));
-  fm.append(why('codina','Gas production measured 1270 cm³ at 51.4% water, 1410 at the farinograph optimum, 1433 above it. A drier dough really is a slower dough — about 1.7% less gas per point of water below optimum, and almost nothing gained above it.'));
-  main.append(fm);
+  fm.append(h('div','alert soft','That temperature-to-rise table is one practitioner’s data from one calibration formula: 90% bread flour with 10% whole wheat, 75% hydration, 20% starter, 2% salt. No controlled peer-reviewed trial of % rise as a bulk endpoint exists at all. It is still the best published thing, and far better than a recipe saying “2 hours” without saying at what temperature — but it is a single source, so recalibrate it against your own bakes.'));
+  fm.append(why('cucuzza','27 °C → +30% in 3–5½ h. 24 °C → +50% in 5–7 h. 21 °C → +75% in 8–12 h. 18 °C → +100% in 12–18 h.'));
+  fm.append(why('ganzle','Moving off that 20% starter uses the yeast’s published growth rate through a cardinal-temperature model — halving the starter costs about ln(2)/µ hours. That inference is mine, from their measured constants; it has not been validated against actual dough rise.'));
+  fm.append(why('codina','Gas production measured 1270 cm³ at 51.4% water, 1410 at the lab optimum, 1433 above it. A drier dough really is a slower dough — about 1.7% less gas per point of water below optimum, and almost nothing gained above.'));
+  out.push(fm);
 
   /* grain ceilings */
   if(R.limits.length){
@@ -4993,32 +5133,26 @@ function viewBakeCalc(){
       box.append(h('div','lhead',l.grain+(l.pct?' — '+fx(l.pct,0)+'%':''),tierChip(l.cite)));
       box.append(h('p',null,l.text));
       if(l.caveat)box.append(h('p','muted',l.caveat));
-      if(l.protocol){
-        const ol=h('ol','proto');
-        l.protocol.forEach(s=>ol.append(h('li',null,s)));
-        box.append(ol);
-      }
+      if(l.protocol){ const ol=h('ol','proto'); l.protocol.forEach(s=>ol.append(h('li',null,s))); box.append(ol); }
       if(CITE[l.cite])box.append(h('div','src',CITE[l.cite].s+(CITE[l.cite].flag?'  ⚠ '+CITE[l.cite].flag:'')));
       gl.append(box);
     });
-    main.append(gl);
+    out.push(gl);
   }
 
   /* the oven */
   const ov=h('div','card');
   ov.append(h('h2',null,'The oven'));
   ov.append(h('p',null,st.bake));
-  R.oven.forEach(o=>{
-    ov.append(h('div','ovrow',h('div','lhead',o.t,tierChip(o.c)),h('div','ovv',o.v),h('p','muted',o.n)));
-  });
+  R.oven.forEach(o=>ov.append(h('div','ovrow',h('div','lhead',o.t,tierChip(o.c)),h('div','ovv',o.v),h('p','muted',o.n))));
   ov.append(h('div','alert soft','There is no published oven temperature for any bread style anywhere in the evidence base — not one. The setting above is convention. The finish temperature is not: 93–99 °C is a physical endpoint, because the crumb cannot get past the boiling point of its own water while free water is still in there.'));
-  main.append(ov);
+  out.push(ov);
 
   /* save */
   const sv=h('div','card');
   sv.append(h('h2',null,'Keep this one'));
-  sv.append(h('p','muted','Saves to bakes.md in your Drive folder as plain text, so you can edit it there or on the other computer.'));
-  const nm=el('input',{type:'text',placeholder:'e.g. Tuesday 30% Salish'});
+  sv.append(h('p','muted','Saves to bakes.md in your Drive folder as plain text, so you can edit it there or pull it up on the other computer.'));
+  const nm=el('input',{type:'text',class:'wide',placeholder:'e.g. Tuesday 30% Salish'});
   sv.append(nm);
   sv.append(el('button',{class:'btn pri',onclick:async()=>{
     const name=(nm.value||'').trim(); if(!name){ toast('Give it a name first.'); return; }
@@ -5028,7 +5162,7 @@ function viewBakeCalc(){
       anchor:BK.anchorHydration,anchorprotein:BK.anchorProtein,friction:BK.frictionFactor,
       path:BK.path,notes:''};
     S.bakes=(S.bakes||[]).filter(b=>norm(b.name)!==norm(name)).concat([rec]);
-    render();
+    bkRender();
     try{ await saveFile('bakes.md',serializeBakes(S.bakes)); toast('Saved.'); }
     catch(e){ toast('Saved here, but Drive said: '+e.message); }
   }},'Save this bake'));
@@ -5043,21 +5177,19 @@ function viewBakeCalc(){
           if(b.hydration){BK.hydration=b.hydration;BK.hydrationLocked=true;}
           if(b.salt)BK.saltPct=b.salt;
           if(b.pff)BK.pff=b.pff;
-          if(b.temp)BK.doughTemp=b.temp;
+          if(b.temp){BK.doughTemp=b.temp;BK.doughTempAuto=false;}
           if(b.levainhyd)BK.levainHydration=b.levainhyd;
           if(b.anchor)BK.anchorHydration=b.anchor;
           if(b.anchorprotein)BK.anchorProtein=b.anchorprotein;
           if(b.path)BK.path=b.path;
-          bkSave(); render();
+          bkSave(); bkRender();
         }},b.name),
         h('span','muted',(b.blend||[]).map(x=>x.flour+' '+x.pct+'%').join(' · '))));
     });
     sv.append(list);
   }
-  main.append(sv);
-
-  wrap.append(main);
-  return wrap;
+  out.push(sv);
+  return out;
 }
 
 /* ---------------- adapt somebody else's recipe ---------------- */
