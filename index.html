@@ -225,7 +225,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '1.6'
+  VER: '1.7'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -336,7 +336,10 @@ const SYN={
   'garlic clove':'garlic','cloves garlic':'garlic','garlic cloves':'garlic',
   'chicken broth':'chicken stock','beef broth':'beef stock','vegetable broth':'vegetable stock',
   'tomatoes canned':'canned tomatoes','crushed tomatoes':'canned tomatoes','diced tomatoes':'canned tomatoes',
-  'soy':'soy sauce','parmigiano reggiano':'parmesan','parmigiano':'parmesan'
+  'soy':'soy sauce','parmigiano reggiano':'parmesan','parmigiano':'parmesan',
+  'chicken backs':'chicken bones','chicken back':'chicken bones',
+  'chicken carcass':'chicken bones','chicken frames':'chicken bones',
+  'chicken wings':'chicken wing'
 };
 function singular(w){
   if(/(ss|us|is)$/.test(w))return w;
@@ -600,9 +603,9 @@ function parsePrices(text){
     if(p.length<4)return null;
     const amt=parseAmount(p[2]||'');
     return {date:p[0],item:p[1],qty:amt.qty,unit:amt.unit,
-      price:parseFloat(String(p[3]).replace(/[^0-9.]/g,'')),
+      price:parseFloat(String(p[3]).replace(/[^0-9.-]/g,'')),
       store:p[4]||'',key:norm(p[1])};
-  }).filter(x=>x&&x.item&&!isNaN(x.price));
+  }).filter(x=>x&&x.item&&!isNaN(x.price)&&x.price>0);
   const weights={};
   bullets(S['typical weights']).forEach(l=>{
     const m=/^(.+?):\s*(.+)$/.exec(l); if(!m)return;
@@ -612,7 +615,7 @@ function parsePrices(text){
   const other=bullets(S['other spending']).map(l=>{
     const p=l.split('|').map(x=>x.trim());
     if(p.length<3)return null;
-    return {date:p[0],what:p[1],price:parseFloat(String(p[2]).replace(/[^0-9.]/g,'')),store:p[3]||''};
+    return {date:p[0],what:p[1],price:parseFloat(String(p[2]).replace(/[^0-9.-]/g,'')),store:p[3]||''};
   }).filter(x=>x&&!isNaN(x.price));
   return {buy,other,weights,raw:text};
 }
