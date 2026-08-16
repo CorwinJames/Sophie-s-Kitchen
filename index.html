@@ -405,7 +405,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.2'
+  VER: '3.3'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -489,7 +489,10 @@ const UNIT_CANON={
   dash:'dash',dashes:'dash',package:'pkg',packages:'pkg',pkg:'pkg',package_:'pkg',
   floz:'floz',flozs:'floz','fl oz':'floz','fluid ounce':'floz','fluid ounces':'floz',
   gallon:'gal',gallons:'gal',gal:'gal',
-  dozen:'dozen',dozens:'dozen',doz:'dozen'
+  dozen:'dozen',dozens:'dozen',doz:'dozen',handful:'handful',handfuls:'handful',
+  leaf:'leaf',leaves:'leaf',knob:'knob',knobs:'knob',splash:'splash',splashes:'splash',
+  drizzle:'drizzle',glug:'glug',squeeze:'squeeze',squeezes:'squeeze',drop:'drop',drops:'drop',
+  stalk:'stalk',stalks:'stalk'
 };
 /* "2 lb", "1 1/2 cups", "12" — a bare amount with no ingredient after it */
 function parseAmount(str){
@@ -682,6 +685,17 @@ function parseIngredient(raw){
   if(m){ qty=m[1].trim(); rest=rest.slice(m[0].length); }
   const um=/^([a-zA-Z]+)\.?\s+/.exec(rest);
   if(um && UNIT_CANON[um[1].toLowerCase()]){ unit=UNIT_CANON[um[1].toLowerCase()]; rest=rest.slice(um[0].length); }
+  /* An amount written in words: "a large pinch of", "a knob of", "2 handfuls
+     of". These get stripped as descriptions when matching the name, which is
+     right — but the size is real information and costing needs it. */
+  if(!unit){
+    const am=/^\s*(?:a|an|one)?\s*(?:large|small|good|generous|scant|heaped|heaping|big|little)?\s*(pinch|pinches|handful|handfuls|knob|knobs|splash|splashes|dash|dashes|drizzle|drizzles|glug|glugs|squeeze|squeezes|drop|drops|sprig|sprigs|stalk|stalks|leaf|leaves|slice|slices|piece|pieces|clove|cloves|head|heads|bunch|bunches|stick|sticks)\s+(?:of\s+)?/i.exec(rest);
+    if(am){
+      unit=UNIT_CANON[am[1].toLowerCase()]||am[1].toLowerCase();
+      if(qty==null)qty='1';
+      rest=rest.slice(am[0].length);
+    }
+  }
   rest=rest.replace(/^of\s+/i,'');                       // "3 cloves of garlic"
   let note=null;
   /* split the note off at the first comma whose head actually names something —
@@ -925,7 +939,13 @@ function serializePantry(p){
    ============================================================ */
 const UNIT_G={g:1,kg:1000,oz:28.3495,lb:453.592};
 const UNIT_ML={ml:1,l:1000,tsp:4.92892,tbsp:14.7868,cup:236.588,pint:473.176,qt:946.353,floz:29.5735,gal:3785.41};
-const COUNT_UNITS=new Set(['clove','can','bunch','slice','stick','sprig','piece','head','pkg','handful','pinch','dash','dozen','']);
+const COUNT_UNITS=new Set(['clove','can','bunch','slice','stick','sprig','piece','head','pkg','handful','pinch','dash','dozen',
+  'leaf','knob','splash','drizzle','glug','squeeze','drop','stalk','']);
+function unitKey(u){
+  const t=String(u||'').toLowerCase().trim();
+  if(!t)return '';
+  return UNIT_CANON[t]||t.replace(/e?s$/,'');
+}
 function unitFamily(u){
   const k=(u||'').toLowerCase();
   if(UNIT_G[k])return 'weight';
@@ -950,6 +970,42 @@ function money(n){
 /* ---------- prices ----------
    An append-only log of what we actually paid. Never edited by the app,
    only added to, so the history stays true. */
+/* Sensible weights for the units recipes actually count in. A recipe that
+   says "20 pieces" of a cabbage does not mean twenty cabbages, and until now
+   that was exactly how it was costed. Absolute amounts where the unit means
+   the same thing whatever the food; a fraction of one whole where it does
+   not, so a leaf scales with the size of the vegetable it came off. */
+const PORTION_DEFAULT={
+  pinch:{fam:'weight',n:0.35,as:'0.35 g'},
+  dash:{fam:'volume',n:0.6,as:'0.6 ml'},
+  drop:{fam:'volume',n:0.05,as:'0.05 ml'},
+  splash:{fam:'volume',n:15,as:'15 ml'},
+  drizzle:{fam:'volume',n:10,as:'10 ml'},
+  glug:{fam:'volume',n:20,as:'20 ml'},
+  handful:{fam:'weight',n:30,as:'30 g'},
+  knob:{fam:'weight',n:15,as:'15 g'},
+  squeeze:{fam:'volume',n:15,as:'15 ml'},
+  clove:{fam:'weight',n:5,as:'5 g'},
+  sprig:{fam:'weight',n:2,as:'2 g'},
+  stalk:{fam:'weight',n:40,as:'40 g'},
+  stick:{fam:'weight',n:113,as:'4 oz'},
+  slice:{of:'whole',f:1/16,as:'1/16 whole'},
+  piece:{of:'whole',f:1/20,as:'1/20 whole'},
+  leaf:{of:'whole',f:1/30,as:'1/30 whole'},
+  head:{of:'whole',f:1,as:'1 whole'},
+  bunch:{of:'whole',f:1,as:'1 whole'},
+  can:{fam:'weight',n:397,as:'14 oz'},
+  pkg:{fam:'weight',n:340,as:'12 oz'}
+};
+/* "small" and "large" are stripped out of the name when matching, but they
+   are real information about size — worth keeping for the arithmetic. */
+function sizeFactor(raw){
+  const t=' '+String(raw||'').toLowerCase()+' ';
+  if(/\b(extra[- ]large|jumbo|xl)\b/.test(t))return 1.7;
+  if(/\b(large|big)\b/.test(t))return 1.4;
+  if(/\b(small|baby|mini|little)\b/.test(t))return 0.6;
+  return 1;
+}
 function parsePrices(text){
   const S=sections(text);
   const buy=bullets(S['purchases']).map(l=>{
@@ -966,12 +1022,25 @@ function parsePrices(text){
     const a=parseAmount(m[2]); const b=toBase(a.qty,a.unit);
     if(b&&b.fam==='weight')weights[norm(m[1])]={item:m[1].trim(),g:b.n,as:m[2].trim()};
   });
+  /* What one of a given unit weighs. Either an absolute amount, or a
+     fraction of one whole thing — "piece: 1/20 whole" means a piece of a
+     cabbage is a twentieth of a cabbage, whatever a cabbage happens to
+     weigh. Falls back to PORTION_DEFAULT for anything not listed. */
+  const portions={};
+  bullets(S['portions']).forEach(l=>{
+    const m=/^(.+?):\s*(.+)$/.exec(l); if(!m)return;
+    const key=unitKey(m[1]), v=m[2].trim();
+    const frac=/^([\d./]+)\s*(?:x\s*)?whole\b/i.exec(v);
+    if(frac){ const f=fracToNum(frac[1]); if(f!=null)portions[key]={of:'whole',f,as:v}; return; }
+    const a=parseAmount(v), b=toBase(a.qty,a.unit);
+    if(b&&(b.fam==='weight'||b.fam==='volume'))portions[key]={fam:b.fam,n:b.n,as:v};
+  });
   const other=bullets(S['other spending']).map(l=>{
     const p=l.split('|').map(x=>x.trim());
     if(p.length<3)return null;
     return {date:p[0],what:p[1],price:parseFloat(String(p[2]).replace(/[^0-9.-]/g,'')),store:p[3]||''};
   }).filter(x=>x&&!isNaN(x.price));
-  return {buy,other,weights,raw:text};
+  return {buy,other,weights,portions,raw:text};
 }
 function serializePrices(p){
   const out=['# Prices','',
@@ -986,6 +1055,14 @@ function serializePrices(p){
     'line up, and anything costed this way is shown as an estimate.',
     'Written as:  item: amount','');
   Object.values(p.weights||{}).forEach(w=>out.push(`- ${w.item}: ${w.as}`));
+  out.push('','## Portions',
+    'What one of a COUNTED unit weighs — a piece, a leaf, a stalk, a pinch.',
+    'Twenty pieces of cabbage is not twenty cabbages, and this is how the app',
+    'knows the difference. Either an absolute amount, or a fraction of one',
+    'whole thing, which then scales with whatever that thing weighs.',
+    'Anything not listed here uses a sensible built-in default.',
+    'Written as:  unit: amount   or   unit: 1/20 whole','');
+  Object.keys(p.portions||{}).forEach(k=>out.push(`- ${k}: ${p.portions[k].as}`));
   out.push('','## Other spending',
     'Money that is not a line item — a farm share, a guest\'s shopping run.',
     'Written as:  YYYY-MM-DD | what | amount | store','');
@@ -2234,7 +2311,7 @@ function unitPrice(item){
   for(const b of hist){
     const base=toBase(b.qty||'1',b.unit||'');
     if(!base||!base.n)continue;
-    return {per:b.price/base.n,fam:base.fam,paid:b.price,on:b.date,store:b.store,
+    return {per:b.price/base.n,fam:base.fam,unit:b.unit||'',paid:b.price,on:b.date,store:b.store,
       amount:[b.qty,b.unit].filter(Boolean).join(' ')||'1'};
   }
   return null;
@@ -2266,26 +2343,71 @@ function typicalWeight(item){
   for(const k of Object.keys(W)) if(sameThing(W[k].item,item))return W[k].g;
   return null;
 }
+function fx0(n){ return Math.round(n); }
+/* What one <unit> of this item weighs — the missing piece that made
+   "20 pieces small green cabbage" cost forty pounds of cabbage. A unit like
+   "clove" or "pinch" means much the same whatever the food, so it carries an
+   absolute weight. A unit like "piece" or "leaf" only means anything relative
+   to the thing it came off, so it is held as a fraction of one whole and
+   resolved against that thing's typical weight. */
+function portionRule(unit){
+  const u=unitKey(unit);
+  if(!u)return null;
+  const user=(S.prices&&S.prices.portions)||{};
+  return user[u]||PORTION_DEFAULT[u]||null;
+}
+function portionWeight(item,unit,rawName){
+  const r=portionRule(unit);
+  if(!r)return null;
+  const size=sizeFactor(rawName||item);
+  if(r.of==='whole'){
+    const w=typicalWeight(item);
+    if(w==null)return null;
+    return {fam:'weight',n:w*r.f*size,
+            why:r.as+' of a '+fx0(w)+' g '+item+(size!==1?', scaled for size':'')};
+  }
+  return {fam:r.fam,n:r.n*size,
+          why:'one '+unitKey(unit)+' \u2248 '+r.as+(size!==1?', scaled for size':'')};
+}
 /* recipes count things; shops sell them by weight. Bridge the two, but only
    with an assumption we can point at, and always flag it as an estimate. */
-function crossConvert(item,base,targetFam){
+function crossConvert(item,base,targetFam,unit,rawName,priceUnit){
   if(!base)return null;
-  if(base.fam===targetFam)return {n:base.n,est:false};
+  if(base.fam===targetFam){
+    /* Both counts, but a handful is not a bunch. Convert through what each
+       one weighs if we can; if we cannot, at least stop calling it a fact. */
+    if(base.fam==='count'&&unitKey(unit)!==unitKey(priceUnit)){
+      const a=portionWeight(item,unit,rawName), b2=portionWeight(item,priceUnit,rawName);
+      if(a&&b2&&a.fam===b2.fam&&b2.n)
+        return {n:base.n*a.n/b2.n,est:true,
+                why:'one '+(unitKey(unit)||'of these')+' against one '+(unitKey(priceUnit)||'unit')+' bought'};
+      if(unit||priceUnit)
+        return {n:base.n,est:true,
+                why:'counted in '+(unitKey(unit)||'units')+', bought by the '+(unitKey(priceUnit)||'unit')+' \u2014 treated as the same size'};
+    }
+    return {n:base.n,est:false};
+  }
+  const size=sizeFactor(rawName||item);
+  /* One WHAT? A counted unit knows its own size, and asking it first is the
+     whole difference between twenty leaves and twenty cabbages. */
+  if(base.fam==='count'){
+    const p=portionWeight(item,unit,rawName);
+    if(p)return {n:base.n*p.n,est:true,why:p.why};
+  }
   const w=typicalWeight(item);
   if(base.fam==='count'&&targetFam==='weight'&&w!=null){
-    const n=base.n*w;
-    /* "20 pieces small green cabbage" is twenty leaves, not twenty heads —
-       but the only bridge we have is what one whole one weighs, so it comes
-       out as 40 lb of cabbage. We cannot tell which meaning was intended, so
-       flag it rather than quietly reporting the number. */
-    return {n,est:true,wild:(base.n>=6 && n>2270)};
+    const n=base.n*w*size;
+    /* Backstop: a bare count with no unit landing somewhere absurd is more
+       likely a misread ingredient than a real shopping list. */
+    return {n,est:true,wild:(base.n>=6 && n>2270),
+            why:trimNum(base.n)+' \u00d7 one '+item+' at '+fx0(w*size)+' g'};
   }
-  if(base.fam==='weight'&&targetFam==='count'&&w)return {n:base.n/w,est:true};
-  if(base.fam==='count'&&targetFam==='volume'&&w!=null)return {n:base.n*w,est:true};
+  if(base.fam==='weight'&&targetFam==='count'&&w)return {n:base.n/(w*size),est:true};
+  if(base.fam==='count'&&targetFam==='volume'&&w!=null)return {n:base.n*w*size,est:true};
   /* for anything wet, a millilitre weighs about a gram. Wrong for flour,
      close enough for stock, milk, paste and sauce. */
   if((base.fam==='volume'&&targetFam==='weight')||(base.fam==='weight'&&targetFam==='volume'))
-    return {n:base.n,est:true};
+    return {n:base.n,est:true,why:'a millilitre of this weighs about a gram'};
   return null;
 }
 function recipeCost(recipe,servingsMultiplier){
@@ -2297,12 +2419,13 @@ function recipeCost(recipe,servingsMultiplier){
     if(negligible(i)){ skipped.push(i.item); return; }
     const up=unitPrice(i.item);
     if(!up){ unpriced.push(i.item); return; }
-    const conv=crossConvert(i.item,toBase(i.qty||'1',i.unit||''),up.fam);
+    const conv=crossConvert(i.item,toBase(i.qty||'1',i.unit||''),up.fam,i.unit,i.raw||i.item,up.unit);
     if(!conv){ unpriced.push(i.item); return; }
     const c=up.per*conv.n*mult;
     total+=c;
     if(conv.est)estimated.push(i.item);
     priced.push({item:i.item,cost:c,on:up.on,store:up.store,est:conv.est,wild:!!conv.wild,
+                 why:conv.why||null,
                  asked:(i.qty?i.qty+' ':'')+(i.unit?i.unit+' ':'')});
   });
   /* One guess can swamp everything else. When it does, say so instead of
@@ -4303,7 +4426,8 @@ function openRecipe(r){
       const brk=h('div','costbreak hide');
       c.priced.forEach(x=>brk.append(h('div','brow',
         h('span','bq',money(x.cost)),
-        h('span','bi',x.asked+x.item),
+        h('div','bi',x.asked+x.item,
+          x.why?h('div','tiny dim',x.why):null),
         x.est?h('span','tiny warnline','estimated'):null,
         h('span','tiny dim',x.on?('paid '+x.on):''))));
       if(c.skipped.length)brk.append(h('div','tiny dim','not counted: '+c.skipped.join(', ')));
