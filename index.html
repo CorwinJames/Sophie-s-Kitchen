@@ -374,6 +374,17 @@ button.disc:hover{color:var(--hot2)}
 
 .ia.listed{background:none;border-color:transparent;color:var(--ok);cursor:default;opacity:.85}
 .ingrow .ia.listed{opacity:1}
+
+.bakesplit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:22px;align-items:start}
+@media (max-width:1180px){.bakesplit{grid-template-columns:1fr}}
+.bkcol{min-width:0}
+.watrow{display:flex;gap:14px;align-items:flex-start;margin:12px 0 0;padding:10px 12px;
+  background:var(--panel2);border-radius:8px;border-left:3px solid var(--hot)}
+.watrow>div:first-child{flex:none}
+.wat{font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.ovenline{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.bakesplit .timeline{margin-top:4px}
+.bakesplit .tstep{grid-template-columns:84px minmax(0,1fr)}
 </style>
 </head>
 <body>
@@ -405,7 +416,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.3'
+  VER: '3.4'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -3784,6 +3795,95 @@ function clockOf(d){
   if(!d)return '';
   return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'});
 }
+
+/* ---------- how much of this flour can I actually use? ----------------
+   The single question the calculator was silent on. Answers come from the
+   grain, not the brand: a ceiling where one has been published, a starting
+   share that is comfortably inside it, and a plain reason. Where nothing
+   has been published the ceiling is null and it says so rather than
+   inventing one.
+   -------------------------------------------------------------------- */
+function flourGuide(name){
+  const f=flourByName(name)||{};
+  const g=(f.grain||'wheat').toLowerCase();
+  const whole=+f.whole||0;
+  const prot=f.protein==null?null:+f.protein;
+
+  if(/salish/i.test(name))
+    return {suggest:15,max:null,cite:'morgan23',ladder:true,
+      why:'No baking data exists for this wheat at all. 15% is the first rung of a test ladder, not a recommendation — bake it, look at the crumb, then try 30%.'};
+  if(g==='kernza')
+    return {suggest:15,max:45,cite:'cetiner',
+      why:'15% was the best-performing level in the one published trial; 45% is where that trial put the ceiling. A second source says 10–15% and flatbreads only.'};
+  if(g==='rye')
+    return {suggest:20,max:null,cite:'ireks',acidify:true,
+      why:'No published % threshold exists for rye. Above about 20% the crumb changes character, and at any real level it must be acidified or the starch is digested during the bake.'};
+  if(g==='einkorn')
+    return {suggest:20,max:null,cite:'brandolini',
+      why:'No published ceiling. It takes about 6 points less water and ferments visibly faster, so it changes the schedule as much as the crumb.'};
+  if(g==='spelt')
+    return {suggest:30,max:null,cite:'geisslitz',
+      why:'No published maximum. Spelt has more gluten than common wheat but weaker — it slackens suddenly rather than gradually, so go up in steps.'};
+  if(/durum|semolina/i.test(name))
+    return {suggest:20,max:null,cite:'geisslitz',
+      why:'High gliadin to glutenin, which costs elasticity. Traditionally supported in a pan or basket rather than free-standing.'};
+  if(whole>=50)
+    return {suggest:25,max:54,cite:'campbell',
+      why:'Measured loaf volume was unchanged up to 7.5% bran and down 11% at 15%. That break point lands near 54% whole-grain flour; 25% is comfortably inside it.'};
+  if(whole>0)
+    return {suggest:Math.min(40,Math.round(54/Math.max(whole,1)*100)),max:Math.round(54/Math.max(whole,1)*100),cite:'campbell',
+      why:'Partly whole grain, so it carries proportionally less bran — the 54% whole-grain break point stretches further with a flour like this.'};
+  if(prot!=null&&prot<10)
+    return {suggest:20,max:30,cite:'murphy',
+      why:'At '+fx(prot,1)+'% protein this dilutes the gluten of whatever it is blended into. Keep it as a flavour grain in a strong base.'};
+  return {suggest:null,max:null,cite:null,base:true,
+    why:'A strong white flour — this is the base the others get blended into.'};
+}
+/* the strongest refined flour in the blend carries the remainder */
+function baseFlourIndex(blend){
+  let best=-1,bp=-1;
+  blend.forEach((b,i)=>{
+    const f=flourByName(b.flour)||{};
+    const g=flourGuide(b.flour);
+    const p=f.protein==null?11:+f.protein;
+    if(g.base&&p>bp){ bp=p; best=i; }
+  });
+  if(best<0)blend.forEach((b,i)=>{
+    const f=flourByName(b.flour)||{};
+    const p=f.protein==null?11:+f.protein;
+    if(p>bp){ bp=p; best=i; }
+  });
+  return best<0?0:best;
+}
+function suggestedBlend(blend){
+  if(!blend.length)return blend.slice();
+  const bi=baseFlourIndex(blend);
+  const out=blend.map((b,i)=>({flour:b.flour,pct:b.pct}));
+  let used=0;
+  out.forEach((b,i)=>{
+    if(i===bi)return;
+    const g=flourGuide(b.flour);
+    const s=g.suggest==null?10:g.suggest;
+    b.pct=s; used+=s;
+  });
+  out[bi].pct=Math.max(0,Math.round((100-used)*10)/10);
+  return out;
+}
+/* is the blend as it stands inside what has been published? */
+function blendVerdict(blend){
+  const notes=[];
+  blend.forEach(b=>{
+    const pct=+b.pct||0; if(!pct)return;
+    const g=flourGuide(b.flour);
+    if(g.max!=null&&pct>g.max)
+      notes.push({level:'hard',t:b.flour+' at '+fx(pct,0)+'% is past the '+fx(g.max,0)+'% the evidence covers. '+g.why,c:g.cite});
+    else if(g.suggest!=null&&pct>g.suggest*1.6)
+      notes.push({level:'soft',t:b.flour+' at '+fx(pct,0)+'% is well above the '+fx(g.suggest,0)+'% starting point. Workable, but expect a denser, tighter crumb.',c:g.cite});
+    if(g.acidify&&pct>=20)
+      notes.push({level:'hard',t:'With '+fx(pct,0)+'% '+b.flour+', put at least 30% of your total flour through the sour. Rye needs the acid structurally, not for flavour.',c:'ginsberg'});
+  });
+  return notes;
+}
 /* ============================================================
    INGREDIENT CLASSES, SYNONYMS, AND SWAPS
    ------------------------------------------------------------
@@ -5610,6 +5710,12 @@ function viewBakeCalc(){
       el('button',{class:'x',title:'Remove '+b.flour,
         onclick:()=>{ BK.blend.splice(i,1); bkSave(); bkRender(); }},'×'));
     row.append(foot);
+    const g=flourGuide(b.flour);
+    if(!g.base){
+      row.append(h('div','hint',
+        (g.suggest!=null?('Try '+fx(g.suggest,0)+'%'+(g.max!=null?(', up to '+fx(g.max,0)+'%'):', no published ceiling')+'. '):'')
+        +g.why));
+    }
     c2.append(row);
   });
   /* the total updates in place so nudging a share never redraws the row
@@ -5626,7 +5732,14 @@ function viewBakeCalc(){
   c2.append(el('p',{id:'bkBlendTot',class:Math.round(tot)===100?'muted':'warnline'},
     Math.round(tot)===100?'100% of the flour.'
       :'Adds up to '+fx(tot,0)+'%. The shares get normalised, so it still works — 100 is just easier to read.'));
+  const sug=suggestedBlend(BK.blend);
+  const differs=sug.some((s,i)=>Math.abs(s.pct-(+BK.blend[i].pct||0))>0.5);
+  if(differs)c2.append(el('button',{class:'btn',onclick:()=>{
+    BK.blend=suggestedBlend(BK.blend); bkSave(); bkRender();
+  }},'Use suggested shares — '+sug.map(s=>fx(s.pct,0)+'%').join(' / ')));
   c2.append(el('button',{class:'btn',onclick:()=>{ BK.blend.push({flour:names[0]||'Bread flour',pct:10}); bkSave(); bkRender(); }},'Add a flour'));
+  blendVerdict(BK.blend).forEach(n=>c2.append(h('div',n.level==='hard'?'alert hard':'alert soft',
+    h('div',null,n.t), n.c?tierChip(n.c):null)));
   side.append(c2);
 
   /* conditions */
@@ -5737,32 +5850,58 @@ function bakeAnswer(R){
     out.push(w);
   }
 
-  /* the formula */
+  /* THE RECIPE — proportions on the left, method on the right, so you can
+     look from one to the other without scrolling. The water temperature is
+     part of the recipe, not a topic of its own. */
   const f=h('div','card');
   f.append(h('h2',null,st.name));
+  const split=h('div','bakesplit');
+
+  const left=h('div','bkcol');
   const tbl=h('table','formula');
-  tbl.append(h('thead',null,h('tr',null,h('th',null,'Ingredient'),h('th','r','Baker’s %'),h('th','r','Grams'))));
+  tbl.append(h('thead',null,h('tr',null,h('th',null,'Ingredient'),h('th','r','Baker\u2019s %'),h('th','r','Grams'))));
   const tb=h('tbody');
-  R.rows.forEach(r=>{
-    tb.append(h('tr','k-'+r.kind,h('td',null,r.name),h('td','r',fx(r.pct,1)+'%'),h('td','r',fx(r.g,0)+' g')));
-    if(r.sub)tb.append(h('tr','subrow',el('td',{colspan:3},r.sub)));
+  R.rows.forEach(r2=>{
+    tb.append(h('tr','k-'+r2.kind,h('td',null,r2.name),h('td','r',fx(r2.pct,1)+'%'),h('td','r',fx(r2.g,0)+' g')));
+    if(r2.sub)tb.append(h('tr','subrow',el('td',{colspan:3},r2.sub)));
   });
   tbl.append(tb);
   tbl.append(h('tfoot',null,h('tr',null,h('td',null,'Dough'),h('td','r',''),h('td','r',fx(R.doughG,0)+' g'))));
-  f.append(tbl);
-  f.append(h('p','big',fx(R.hydration,1)+'% hydration'));
-  f.append(h('p','muted','Baker’s percentages are all relative to the total flour, which is why they add up to more than 100.'));
-  out.push(f);
+  left.append(tbl);
+  left.append(h('p','big',fx(R.hydration,1)+'% hydration'));
+  left.append(h('p','tiny dim','Baker\u2019s percentages are all relative to the total flour, which is why they add up to past 100.'));
+  left.append(h('div','watrow',
+    h('div',null,h('div','tiny dim','Mix with water at'),
+      h('div','wat',fx(R.waterTemp,0)+' \u00b0C  /  '+fx(R.waterTemp*9/5+32,0)+' \u00b0F')),
+    h('div','tiny dim','to land the dough at '+fx(R.doughTemp,1)+' \u00b0C, which every time on the right assumes. Take its temperature after mixing — if it missed, the friction factor is wrong, not the arithmetic.')));
+  if(R.waterTemp<4)left.append(h('div','alert soft','Below what a cold tap gives you — use ice water, or accept a warmer dough and let it re-time itself.'));
+  if(R.waterTemp>50)left.append(h('div','alert soft','Water above about 50 \u00b0C kills yeast on contact. Warm the flour instead, or mix cooler and give it longer.'));
 
-  /* water temperature — an answer, not a setting */
-  const wt=h('div','card');
-  wt.append(h('h2',null,'Mix with water at'));
-  wt.append(h('p','big',fx(R.waterTemp,0)+' °C  /  '+fx(R.waterTemp*9/5+32,0)+' °F'));
-  wt.append(h('p','muted','That lands the mixed dough at '+fx(R.doughTemp,1)+' °C, which is what every time on this page assumes. Take the dough’s temperature after mixing — if it missed, your friction factor is wrong, not the arithmetic.'));
-  if(R.waterTemp<4)wt.append(h('div','alert soft','That is below what a cold tap gives you. Use ice water, or accept a warmer dough and let the calculator re-time it.'));
-  if(R.waterTemp>50)wt.append(h('div','alert soft','Water above about 50 °C starts killing yeast on contact. Warm the flour instead, or mix at a lower dough temperature and give it longer.'));
-  wt.append(why('alpern','Multiply the dough temperature you want by the number of things you know the temperature of, plus one for the water. Subtract the ones you know, subtract the friction factor, and what is left is the water.'));
-  out.push(wt);
+  const right=h('div','bkcol');
+  right.append(h('h3',null,'Method'));
+  if(R.solvedFor)right.append(h('p','tiny dim','You locked the clock, so the calculator solved for '+R.solvedFor+'.'));
+  const timeline=h('div','timeline');
+  R.steps.forEach(s=>{
+    timeline.append(h('div','tstep',
+      h('div','twhen',s.at?clockOf(s.at):''),
+      h('div','tbody',
+        h('div','tlabel',s.label,s.hours?h('span','tdur',hm(s.hours)):null),
+        h('div','tdetail',s.detail))));
+  });
+  right.append(timeline);
+  if(R.outOfOven)right.append(h('p','big',(R.path==='freeze'?'In the freezer ':'Out of the oven ')+clockOf(R.outOfOven)));
+  if(R.finish&&R.outOfOven&&R.finish>R.outOfOven)right.append(h('p','tiny dim','Cool enough to cut at '+clockOf(R.finish)+'. Slicing it before then is what makes bread read as gummy.'));
+  right.append(h('div','ovenline',h('b',null,'Oven: '),st.bake,h('div','tiny dim','Done at '+st.core+'.')));
+
+  split.append(left,right);
+  f.append(split);
+  f.append(h('div','howto',
+    h('h3',null,'What \u201c+'+fx(R.rTarget,0)+'%\u201d actually means'),
+    h('p',null,'It is how much bigger the dough gets, by volume, during the bulk. +50% means half again as tall as when you mixed it; +100% means twice as tall. It is not a percentage of time, and it is not the same as \u201cdoubled\u201d unless it says 100.'),
+    h('p',null,'Put the dough in a straight-sided container and mark the top of it the moment you finish mixing. A bowl will lie to you, because the sides slope. Or pull a small piece into a narrow jar and watch that instead.'),
+    h('p',null,'The clock times are a prediction from your temperature. The mark on the jar is a measurement. When they disagree, believe the jar.'),
+    h('p','muted','And note which way it runs: colder dough needs MORE rise, not less. At 27 \u00b0C you stop at +30%; at 18 \u00b0C you go to +100%.')));
+  out.push(f);
 
   /* hydration reasoning */
   const hy=h('div','card');
@@ -5787,29 +5926,6 @@ function bakeAnswer(R){
   hy.append(h('label','chk',lockH,h('span',null,'Ignore that and use my own hydration')));
   if(BK.hydrationLocked)hy.append(fieldNum('Hydration',BK.hydration,v=>bkNum('hydration',v),{suffix:'%',step:'1',id:'bkHydOverride'}));
   out.push(hy);
-
-  /* the schedule */
-  const sc=h('div','card');
-  sc.append(h('h2',null,'The schedule'));
-  if(R.solvedFor)sc.append(h('p','muted','You locked the clock, so the calculator solved for '+R.solvedFor+'.'));
-  const timeline=h('div','timeline');
-  R.steps.forEach(s=>{
-    timeline.append(h('div','tstep',
-      h('div','twhen',s.at?clockOf(s.at):''),
-      h('div','tbody',
-        h('div','tlabel',s.label,s.hours?h('span','tdur',hm(s.hours)):null),
-        h('div','tdetail',s.detail))));
-  });
-  sc.append(timeline);
-  if(R.outOfOven)sc.append(h('p','big',(R.path==='freeze'?'In the freezer ':'Out of the oven ')+clockOf(R.outOfOven)));
-  if(R.finish&&R.outOfOven&&R.finish>R.outOfOven)sc.append(h('p','muted','Cool enough to cut at '+clockOf(R.finish)+'. Slicing it before then is what makes bread read as gummy.'));
-  sc.append(h('div','howto',
-    h('h3',null,'What “+'+fx(R.rTarget,0)+'%” actually means'),
-    h('p',null,'It is how much bigger the dough gets, by volume, during the bulk. +50% means half again as tall as when you mixed it; +100% means twice as tall. It is not a percentage of time, and it is not the same as “doubled” unless it says 100.'),
-    h('p',null,'The way to see it: put the dough in a straight-sided container — a Cambro, a big measuring jug, anything with vertical walls — and put a rubber band or a tape mark at the top of the dough the moment you finish mixing. A bowl will lie to you, because the sides slope. Or pull off a small piece into a narrow jar and watch that instead; it rises at the same rate and is much easier to read.'),
-    h('p',null,'The clock time above is a prediction from your temperature. The mark on the jar is a measurement. When they disagree, believe the jar.'),
-    h('p','muted','And note which way the numbers run: colder dough needs MORE rise, not less. At 27 °C you stop at +30%; at 18 °C you go to +100%. That is not a typo — a cold dough has to travel further before it has fermented as much.')));
-  out.push(sc);
 
   /* fermentation reasoning */
   const fm=h('div','card');
