@@ -342,6 +342,30 @@ ul.srclist li{padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;c
 .flourrow>button.x{position:absolute;top:8px;right:6px}
 .saved{margin-top:10px}
 .savedrow{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+
+/* ---------------- ingredient rows + repertoire ---------------- */
+.siderail{display:flex;flex-direction:column;gap:12px;min-width:0}
+ul.ings{margin:0;padding:0;list-style:none}
+.ingrow{display:flex;align-items:baseline;gap:2px;flex-wrap:wrap;padding:3px 6px;margin:0 -6px;border-radius:6px}
+.ingrow:hover{background:var(--panel2)}
+.ingrow.dropped>span:first-child{text-decoration:line-through;color:var(--ink3)}
+.ingacts{margin-left:auto;display:flex;gap:4px;opacity:0;transition:opacity .1s;flex:none}
+.ingrow:hover .ingacts,.ingrow:focus-within .ingacts{opacity:1}
+.ingrow.dropped .ingacts{opacity:1}
+button.ia{background:var(--panel);border:1px solid var(--line);color:var(--ink2);
+  border-radius:6px;padding:1px 7px;font-size:11px;cursor:pointer;white-space:nowrap;line-height:1.7}
+button.ia:hover{background:var(--hot);border-color:var(--hot);color:#1a120c}
+.rolled{color:var(--ok)}
+.rxnote{margin-top:8px}
+.getitem{display:flex;align-items:center;gap:6px}
+.getitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.getitem .ct{flex:none;min-width:16px;text-align:right}
+.getitem button.ia{opacity:0;padding:0 6px}
+.getitem:hover button.ia,.getitem:focus-within button.ia{opacity:1}
+.glabel{text-transform:uppercase;letter-spacing:.06em;margin:8px 0 3px}
+button.disc{background:none;border:none;color:var(--ink);font:inherit;font-weight:600;font-size:15px;
+  cursor:pointer;padding:0;text-align:left}
+button.disc:hover{color:var(--hot2)}
 </style>
 </head>
 <body>
@@ -373,7 +397,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.6'
+  VER: '3.0'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -557,7 +581,19 @@ function normCore(t){
   if(SYN[t])t=SYN[t];
   return t;
 }
+/* norm is called a very large number of times — every ingredient against
+   every pantry item against every class member — and it is pure, so it is
+   worth remembering. Without this, one pass over a 400-recipe library was
+   taking minutes. */
+const _normCache=new Map();
 function norm(s){
+  const k=String(s==null?'':s);
+  if(_normCache.has(k))return _normCache.get(k);
+  const v=_norm(k);
+  if(_normCache.size<50000)_normCache.set(k,v);
+  return v;
+}
+function _norm(s){
   let t=deVulgar(preferBracketed(stripPurpose(String(s||'')))).toLowerCase();
   t=t.replace(/\([^)]*\)/g,' ');                       // drop parentheticals
   const raw=t.split(/\bor\b/).map(x=>x.trim()).filter(Boolean);
@@ -587,7 +623,8 @@ const DISTINCT=new Set(['green','spring','sesame','olive','avocado','coconut','a
  'lamb','wine','smoked','sweet','condensed','evaporated','buttermilk','almond','oat','goat','blue',
  'cream','corn','potato','sweet','bread','pastry','puff','self-raising','baking',
  /* modifiers that turn tap water into something you have to go and buy */
- 'rose','tonic','sparkling','seltzer','soda','mineral','blossom','orange','barley','tamarind']);
+ 'rose','tonic','sparkling','seltzer','soda','mineral','blossom','orange','barley','tamarind',
+ 'chinese','sichuan','szechuan','napa']);
 /* do two ingredient names refer to the same thing? */
 function sameThing(a,b){
   const x=norm(a),y=norm(b);
@@ -1408,6 +1445,7 @@ const S = {
   prices:{buy:[],other:[],raw:''},
   stores:{list:[],best:{},season:{},raw:''},
   inbox:[],
+  classes:parseClasses(''),
   flours:parseFlours(''),
   bakes:parseBakes(''),
   loadedAt:null,
@@ -1421,6 +1459,7 @@ const S = {
 function seedBakeData(){
   if(!S.flours||!S.flours.length)S.flours=parseFlours(SEED['flours.md']);
   if(!S.bakes||!S.bakes.length)S.bakes=parseBakes(SEED['bakes.md']);
+  if(!S.classes||!S.classes.classes.length)S.classes=parseClasses(SEED['classes.md']);
 }
 
 const CONFIG_FILES=[
@@ -1433,7 +1472,8 @@ const CONFIG_FILES=[
   ['prices.md',      t=>S.prices=parsePrices(t)],
   ['stores.md',      t=>S.stores=parseStores(t)],
   ['flours.md',      t=>S.flours=parseFlours(t)],
-  ['bakes.md',       t=>S.bakes=parseBakes(t)]
+  ['bakes.md',       t=>S.bakes=parseBakes(t)],
+  ['classes.md',     t=>S.classes=parseClasses(t)]
 ];
 
 const SEED={
@@ -1553,6 +1593,103 @@ Written as:  item or category -> store
 ## Seasons
 Written as:  item: first month - last month
 
+`,
+'classes.md':`# Ingredient Classes
+
+Three different relations. Keeping them apart is what stops the app telling
+you that you can cook something you cannot.
+
+## Classes
+
+A generic ask, then everything that answers it. One-way: having pork
+tenderloin satisfies a recipe asking for "lean pork", but a recipe that
+specifically wants tenderloin is not satisfied by just any lean pork.
+
+- lean pork: pork tenderloin, pork loin, pork sirloin, boneless pork chop, pork leg, center cut pork chop
+- fatty pork: pork belly, pork shoulder, pork butt, pork jowl
+- pork half lean: pork shoulder, pork butt, pork belly, country style rib
+- lean beef: beef tenderloin, sirloin, top round, eye of round, flank steak, skirt steak, tri tip
+- tender beef: beef tenderloin, sirloin, ribeye, strip steak, flank steak
+- stewing beef: chuck, brisket, short ribs, shank, oxtail
+- lean lamb: lamb leg, lamb loin, lamb sirloin
+- lean meat: lean pork, lean beef, lean lamb, chicken breast, turkey breast
+- dark meat: chicken thigh, chicken leg, chicken drumstick, duck leg, turkey thigh
+- white meat: chicken breast, turkey breast, pork tenderloin
+- chicken meat: chicken breast, chicken thigh, chicken leg, chicken drumstick, cooked chicken
+- young chicken: whole chicken, fryer chicken, broiler chicken
+- a neutral oil: vegetable oil, canola oil, peanut oil, corn oil, sunflower oil, grapeseed oil, safflower oil, avocado oil
+- cooking oil: a neutral oil, olive oil, lard, shortening
+- animal fat: lard, chicken fat, duck fat, beef tallow, bacon fat
+- firm white fish: cod, halibut, snapper, sea bass, rockfish, pollock, tilapia, haddock, pomfret
+- fish fillet: firm white fish, salmon, trout, flounder, sole
+- whole fish: carp, sea bass, snapper, pomfret, trout, tilapia
+- shellfish: shrimp, prawn, crab, lobster, scallop, clam, mussel, oyster, squid
+- green vegetable: bok choy, chinese cabbage, napa cabbage, spinach, choy sum, green cabbage, broccoli, gai lan, water spinach
+- crunchy vegetable: bamboo shoot, water chestnut, celery, jicama, carrot, turnip, daikon
+- soup stock: chicken stock, beef stock, pork stock, vegetable stock, dashi
+- black mushroom: dried black mushroom, shiitake mushroom, dried shiitake
+- rice wine: shaoxing wine, chinese cooking wine, dry sherry, mirin, sake
+- hot bean paste: doubanjiang, chili bean paste, sichuan chili bean paste
+- sweet bean paste: sweet red bean paste, red bean paste, sweet soybean paste
+- chili: red pepper, dried red pepper, red chili, thai chili, serrano, jalapeno, birds eye chili
+- wheat flour: all-purpose flour, bread flour, plain flour
+- starch: cornstarch, potato starch, tapioca starch, sweet potato starch, water chestnut flour
+- vinegar: rice vinegar, brown vinegar, black vinegar, white vinegar, cider vinegar
+- leafy herb: cilantro, parsley, basil, mint, chives
+
+## Same thing
+
+Different words for one product. Works in every direction, and these never
+show up twice on a shopping list.
+
+- bean curd = beancurd = tofu
+- catsup = ketchup = tomato catsup
+- agar agar = agar-agar = dried agar agar
+- msg = monosodium glutamate = aji no moto
+- brown peppercorn = sichuan peppercorn = szechuan peppercorn = sichuan pepper
+- brown peppercorn powder = ground sichuan peppercorn
+- chinese parsley = cilantro = coriander leaves = fresh coriander
+- chicken grease = chicken fat = chicken oil = schmaltz
+- crystal sugar = rock sugar = yellow rock sugar
+- brown vinegar = chinese black vinegar = chinkiang vinegar
+- soybean paste = soy bean paste
+- shark s fin = sharks fin = shark fin
+- snow pea pod = snow pea = mangetout
+- black wood ear = wood ear = dried wood ear = cloud ear
+- glutinous rice = sweet rice = sticky rice
+- bean sprout = mung bean sprout
+- green bean sheet = mung bean sheet
+- bean noodle = cellophane noodle = glass noodle = mung bean noodle
+- chinese ham = chinese virginia ham = jinhua ham
+- barbecued pork = char siu = roast pork
+- five spice powder = chinese five spice
+- kitchen bouquet = browning sauce
+- spring roll skin = spring roll wrapper
+- hun tun = wonton
+- dan bing = egg crepe
+
+## Interchangeable
+
+Not the same thing, but either will do. Written with <->. On a recipe page
+you can cross one off and its amount moves onto the other — so 500 g ground
+beef plus 250 g ground pork becomes 750 g ground beef.
+
+- ground beef <-> ground pork <-> ground turkey <-> ground lamb <-> ground chicken
+- chicken thigh <-> chicken breast
+- pork tenderloin <-> chicken breast
+- shrimp <-> prawn <-> scallop
+- vegetable oil <-> canola oil <-> peanut oil <-> corn oil <-> sunflower oil
+- lard <-> shortening <-> vegetable oil
+- sugar <-> brown sugar <-> crystal sugar
+- soy sauce <-> light soy sauce
+- cornstarch <-> potato starch <-> tapioca starch
+- green cabbage <-> chinese cabbage <-> napa cabbage
+- bamboo shoot <-> water chestnut
+- rice vinegar <-> brown vinegar <-> white vinegar
+- shaoxing wine <-> dry sherry
+- black mushroom <-> button mushroom
+- green onion <-> leek
+- spinach <-> bok choy <-> chinese cabbage
 `,
 'flours.md':`# Flours
 
@@ -1896,7 +2033,7 @@ function componentFor(item){
   if(!item)return null;
   return S.recipes.find(r=>r.meta.makes && sameThing(r.meta.makes,item))||null;
 }
-function inPantry(item){ return pantryHave(S.pantry).some(h=>satisfies(h.name,item)); }
+function inPantry(item){ return pantryHave(S.pantry).some(h=>answers(h.name,item)); }
 /* can we produce this from what is in the house right now? depth-limited, so
    two recipes that quote each other cannot spin forever */
 function canMake(item,depth,seen){
@@ -1970,8 +2107,8 @@ function scoreRecipe(r,selected,have){
        unreadable line silently skipped is what let a cranberry sauce with
        no cranberries report "can make now". */
     if(!i.key){ missing.push(Object.assign({},i,{unknown:true})); return; }
-    const inSel=sel.some(s=>satisfies(s,i.item));
-    const held=hv.some(k=>satisfies(k,i.item));
+    const inSel=sel.some(s=>answers(s,i.item));
+    const held=hv.some(k=>answers(k,i.item));
     if(inSel)usedSel++;
     if(inSel||held){ matched++; return; }
     const mk=canMake(i.item);          // don't have it, but could make it
@@ -2312,13 +2449,13 @@ function buildGrocery(planRows){
     row.recipe.ingredients.forEach(i=>{
       if(!ingredientCounts(i))return;
       if(isFree(i.item))return;                          // never shopping
-      if(have.some(h=>satisfies(h.name,i.item)))return;
+      if(have.some(h=>answers(h.name,i.item)))return;
       if(canMake(i.item))return;                       // we can make this from what's here
       const comp=componentFor(i.item);
       if(comp){                                        // we make this, but are short an input
         comp.ingredients.forEach(ci=>{
           if(!ci.key||isFree(ci.item)||negligible(ci))return;
-          if(have.some(h=>satisfies(h.name,ci.item)))return;
+          if(have.some(h=>answers(h.name,ci.item)))return;
           const ck=ci.key;
           if(!bucket.has(ck))bucket.set(ck,{item:ci.item,parts:[],forr:new Set()});
           const cb=bucket.get(ck);
@@ -2487,7 +2624,7 @@ function makeIt(recipe,opts={}){
   const r=JSON.parse(JSON.stringify(recipe));
   const changes=[];
   const have=pantryHave(S.pantry);
-  const hasIt=n=>have.some(h=>satisfies(h.name,n));
+  const hasIt=n=>have.some(h=>answers(h.name,n));
   const note=(kind,text,was)=>changes.push({kind,text,was:was||null});
 
   /* 1 — swap the whole protein, if asked */
@@ -2640,7 +2777,7 @@ function deductPlan(recipe){
   const rows=[];
   S.pantry.groups.forEach(g=>g.items.forEach(i=>{
     if(i.out)return;
-    const used=recipe.ingredients.find(x=>satisfies(i.name,x.item)&&!isFree(x.item));
+    const used=recipe.ingredients.find(x=>answers(i.name,x.item)&&!isFree(x.item));
     if(!used)return;
     const perishable=/fridge|freezer|produce|veg|meat/.test(g.name);
     let suggestion='keep';
@@ -3479,6 +3616,251 @@ function clockOf(d){
   return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'});
 }
 /* ============================================================
+   INGREDIENT CLASSES, SYNONYMS, AND SWAPS
+   ------------------------------------------------------------
+   Three different relations, kept separate on purpose, because
+   conflating them is how a matcher starts lying to you.
+
+     CLASS       one-way. "lean pork" is an ask, not a product.
+                 Pork tenderloin answers it; "lean pork" does not
+                 answer a recipe that specifically wants tenderloin.
+
+     SAME THING  two-way identity. Beancurd IS tofu. Either word
+                 satisfies either ask, and they never both appear
+                 as separate things to buy.
+
+     SWAP        two-way substitution between things that are NOT
+                 the same. Ground pork is not ground beef, but one
+                 will stand in for the other — and because they
+                 measure the same way, crossing one off can move
+                 its weight onto the other.
+
+   All three live in classes.md in your Drive folder as plain text.
+   ============================================================ */
+
+function parseClasses(text){
+  const S2=sections(text);
+  const classes=[];
+  bullets(S2['classes']).forEach(l=>{
+    const m=/^(.+?)\s*:\s*(.+)$/.exec(l); if(!m)return;
+    const members=m[2].split(',').map(x=>x.trim()).filter(Boolean);
+    if(members.length)classes.push({name:m[1].trim(),members});
+  });
+  const same=[];
+  bullets(S2['same thing']).forEach(l=>{
+    const parts=l.split(/\s*=\s*/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1)same.push(parts);
+  });
+  const swap=[];
+  bullets(S2['interchangeable']).forEach(l=>{
+    const parts=l.split(/\s*(?:<->|<>|~)\s*/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1)swap.push(parts);
+  });
+  return {classes,same,swap,raw:text};
+}
+function serializeClasses(c){
+  const out=['# Ingredient Classes','',
+    'Three different relations. Keeping them apart is what stops the app',
+    'telling you that you can cook something you cannot.',''];
+  out.push('## Classes','',
+    'A generic ask, then everything that answers it. One-way: having pork',
+    'tenderloin satisfies a recipe asking for "lean pork", but a recipe that',
+    'specifically wants tenderloin is not satisfied by just any lean pork.','');
+  (c.classes||[]).forEach(x=>out.push('- '+x.name+': '+x.members.join(', ')));
+  out.push('','## Same thing','',
+    'Different words for one product. Works in every direction, and these',
+    'never show up twice on a shopping list.','');
+  (c.same||[]).forEach(g=>out.push('- '+g.join(' = ')));
+  out.push('','## Interchangeable','',
+    'Not the same thing, but either will do. Written with <->. On a recipe',
+    'page you can cross one off and its amount moves onto the other.','');
+  (c.swap||[]).forEach(g=>out.push('- '+g.join(' <-> ')));
+  out.push('');
+  return out.join('\n');
+}
+
+/* ---------- the matcher ----------
+   Built once per classes.md, not once per question. Class members can be
+   class names themselves, so the nesting is flattened up front and the loop
+   guard runs here rather than on every lookup. Answers are remembered too:
+   sweeping a 400-recipe library asks the same "does X answer Y" question
+   tens of thousands of times. */
+let _cx=null,_cxSrc=null;
+function classIndex(){
+  const src=(S.classes&&S.classes.classes)?S.classes:{classes:[],same:[],swap:[]};
+  if(_cx&&_cxSrc===src)return _cx;
+  const byName=new Map();
+  src.classes.forEach(c=>byName.set(norm(c.name),c));
+  const expand=(c,seen)=>{
+    if(seen.has(c))return [];
+    seen.add(c);
+    let out=[];
+    c.members.forEach(m=>{
+      const sub=byName.get(norm(m));
+      if(sub)out=out.concat(expand(sub,seen)); else out.push(m);
+    });
+    return out;
+  };
+  const flat=new Map();
+  src.classes.forEach(c=>flat.set(norm(c.name),uniq(expand(c,new Set()))));
+  const gid=new Map();
+  src.same.forEach((g,i)=>g.forEach(x=>gid.set(norm(x),i)));
+  const swapBy=new Map();
+  src.swap.forEach(g=>g.forEach(x=>{
+    const k=norm(x);
+    swapBy.set(k,uniq((swapBy.get(k)||[]).concat(g.filter(y=>norm(y)!==k))));
+  }));
+  _cxSrc=src;
+  _cx={src,byName,flat,gid,swapBy,ans:new Map()};
+  return _cx;
+}
+function classByName(n){
+  const cx=classIndex();
+  return cx.byName.get(norm(n))||cx.src.classes.find(c=>sameThing(c.name,n))||null;
+}
+/* two names for one product */
+function sameGroup(a,b){
+  if(sameThing(a,b))return true;
+  const cx=classIndex();
+  const ga=cx.gid.get(norm(a));
+  if(ga!=null&&ga===cx.gid.get(norm(b)))return true;
+  return cx.src.same.some(g=>
+    g.some(x=>sameThing(x,a)) && g.some(x=>sameThing(x,b)));
+}
+/* does `item` belong to `cls`? Members may themselves be class names,
+   so this recurses — with a seen-set, because a data file written by a
+   human will eventually contain a loop. */
+function inClass(item,cls){
+  if(!cls)return false;
+  const members=classIndex().flat.get(norm(cls.name))||cls.members;
+  return members.some(m=>sameGroup(m,item)||satisfies(item,m));
+}
+/* THE question: does having `haveItem` satisfy a recipe asking for `wantItem`?
+   Everything that used to call satisfies() against the pantry calls this now. */
+function answers(haveItem,wantItem){
+  if(satisfies(haveItem,wantItem))return true;
+  const cx=classIndex();
+  const k=norm(haveItem)+'\u0000'+norm(wantItem);
+  if(cx.ans.has(k))return cx.ans.get(k);
+  let v=false;
+  if(sameGroup(haveItem,wantItem))v=true;
+  else { const cls=classByName(wantItem); v=!!(cls&&inClass(haveItem,cls)); }
+  if(cx.ans.size<200000)cx.ans.set(k,v);
+  return v;
+}
+/* everything that could stand in for this, for display */
+function standIns(item){
+  const cx=classIndex();
+  const fast=cx.swapBy.get(norm(item));
+  if(fast)return fast;
+  const out=[];
+  cx.src.swap.forEach(g=>{
+    if(g.some(x=>sameGroup(x,item)))g.forEach(x=>{ if(!sameGroup(x,item))out.push(x); });
+  });
+  return uniq(out);
+}
+/* which class asks would this specific thing answer */
+function classesFor(item){
+  return (S.classes&&S.classes.classes||[]).filter(c=>inClass(item,c)).map(c=>c.name);
+}
+
+/* ---------- crossing one ingredient off onto another ----------
+   "500 g ground beef and 250 g ground pork" — drop the pork, and the
+   beef should read 750 g. Only ever between things listed as
+   interchangeable, and only when the two amounts are in the same family
+   of units, because 250 g cannot be added to 2 cups without a density
+   nobody has measured. */
+function absorbTarget(recipe,ing){
+  const parts=standIns(ing.item);
+  for(const p of parts){
+    const t=(recipe.ingredients||[]).find(x=>x!==ing&&x.key&&sameGroup(x.item,p));
+    if(t)return t;
+  }
+  return null;
+}
+function addBase(a,b){
+  const A=toBase(a.qty,a.unit), B=toBase(b.qty,b.unit);
+  if(!A||!B||A.fam!==B.fam)return null;
+  return {fam:A.fam,n:A.n+B.n};
+}
+function fmtBase(base,unit){
+  if(!base)return null;
+  const u=(unit||'').toLowerCase();
+  if(base.fam==='weight'&&UNIT_G[u])return trimNum(base.n/UNIT_G[u]);
+  if(base.fam==='volume'&&UNIT_ML[u])return trimNum(base.n/UNIT_ML[u]);
+  if(base.fam==='count')return trimNum(base.n);
+  return null;
+}
+/* Returns the recipe's ingredients with the dropped ones removed and their
+   amounts folded into their stand-ins. Never mutates the recipe. */
+function withDropped(recipe,offKeys){
+  const off=new Set((offKeys||[]).map(norm).filter(Boolean));
+  const rows=(recipe.ingredients||[]).map(i=>Object.assign({},i));
+  const dropped=[];
+  rows.forEach(i=>{
+    if(!i.key||!off.has(i.key))return;
+    i._off=true;
+    const t=absorbTarget({ingredients:rows.filter(x=>!x._off)},i);
+    if(!t)return;
+    const sum=addBase(t,i);
+    const q=fmtBase(sum,t.unit);
+    if(q==null)return;                       // units will not add — leave both alone
+    t._absorbed=(t._absorbed||[]).concat([{from:i.item,qty:i.qty,unit:i.unit}]);
+    t.qty=String(q); t.raw=ingLine(t);
+    dropped.push({from:i.item,to:t.item});
+  });
+  return {rows,dropped};
+}
+
+/* ---------- what we could get ----------
+   Everything the whole library asks for that is neither in the house nor
+   already on the list. This is the shopping repertoire: the things that
+   would unlock recipes if you picked them up. */
+let _cgCache=null,_cgStamp='';
+function couldGetStamp(){
+  return (S.recipes||[]).length+'|'+S.pantry.groups.reduce((a,g)=>a+g.items.length,0)
+    +'|'+pantryHave(S.pantry).length+'|'+((S.grocery.need||[]).length+(S.grocery.manual||[]).length)
+    +'|'+((S.classes&&S.classes.raw)||'').length;
+}
+function couldGet(){
+  const stamp=couldGetStamp();
+  if(_cgCache&&_cgStamp===stamp)return _cgCache;
+  /* Collect the distinct asks first, then decide about each one ONCE.
+     Testing every occurrence separately meant asking the same question of
+     the pantry five thousand times over a four-hundred-recipe library. */
+  const map=new Map();
+  (S.recipes||[]).forEach(r=>(r.ingredients||[]).forEach(i=>{
+    if(!i.key||isFree(i.item))return;
+    if(!map.has(i.key))map.set(i.key,{key:i.key,name:i.item,n:0,recipes:[]});
+    const e=map.get(i.key);
+    e.n++;
+    if(e.recipes.length<8&&e.recipes.indexOf(r.name)<0)e.recipes.push(r.name);
+    if(i.item.length<e.name.length)e.name=i.item;    // prefer the plainest wording
+  }));
+  const have=pantryHave(S.pantry);
+  const known=new Set();
+  S.pantry.groups.forEach(g=>g.items.forEach(i=>known.add(i.key)));
+  const onList=new Set((S.grocery.need||[]).concat(S.grocery.manual||[]).map(norm));
+  const out=[];
+  map.forEach(e=>{
+    if(known.has(e.key)||onList.has(e.key))return;
+    if(have.some(h=>answers(h.name,e.name)))return;
+    out.push(e);
+  });
+  out.sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+  _cgCache=out; _cgStamp=stamp;
+  return out;
+}
+/* grouped into the same shelf order as the sidebar */
+function couldGetGrouped(){
+  const list=couldGet();
+  const order=(S.rules.shelf||CAT_DEFAULT);
+  const by={};
+  list.forEach(x=>{ const c=categoryOf(x.name); (by[c]=by[c]||[]).push(x); });
+  return order.filter(c=>by[c]&&by[c].length).map(c=>({name:c,items:by[c]}))
+    .concat(Object.keys(by).filter(c=>!order.includes(c)).map(c=>({name:c,items:by[c]})));
+}
+/* ============================================================
    UI
    ============================================================ */
 const TABS=[
@@ -3486,7 +3868,7 @@ const TABS=[
   ['add','Add'],['money','Money'],['refactor','Refactor'],['files','Files'],['settings','Settings']
 ];
 let TAB=LS.get('tab','cook');
-let UI={selected:[],q:'',sideFind:'',planStart:todayISO(),planDays:7,planRows:null,openRecipe:null,
+let UI={selected:[],q:'',sideFind:'',getFind:'',getOpen:LS.get('getOpen',false),planStart:todayISO(),planDays:7,planRows:null,openRecipe:null,
   scanMode:/[?&]scan=1/.test(location.search)};
 
 function renderNav(){
@@ -3582,7 +3964,7 @@ function addPantry(inp,sel){
   if(g.items.some(i=>sameThing(i.name,name)))return toast('Already in the pantry.');
   g.items.push({name,level:'plenty',out:false,qty:null,unit:null,bought:null,key:norm(name)});
   inp.value='';
-  _stockDirty=true; renderStockHost(); renderPantrySide(); refreshMatches();
+  _stockDirty=true; renderStockHost(); renderPantrySide(); renderCouldGet(); refreshMatches();
   clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,600);
   toast(name+' added to the pantry.');
 }
@@ -3620,10 +4002,13 @@ function viewCook(){
   main.append(el('div',{id:'matchHost'}));
 
   /* the house on the left, the recipes filling the rest */
-  wrap.append(el('aside',{class:'card side',id:'pantrySide'}));
+  const rail=h('div','siderail');
+  rail.append(el('aside',{class:'card side',id:'pantrySide'}));
+  rail.append(el('aside',{class:'card side',id:'couldGet'}));
+  wrap.append(rail);
   wrap.append(main);
 
-  setTimeout(()=>{ renderPantrySide(); refreshMatches(); },0);
+  setTimeout(()=>{ renderPantrySide(); renderCouldGet(); refreshMatches(); },0);
   return wrap;
 }
 
@@ -3849,14 +4234,7 @@ function openRecipe(r){
         c.unpriced.length?h('span','dim','  — no price yet for '+c.unpriced.join(', ')):null,
         h('span','dim','  · from what we actually paid'));})(),
     h('div','split',
-      h('div',null,h('h3',null,'Ingredients'),
-        el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const free=isFree(i.item);
-          const got=free||pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
-          return el('li',{},el('span',{class:got?'':'miss'},ingLine(i)),
-            free?el('span',{class:'tiny dim'},'  from the tap'):
-            got?el('span',{class:'tiny dim'},'  have'):'');
-        }))),
+      ingredientPanel(r,()=>openRecipe(r)),
       h('div',null,h('h3',null,'Steps'),
         el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>el('li',{style:'margin-bottom:7px'},expand(s)))))),
     r.notes?h('div',null,h('h3',null,'Notes'),h('div','muted',r.notes)):null,
@@ -3976,17 +4354,7 @@ function openMakeIt(recipe,protein){
           ' ',c.text)))):h('p','muted','Nothing needed changing — we have everything.'),
 
     h('div','split',
-      h('div',null,h('h3',null,'Ingredients'),
-        el('ul',{class:'clean'},r.ingredients.map(i=>{
-          const free=isFree(i.item);
-          const got=free||pantryHave(S.pantry).some(hh=>satisfies(hh.name,i.item));
-          return el('li',{},
-            el('span',{class:i.forScratch?'scratch':(i.sub?'subbed':(got?'':'miss'))},ingLine(i)),
-            i.forScratch?el('span',{class:'tiny scratch'},'  for the '+i.forScratch):null,
-            i.sub?el('span',{class:'tiny'},'  ',el('span',{class:'was'},i.sub)):null,
-            i.scratch?el('span',{class:'tiny scratch'},'  making our own'):null,
-            !got&&!i.sub&&!i.forScratch&&!i.scratch?el('span',{class:'tiny miss'},'  need this'):null);
-        }))),
+      ingredientPanel(r,()=>openMakeIt(recipe,protein)),
       h('div',null,h('h3',null,'Steps'),
         el('ol',{style:'padding-left:20px;margin:0'},r.steps.map(s=>
           el('li',{class:/^First, the /.test(s)?'steps-scratch':'',style:'margin-bottom:7px'},expand(s)))))),
@@ -5471,6 +5839,158 @@ function viewBakeEvidence(){
   src.append(h('p','muted','Compiled August 2026. Where a figure could not be pulled from full text, it says so on the chip.'));
   wrap.append(src);
   return wrap;
+}
+/* ============================================================
+   INGREDIENT ROWS, THE SHOPPING REPERTOIRE, AND CROSSING OFF
+   ============================================================ */
+
+/* Which ingredients you have crossed off, per recipe. Kept on this machine
+   only — it never touches the recipe file in Drive, because "I am leaving
+   the pork out tonight" is a decision about tonight, not about the recipe. */
+let RX=LS.get('crossedOff',{});
+const rxKey=r=>String(r.slug||r.name||'');
+function rxOff(r){ return RX[rxKey(r)]||[]; }
+function rxToggle(r,key){
+  const k=rxKey(r); const cur=new Set(RX[k]||[]);
+  cur.has(key)?cur.delete(key):cur.add(key);
+  RX[k]=[...cur];
+  if(!RX[k].length)delete RX[k];
+  LS.set('crossedOff',RX);
+}
+function rxClear(r){ delete RX[rxKey(r)]; LS.set('crossedOff',RX); }
+
+/* ---------- putting things on the list, and into the house ---------- */
+async function addToList(name){
+  const n=String(name||'').trim(); if(!n)return;
+  const already=(S.grocery.need||[]).concat(S.grocery.manual||[]).some(x=>sameThing(x,n));
+  if(already){ toast(n+' is already on the list.'); return; }
+  S.grocery.manual=(S.grocery.manual||[]).concat([n]);
+  toast(n+' → shopping list');
+  try{ await saveFile('grocery-list.md',serializeGrocery(S.grocery)); }
+  catch(e){ toast('On the list here, but Drive said: '+e.message); }
+}
+async function markHave(name){
+  const n=String(name||'').trim(); if(!n)return;
+  const cat=categoryOf(n);
+  let g=S.pantry.groups.find(x=>norm(x.name)===norm(cat))||S.pantry.groups.find(x=>/pantry|cupboard|staple/i.test(x.name))||S.pantry.groups[0];
+  if(!g){ toast('No pantry sections yet — add one on the Groceries tab.'); return; }
+  if(g.items.some(i=>sameThing(i.name,n))){ toast('Already in the house.'); return; }
+  g.items.push({name:n,key:norm(n),level:'plenty',out:false,raw:'- '+n});
+  S.grocery.manual=(S.grocery.manual||[]).filter(x=>!sameThing(x,n));
+  toast(n+' → '+g.name);
+  try{ await saveFile('pantry.md',serializePantry(S.pantry)); }
+  catch(e){ toast('Saved here, but Drive said: '+e.message); }
+}
+
+/* ---------- the ingredient list on an open recipe ----------
+   Hovering a line reveals two things you can do with it: put it on the
+   shopping list, or cross it off. Crossing off is the interesting one —
+   if the recipe also calls for something interchangeable, the amount moves
+   there instead of just disappearing. */
+function ingredientList(r,redraw){
+  const off=rxOff(r);
+  const {rows}=withDropped(r,off);
+  const have=pantryHave(S.pantry);
+  const ul=el('ul',{class:'clean ings'});
+  rows.forEach(i=>{
+    const free=isFree(i.item);
+    const got=free||have.some(hh=>answers(hh.name,i.item));
+    const li=el('li',{class:'ingrow'+(i._off?' dropped':'')});
+    const label=el('span',{class:i.forScratch?'scratch':(i.sub?'subbed':(got||i._off?'':'miss'))},ingLine(i));
+    li.append(label);
+
+    if(i._off){
+      li.append(el('span',{class:'tiny dim'},'  left out'));
+    }else if(free){
+      li.append(el('span',{class:'tiny dim'},'  from the tap'));
+    }else if(got){
+      /* say WHY we count it as had, when it is not the obvious reason */
+      const exact=have.find(hh=>sameThing(hh.name,i.item));
+      const via=exact?null:have.find(hh=>answers(hh.name,i.item));
+      li.append(el('span',{class:'tiny dim'},via?'  have '+via.name:'  have'));
+    }
+    if(i._absorbed&&i._absorbed.length){
+      li.append(el('span',{class:'tiny rolled'},'  +'+i._absorbed.map(a=>(a.qty?a.qty+' ':'')+(a.unit||'')+' of the '+a.from).join(', ')));
+    }
+    if(!i._off&&!got&&!free){
+      const cls=classesFor(i.item);
+      if(cls.length)li.append(el('span',{class:'tiny dim'},'  counts as '+cls[0]));
+    }
+
+    /* the hover controls */
+    const acts=el('span',{class:'ingacts'});
+    if(!got&&!free&&!i._off){
+      acts.append(el('button',{class:'ia',title:'Put '+i.item+' on the shopping list',
+        onclick:async e=>{ e.stopPropagation(); await addToList(i.item); redraw&&redraw(); }},'+ list'));
+    }
+    if(i.key){
+      const partner=i._off?null:absorbTarget({ingredients:rows.filter(x=>!x._off&&!x._absorbedFrom)},i);
+      acts.append(el('button',{class:'ia',
+        title:i._off?'Put '+i.item+' back'
+             :(partner?'Leave it out — its '+(i.qty||'amount')+' '+(i.unit||'')+' goes onto the '+partner.item
+                      :'Leave '+i.item+' out'),
+        onclick:e=>{ e.stopPropagation(); rxToggle(r,i.key); redraw&&redraw(); }},
+        i._off?'put back':(partner?'× → '+partner.item:'×')));
+    }
+    li.append(acts);
+    ul.append(li);
+  });
+  return ul;
+}
+function ingredientPanel(r,redraw){
+  const box=h('div',null,h('h3',null,'Ingredients'),ingredientList(r,redraw));
+  const off=rxOff(r);
+  if(off.length){
+    box.append(el('div',{class:'tiny dim rxnote'},
+      off.length+' left out. ',
+      el('button',{class:'link',onclick:()=>{ rxClear(r); redraw&&redraw(); }},'put everything back')));
+  }
+  return box;
+}
+
+/* ---------- the shopping repertoire in the Cook sidebar ---------- */
+function renderCouldGet(){
+  const host=document.getElementById('couldGet');
+  if(!host)return;
+  host.innerHTML='';
+  const groups=couldGetGrouped();
+  const total=groups.reduce((a,g)=>a+g.items.length,0);
+  const q=(UI.getFind||'').trim().toLowerCase();
+
+  host.append(el('div',{class:'sidehead'},
+    el('button',{class:'disc'+(UI.getOpen?' on':''),onclick:()=>{ UI.getOpen=!UI.getOpen; LS.set('getOpen',UI.getOpen); renderCouldGet(); }},
+      (UI.getOpen?'▾ ':'▸ ')+'Could get'),
+    h('span','n tiny dim',total+'')));
+  if(!UI.getOpen){
+    host.append(h('p','tiny dim','Everything your recipes call for that is neither in the house nor on the list.'));
+    return;
+  }
+  host.append(el('input',{type:'text',class:'sidefind',placeholder:'find something to buy',
+    value:UI.getFind||'',
+    oninput:e=>{UI.getFind=e.target.value;renderCouldGet();}}));
+  host.append(h('p','tiny dim','Sorted the same way as the house. Click to put it on the list; the tick says you already have it.'));
+
+  let shown=0;
+  groups.forEach(g=>{
+    const items=g.items.filter(x=>!q||x.name.toLowerCase().includes(q));
+    if(!items.length)return;
+    const box=h('div','pgroup');
+    box.append(h('div','glabel tiny dim',g.name));
+    items.slice(0,q?200:40).forEach(x=>{
+      shown++;
+      const row=el('div',{class:'pitem getitem',title:x.n+' recipe'+(x.n===1?'':'s')+': '+x.recipes.slice(0,5).join(', ')+(x.n>5?'…':'')});
+      row.append(el('span',{class:'nm'},x.name));
+      row.append(el('span',{class:'tiny dim ct'},x.n>1?String(x.n):''));
+      row.append(el('button',{class:'ia',title:'Put '+x.name+' on the shopping list',
+        onclick:async e=>{ e.stopPropagation(); await addToList(x.name); renderCouldGet(); renderPantrySide(); refreshMatches(); }},'+'));
+      row.append(el('button',{class:'ia',title:'We actually have '+x.name,
+        onclick:async e=>{ e.stopPropagation(); await markHave(x.name); renderCouldGet(); renderPantrySide(); refreshMatches(); }},'✓'));
+      box.append(row);
+    });
+    if(!q&&g.items.length>40)box.append(h('div','tiny dim','…and '+(g.items.length-40)+' more — use the find box'));
+    host.append(box);
+  });
+  if(!shown)host.append(h('p','tiny dim','Nothing matches.'));
 }
 /* ---------------- boot ---------------- */
 $('#btnSync').addEventListener('click',async()=>{ await syncAll(); render(); });
