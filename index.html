@@ -398,6 +398,13 @@ button.disc:hover{color:var(--hot2)}
 .kindhead{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;
   color:var(--ink3);text-transform:capitalize;margin:6px 0 2px;padding-left:2px}
 .kindnest{border-left:2px solid var(--line);padding-left:8px;margin-bottom:4px}
+
+.pitem[draggable=true],.chip[draggable=true]{cursor:grab}
+.pitem.dragging,.chip.dragging{opacity:.4}
+.drop{transition:background .08s,box-shadow .08s}
+.drop.dropok{background:var(--hot);color:#1a120c;border-radius:6px;
+  box-shadow:0 0 0 2px var(--hot)}
+.pgroup.empty{opacity:.45}
 </style>
 </head>
 <body>
@@ -429,7 +436,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.5'
+  VER: '3.6'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -891,7 +898,7 @@ function parsePantryItem(line){
   let s=String(line||'').trim();
   const flaggedOut=/^!\s*/.test(s);
   s=s.replace(/^!\s*/,'');
-  let level=null,qty=null,unit=null,bought=null;
+  let level=null,qty=null,unit=null,bought=null,cat=null;
   const m=/\(([^)]*)\)\s*$/.exec(s);
   if(m){
     s=s.slice(0,m.index).trim();
@@ -902,19 +909,21 @@ function parsePantryItem(line){
       if(d){ bought=d[1]; return; }
       d=/^(?:bought\s+)?(\d{1,2})\/(\d{1,2})$/.exec(t);
       if(d){ bought=new Date().getFullYear()+'-'+String(+d[1]).padStart(2,'0')+'-'+String(+d[2]).padStart(2,'0'); return; }
+      if(CAT_DEFAULT.indexOf(t)>=0){ cat=t; return; }   // "- popcorn (snacks)"
       const q=/^([\d.\/\s]+?)\s*([a-z]*)$/.exec(t);
       if(q && fracToNum(q[1])!=null){ qty=q[1].trim(); unit=UNIT_CANON[q[2]]||q[2]||null; }
     });
   }
   if(flaggedOut)level='out';
   if(!level)level='plenty';
-  return {name:s,level,out:level==='out',qty,unit,bought,key:norm(s)};
+  return {name:s,level,out:level==='out',qty,unit,bought,cat,key:norm(s)};
 }
 function pantryItemLine(i){
   const bits=[];
   if(i.level && i.level!=='plenty' && i.level!=='out')bits.push(i.level);
   if(i.qty)bits.push([i.qty,i.unit].filter(Boolean).join(' '));
   if(i.bought)bits.push('bought '+i.bought);
+  if(i.cat)bits.push(i.cat);              // where you told us it belongs
   return (i.out?'! ':'')+i.name+(bits.length?' ('+bits.join(', ')+')':'');
 }
 /* the only way levels should ever be set — keeps out/level in step */
@@ -947,7 +956,8 @@ function serializePantry(p){
   out.push('    - apples (some)                     working through them');
   out.push('    - apples (low)                      nearly gone');
   out.push('    - ! apples                          out — lands on the grocery list');
-  out.push('    - apples (6 lb, bought 2026-08-10)  exact, off a receipt','');
+  out.push('    - apples (6 lb, bought 2026-08-10)  exact, off a receipt');
+  out.push('    - popcorn (snacks)                  filed where you dragged it','');
   p.groups.forEach(g=>{
     out.push('## '+g.name.replace(/\b\w/g,c=>c.toUpperCase()));
     g.items.forEach(i=>out.push('- '+pantryItemLine(i)));
@@ -1187,6 +1197,9 @@ const CAT_WORDS={
            'cornstarch','cornflour','baking','yeast','nut','pecan','walnut','almond','cashew','pistachio',
            'seed','coconut','peanut','chocolate','cocoa','bread','tortilla','cracker','gelatin',
            'wine','extract','molasses','quinoa','couscous','polenta','semolina'],
+  snacks:['popcorn','crisp','chip','cracker','pretzel','candy','cookie','biscuit','granola',
+          'jerky','trail mix','marshmallow','gum','wafer','crouton','hummus','salsa',
+          'potato chip','tortilla chip','corn chip','granola bar','chocolate bar','nut mix'],
   /* spices and dried aromatics. Checked before staples so "smoked paprika"
      does not fall through to Everything else. */
   seasonings:['salt','pepper','peppercorn','paprika','cumin','coriander seed','turmeric','cinnamon',
@@ -1203,6 +1216,12 @@ function catByWords(n,cat){
     return words.some(x=>x===w||x===w+'s'||x===w+'es'); // …single words match whole, never inside
   });
 }
+/* An item that has been dragged somewhere stays there. Everything else is
+   worked out from its name. */
+function itemCategory(i,group){
+  if(i&&i.cat&&CAT_DEFAULT.indexOf(i.cat)>=0)return i.cat;
+  return categoryOf(i&&i.name!=null?i.name:i,group);
+}
 function categoryOf(item,group){
   const g=String(group||'').toLowerCase();
   const n=norm(item)||String(item||'').toLowerCase();
@@ -1211,6 +1230,7 @@ function categoryOf(item,group){
   if(/staple|pantry|dry/.test(g))return 'staples';      // trust the file first
   if(catByWords(n,'dairy'))return 'dairy';             // eggs included, that is where you look
   if(isProtein(item)||catByWords(n,'meat'))return 'meat';
+  if(catByWords(n,'snacks'))return 'snacks';        // before the vegetables, or "potato chips" is a potato
   if(catByWords(n,'fruit'))return 'fruit';
   if(catByWords(n,'vegetable'))return 'vegetable';
   if(/produce|veg/.test(g))return 'vegetable';
@@ -4241,7 +4261,7 @@ function renderStockHost(node){
   S.pantry.groups.forEach(g=>{
     const items=g.items.filter(i=>!i.out);
     if(!items.length)return;
-    host.append(h('div','stockgroup',g.name));
+    host.append(dropShelf(el('div',{class:'stockgroup drop'},g.name),g));
     const chip=i=>el('span',{class:'chip'+(i.level!=='plenty'?' lvl-'+i.level:''),
         title:LEVEL_LABEL[i.level]+' — tap to knock it down, shift-tap to top it up',
         onclick:e=>{ if(e.shiftKey){stepUp(i);markStockDirty();renderStockHost();refreshMatches();}
@@ -4250,14 +4270,15 @@ function renderStockHost(node){
         i.level!=='plenty'?el('b',{class:'lv'},i.level==='low'?'NEARLY GONE':'SOME'):null,
         i.qty?el('b',{class:'qty'},[i.qty,i.unit].filter(Boolean).join(' ')):null,
         el('b',{class:'x'},'−'));
+    const chipD=i=>dragItem(chip(i),i);
     /* kinds of one thing sit together — flour, bread flour, 00 tipo */
     const nests=nestByKind(items,i=>i.name);
     const solos=nests.filter(n=>n.solo).map(n=>n.solo);
-    if(solos.length)host.append(el('div',{class:'chips'},solos.map(chip)));
+    if(solos.length)host.append(el('div',{class:'chips'},solos.map(chipD)));
     nests.filter(n=>!n.solo).forEach(nst=>{
       host.append(el('div',{class:'kindrow'},
         el('span',{class:'kindlabel'},nst.head),
-        el('div',{class:'chips'},nst.items.map(chip))));
+        el('div',{class:'chips'},nst.items.map(chipD))));
     });
   });
   /* ---- add an item to the house ---- */
@@ -4278,7 +4299,7 @@ function renderStockHost(node){
   host.append(h('h3','addhead','Add an item to the house'));
   host.append(el('div',{class:'row addrow'},inp,shelf,
     el('button',{class:'btn sm pri',onclick:doAdd},'Add')));
-  host.append(h('p','tiny dim','It works out which shelf on its own. Different kinds of the same thing — bread flour, 00 tipo pizza flour, rye — are kept as separate items and grouped together under the one they are a kind of.'));
+  host.append(h('p','tiny dim','Drag anything onto another shelf heading to move it. It works out which shelf on its own. Different kinds of the same thing — bread flour, 00 tipo pizza flour, rye — are kept as separate items and grouped together under the one they are a kind of.'));
 }
 function addPantry(inp){
   if(addToHouse(inp.value)){ inp.value='';
@@ -4403,6 +4424,7 @@ function renderPantrySide(){
       renderPantrySide(); refreshMatches();
     });
     longPress(node,500,()=>setStockLevel(i,gone?'plenty':'out'));
+    if(!gone)dragItem(node,i);
     return node;
   };
 
@@ -4411,15 +4433,15 @@ function renderPantrySide(){
   S.pantry.groups.forEach(g=>g.items.forEach(i=>{
     if(i.out)return;
     if(q && !i.name.toLowerCase().includes(q))return;
-    const c=categoryOf(i.name,g.name);
+    const c=itemCategory(i,g.name);
     (buckets[c]=buckets[c]||[]).push({item:i,group:g.name});
   }));
   let shown=0;
   (S.rules.shelf||CAT_DEFAULT).forEach(c=>{
     const items=buckets[c];
     if(!items||!items.length)return;
-    side.append(el('div',{class:'pgroup'},CAT_LABEL[c]||c,
-      el('span',{style:'float:right;opacity:.6;letter-spacing:0'},String(items.length))));
+    side.append(dropCategory(el('div',{class:'pgroup drop'},CAT_LABEL[c]||c,
+      el('span',{style:'float:right;opacity:.6;letter-spacing:0'},String(items.length))),c));
     items.sort((a,b)=>a.item.name.localeCompare(b.item.name));
     nestByKind(items,x=>x.item.name).forEach(nst=>{
       if(nst.solo){ side.append(row(nst.solo.item,false,nst.solo.group)); shown++; return; }
@@ -4431,6 +4453,14 @@ function renderPantrySide(){
     });
   });
   if(!shown) side.append(h('p','small dim',q?'Nothing matches “'+q+'”.':'Nothing in the house.'));
+  /* every shelf gets a heading even when empty, so there is always somewhere
+     to drop a thing that has been filed wrongly */
+  (S.rules.shelf||CAT_DEFAULT).forEach(c=>{
+    if(buckets[c]&&buckets[c].length)return;
+    side.append(dropCategory(el('div',{class:'pgroup drop empty'},CAT_LABEL[c]||c,
+      el('span',{style:'float:right;opacity:.4;letter-spacing:0'},'0')),c));
+  });
+  side.append(h('p','tiny dim','Filed somewhere odd? Drag it onto the right heading.'));
 
   const outShown=out.filter(i=>!q||i.name.toLowerCase().includes(q));
   if(outShown.length){
@@ -6405,13 +6435,22 @@ function groupFor(name){
   const gs=S.pantry.groups;
   if(!gs.length)return null;
   const cat=categoryOf(name);
-  const direct=gs.find(x=>categoryOf(x.name,x.name)===cat);
+  /* Only trust a shelf's own name when that name actually means something.
+     "Fridge" categorises as Everything else, which is how popcorn ended up
+     in the fridge — it was the first shelf whose name also meant nothing. */
+  const direct=cat==='other'?null:gs.find(x=>categoryOf(x.name,x.name)===cat);
   if(direct)return direct;
   const where={vegetable:/produce|veg|garden|fridge/i, fruit:/produce|fruit|fridge/i,
     meat:/freezer|meat|butcher|fridge/i, dairy:/fridge|dairy|cold/i,
-    staples:/pantry|cupboard|staple|dry|shelf/i, seasonings:/season|spice|pantry|cupboard/i,
-    snacks:/snack|treat|pantry|cupboard/i, other:/pantry|cupboard|shelf/i};
-  return gs.find(x=>(where[cat]||/pantry|cupboard/i).test(x.name))||gs[0];
+    staples:/pantry|cupboard|staple|dry|shelf/i, seasonings:/season|spice|pantry|cupboard|staple/i,
+    snacks:/snack|treat|pantry|cupboard|staple|dry/i, other:/pantry|cupboard|shelf|dry|staple/i};
+  const re=where[cat]||/pantry|cupboard|staple/i;
+  /* Last resort is anything that is not cold storage. A dry good landing in
+     the freezer because it happened to be listed first is worse than landing
+     on the wrong dry shelf. */
+  return gs.find(x=>re.test(x.name))
+      || gs.find(x=>!/fridge|freezer|cold|frozen|chill/i.test(x.name))
+      || gs[0];
 }
 /* Is this literally already here? Deliberately an exact match. The loose
    matcher would say we already have 00 tipo pizza flour because we have
@@ -6464,6 +6503,69 @@ function addToHouse(name,opts){
   toast(n+' → '+g.name+(near.length?'  (kept with your other '+headNoun(n)+')':''));
   markStockDirty();
   return true;
+}
+
+
+/* ============================================================
+   DRAGGING THINGS WHERE THEY BELONG
+   ------------------------------------------------------------
+   Two different groupings, both draggable, both landing in the
+   same file: the Cook sidebar groups by what a thing IS, the
+   Groceries tab by which shelf it lives on. A guess the app got
+   wrong should take one drag to fix, not an edit to a text file.
+   ============================================================ */
+let _dragKey=null;
+function dragItem(node,item){
+  node.setAttribute('draggable','true');
+  node.addEventListener('dragstart',e=>{
+    _dragKey=item.key;
+    try{ e.dataTransfer.setData('text/plain',item.key); e.dataTransfer.effectAllowed='move'; }catch(err){}
+    node.classList.add('dragging');
+  });
+  node.addEventListener('dragend',()=>{ _dragKey=null; node.classList.remove('dragging');
+    document.querySelectorAll('.dropok').forEach(n=>n.classList.remove('dropok')); });
+  return node;
+}
+function findPantryItem(key){
+  for(const g of S.pantry.groups){
+    const i=g.items.find(x=>x.key===key);
+    if(i)return {item:i,group:g};
+  }
+  return null;
+}
+/* drop zone that re-files an item under a food category */
+function dropCategory(node,cat){
+  node.addEventListener('dragover',e=>{ e.preventDefault(); node.classList.add('dropok'); });
+  node.addEventListener('dragleave',()=>node.classList.remove('dropok'));
+  node.addEventListener('drop',e=>{
+    e.preventDefault(); node.classList.remove('dropok');
+    const key=(()=>{ try{ return e.dataTransfer.getData('text/plain')||_dragKey; }catch(err){ return _dragKey; } })();
+    const f=findPantryItem(key); if(!f)return;
+    if(itemCategory(f.item,f.group.name)===cat){ _dragKey=null; return; }
+    f.item.cat=cat;
+    markStockDirty();
+    toast(f.item.name+' → '+(CAT_LABEL[cat]||cat));
+    _dragKey=null;
+    renderPantrySide(); renderStockHost(); renderCouldGet(); refreshMatches();
+  });
+  return node;
+}
+/* drop zone that moves an item to another shelf */
+function dropShelf(node,group){
+  node.addEventListener('dragover',e=>{ e.preventDefault(); node.classList.add('dropok'); });
+  node.addEventListener('dragleave',()=>node.classList.remove('dropok'));
+  node.addEventListener('drop',e=>{
+    e.preventDefault(); node.classList.remove('dropok');
+    const key=(()=>{ try{ return e.dataTransfer.getData('text/plain')||_dragKey; }catch(err){ return _dragKey; } })();
+    const f=findPantryItem(key); if(!f||f.group===group)return;
+    f.group.items=f.group.items.filter(x=>x!==f.item);
+    group.items.push(f.item);
+    markStockDirty();
+    toast(f.item.name+' → '+group.name);
+    _dragKey=null;
+    renderStockHost(); renderPantrySide(); renderCouldGet(); refreshMatches();
+  });
+  return node;
 }
 /* ---------------- boot ---------------- */
 $('#btnSync').addEventListener('click',async()=>{ await syncAll(); render(); });
