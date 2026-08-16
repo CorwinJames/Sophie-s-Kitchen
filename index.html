@@ -373,7 +373,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '2.5'
+  VER: '2.6'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -476,8 +476,9 @@ const PREP=['fresh','freshly','chopped','finely','roughly','diced','minced','sli
  'temperature','large','small','medium','extra','ripe','optional','taste','cold','warm','hot','dry','dried?no',
  'boneless','bone-in','skin-on','skinless','whole','halved','quartered','cubed','julienned','beaten',
  'leftover','any','good','quality','plus','more','for','serving','garnish','divided','about','approximately',
+ 'frozen','thawed','defrosted',
  'leaves','leaf','sprigs','sprig','stalks','stalk','fronds','tops','needed','required',
- 'a','little','few','extra','best','your','favourite','favorite','preferably'];
+ 'a','little','few','extra','best','your','favourite','favorite','preferably','of'];
 const SYN={
   'scallion':'green onion','scallions':'green onion','spring onion':'green onion',
   'coriander leaf':'cilantro','yellow onion':'onion','white onion':'onion','red onion':'onion',
@@ -510,6 +511,7 @@ const SYN={
 };
 function singular(w){
   if(/(ss|us|is)$/.test(w))return w;
+  if(/oes$/.test(w)&&w.length>4)return w.slice(0,-2);   // tomatoes, potatoes
   if(/ies$/.test(w))return w.slice(0,-3)+'y';
   if(/(ches|shes|xes|sses)$/.test(w))return w.slice(0,-2);
   if(/s$/.test(w)&&w.length>3)return w.slice(0,-1);
@@ -536,17 +538,46 @@ function stripPurpose(s){
   return t||String(s||'');
 }
 /* the canonical key used for all matching */
-function norm(s){
-  let t=deVulgar(preferBracketed(stripPurpose(String(s||'')))).toLowerCase();
-  t=t.replace(/\([^)]*\)/g,' ');                       // drop parentheticals
-  t=t.split(/\bor\b/)[0];                             // "chilli powder or flakes" -> the first one
-  t=t.replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
+function normCore(t){
+  t=String(t||'').replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
   if(SYN[t])t=SYN[t];
-  let words=t.split(' ').filter(w=>w&&!PREP.includes(w));
+  let words=t.split(' ').filter(w=>{
+    if(!w)return false;
+    if(PREP.includes(w))return false;
+    /* "extra-large" is two prep words wearing one hyphen. Drop it only when
+       every part is prep — "self-raising" and "flat-leaf" must survive. */
+    if(w.includes('-')){
+      const parts=w.split('-').filter(Boolean);
+      if(parts.length>1&&parts.every(x=>PREP.includes(x)))return false;
+    }
+    return true;
+  });
   words=words.map(singular);
   t=words.join(' ').trim();
   if(SYN[t])t=SYN[t];
   return t;
+}
+function norm(s){
+  let t=deVulgar(preferBracketed(stripPurpose(String(s||'')))).toLowerCase();
+  t=t.replace(/\([^)]*\)/g,' ');                       // drop parentheticals
+  const raw=t.split(/\bor\b/).map(x=>x.trim()).filter(Boolean);
+  if(raw.length<2)return normCore(t);
+  /* Two shapes hide behind the same word.
+
+       "chilli powder or flakes"        the first alternative names the thing
+       "light or dark brown sugar"      the noun is only in the LAST one
+
+     Taking the first alternative blindly turned "fresh or frozen cranberries"
+     into "fresh", which is a prep word, which left nothing — so the
+     ingredient vanished and a cranberry sauce with no cranberries reported
+     "can make now". You can tell the shapes apart by length: if the last
+     alternative is wordier than the first, the shared noun lives at its end.
+     Quantities and units do not count towards that length. */
+  const wc=x=>x.split(/\s+/).filter(w=>w&&!/^[\d./%-]+$/.test(w)&&!UNIT_CANON[w]).length;
+  const first=raw[0], last=raw[raw.length-1];
+  const order=wc(last)>wc(first)?[last,first].concat(raw):[first,last].concat(raw);
+  for(const cand of order){ const n=normCore(cand); if(n)return n; }
+  return '';
 }
 /* words that make a different product, not just a described version of the same one.
    "green onion" is not "onion"; "sesame oil" is not "oil"; "chicken stock" is not "stock". */
@@ -1909,6 +1940,12 @@ function freeHead(item){
   t=t.replace(/\s+\bfor\b\s+.*$/i,'');
   return t.trim();
 }
+/* Is this line a real ingredient at all? A bullet with no text is nothing.
+   A bullet WITH text that we failed to parse is something — and it has to
+   go on being something, or it disappears from the arithmetic. */
+function ingredientCounts(i){
+  return !!(i && String(i.item||'').trim());
+}
 function isFree(item){
   if(!item)return false;
   const head=freeHead(item);
@@ -1927,8 +1964,12 @@ function scoreRecipe(r,selected,have){
   const missing=[];
   const scratch=[];
   r.ingredients.forEach(i=>{
-    if(!i.key)return;
+    if(!ingredientCounts(i))return;
     if(isFree(i.item))return;                 // doesn't count for or against
+    /* Text we could not reduce to anything. Never assume we have it — an
+       unreadable line silently skipped is what let a cranberry sauce with
+       no cranberries report "can make now". */
+    if(!i.key){ missing.push(Object.assign({},i,{unknown:true})); return; }
     const inSel=sel.some(s=>satisfies(s,i.item));
     const held=hv.some(k=>satisfies(k,i.item));
     if(inSel)usedSel++;
@@ -1937,7 +1978,7 @@ function scoreRecipe(r,selected,have){
     if(mk){ matched++; scratch.push(mk); return; }
     missing.push(i);
   });
-  const total=r.ingredients.filter(i=>i.key&&!isFree(i.item)).length||1;
+  const total=r.ingredients.filter(i=>ingredientCounts(i)&&!isFree(i.item)).length||1;
   const selHits=sel.filter(s=>r.ingredients.some(i=>sameThing(s,i.item))).length;
   const coverage=matched/total;
   const rating=parseFloat(r.meta.rating||0)||0;
@@ -2269,7 +2310,7 @@ function buildGrocery(planRows){
     const serves=parseInt(row.recipe.meta.serves||houseSize())||houseSize();
     const mult=row.portions?Math.max(1,row.portions/serves):1;
     row.recipe.ingredients.forEach(i=>{
-      if(!i.key)return;
+      if(!ingredientCounts(i))return;
       if(isFree(i.item))return;                          // never shopping
       if(have.some(h=>satisfies(h.name,i.item)))return;
       if(canMake(i.item))return;                       // we can make this from what's here
@@ -2286,7 +2327,7 @@ function buildGrocery(planRows){
         });
         return;
       }
-      const k=i.key;
+      const k=i.key||('?'+String(i.item).toLowerCase().trim());
       if(!bucket.has(k))bucket.set(k,{item:i.item,parts:[],forr:new Set()});
       const b=bucket.get(k);
       const n=fracToNum(i.qty);
@@ -2532,7 +2573,9 @@ function makeIt(recipe,opts={}){
   const scratchUsed=[];
   for(let n=r.ingredients.length-1;n>=0;n--){
     const i=r.ingredients[n];
-    if(!i.key||isFree(i.item)||hasIt(i.item))continue;
+    if(!ingredientCounts(i)||isFree(i.item))continue;
+    if(!i.key){ missing.push(i.item); continue; }        // unreadable — never assume
+    if(hasIt(i.item))continue;
     if(i.chosen){ missing.push(i.item); continue; }   // you asked for this one — never drop it
     if(!opts.noScratch){
       const mk=canMake(i.item);
@@ -4495,6 +4538,8 @@ function libraryWarnings(){
   const out=[];
   S.recipes.forEach(r=>{
     if(!r.ingredients.length)out.push({level:'bad',text:r.name+' — no ingredients section'});
+    r.ingredients.filter(i=>ingredientCounts(i)&&!i.key).forEach(i=>
+      out.push({level:'bad',text:r.name+' — could not read the ingredient "'+i.item+'". It is being counted as missing, so this recipe will never claim to be cookable until you reword it.'}));
     if(!r.steps.length)out.push({level:'bad',text:r.name+' — no steps'});
     if(!r.meta.serves)out.push({level:'warn',text:r.name+' — no serving size'});
     if(!r.tags.length)out.push({level:'warn',text:r.name+' — no tags, the planner will rarely pick it'});
