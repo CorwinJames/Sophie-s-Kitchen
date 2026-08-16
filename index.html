@@ -385,6 +385,19 @@ button.disc:hover{color:var(--hot2)}
 .ovenline{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--ink2)}
 .bakesplit .timeline{margin-top:4px}
 .bakesplit .tstep{grid-template-columns:84px minmax(0,1fr)}
+
+.addhead{margin:16px 0 6px}
+.addrow{align-items:center;gap:8px}
+.addrow input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.addrow input:focus{outline:2px solid var(--hot);outline-offset:-1px;border-color:var(--hot)}
+.shelfhint{min-width:104px;color:var(--hot2)}
+.kindrow{display:flex;gap:10px;align-items:baseline;margin:4px 0}
+.kindlabel{flex:none;min-width:86px;text-align:right;font-size:12px;color:var(--ink3);
+  text-transform:capitalize;padding-top:5px}
+.kindrow .chips{flex:1;min-width:0}
+.kindhead{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;
+  color:var(--ink3);text-transform:capitalize;margin:6px 0 2px;padding-left:2px}
+.kindnest{border-left:2px solid var(--line);padding-left:8px;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -416,7 +429,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.4'
+  VER: '3.5'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -1173,7 +1186,15 @@ const CAT_WORDS={
            'sauce','lentil','quinoa','barley','oat','honey','syrup','mustard','ketchup','mayonnaise',
            'cornstarch','cornflour','baking','yeast','nut','pecan','walnut','almond','cashew','pistachio',
            'seed','coconut','peanut','chocolate','cocoa','bread','tortilla','cracker','gelatin',
-           'wine','extract','molasses','quinoa','couscous','polenta','semolina']
+           'wine','extract','molasses','quinoa','couscous','polenta','semolina'],
+  /* spices and dried aromatics. Checked before staples so "smoked paprika"
+     does not fall through to Everything else. */
+  seasonings:['salt','pepper','peppercorn','paprika','cumin','coriander seed','turmeric','cinnamon',
+              'nutmeg','clove','cardamom','allspice','anise','star anise','fennel seed','caraway',
+              'mustard seed','chili powder','chilli powder','cayenne','chili flake','red pepper flake',
+              'curry','garam masala','five spice','za atar','sumac','saffron','oregano','thyme',
+              'bay leaf','marjoram','savory','tarragon leaf','msg','bouillon','seasoning','spice',
+              'vanilla','ginger powder','onion powder','garlic powder','celery salt','old bay']
 };
 function catByWords(n,cat){
   const words=String(n||'').split(' ').filter(Boolean);
@@ -1193,6 +1214,7 @@ function categoryOf(item,group){
   if(catByWords(n,'fruit'))return 'fruit';
   if(catByWords(n,'vegetable'))return 'vegetable';
   if(/produce|veg/.test(g))return 'vegetable';
+  if(catByWords(n,'seasonings'))return 'seasonings';
   if(catByWords(n,'staples'))return 'staples';
   return 'other';
 }
@@ -1809,6 +1831,7 @@ line, separated by spaces or commas.
 
 - quail, duck, goose, pigeon, pheasant, century, salted, preserved, pickled
 - dried, glutinous, sticky, wild, baby, instant, candied, crystal, roasted
+- 00, tipo, doppio, semolina, cake, pastry, self-raising
 `,
 'flours.md':`# Flours
 
@@ -4219,31 +4242,47 @@ function renderStockHost(node){
     const items=g.items.filter(i=>!i.out);
     if(!items.length)return;
     host.append(h('div','stockgroup',g.name));
-    host.append(el('div',{class:'chips'},items.map(i=>
-      el('span',{class:'chip'+(i.level!=='plenty'?' lvl-'+i.level:''),
+    const chip=i=>el('span',{class:'chip'+(i.level!=='plenty'?' lvl-'+i.level:''),
         title:LEVEL_LABEL[i.level]+' — tap to knock it down, shift-tap to top it up',
         onclick:e=>{ if(e.shiftKey){stepUp(i);markStockDirty();renderStockHost();refreshMatches();}
                      else setStockLevel(i,LEVELS[Math.max(0,LEVELS.indexOf(i.level)-1)]); }},
         i.name,
         i.level!=='plenty'?el('b',{class:'lv'},i.level==='low'?'NEARLY GONE':'SOME'):null,
         i.qty?el('b',{class:'qty'},[i.qty,i.unit].filter(Boolean).join(' ')):null,
-        el('b',{class:'x'},'−')))));
+        el('b',{class:'x'},'−'));
+    /* kinds of one thing sit together — flour, bread flour, 00 tipo */
+    const nests=nestByKind(items,i=>i.name);
+    const solos=nests.filter(n=>n.solo).map(n=>n.solo);
+    if(solos.length)host.append(el('div',{class:'chips'},solos.map(chip)));
+    nests.filter(n=>!n.solo).forEach(nst=>{
+      host.append(el('div',{class:'kindrow'},
+        el('span',{class:'kindlabel'},nst.head),
+        el('div',{class:'chips'},nst.items.map(chip))));
+    });
   });
-  const sel=el('select',{style:'width:auto'},S.pantry.groups.map(g=>el('option',{value:g.name},g.name)));
-  const inp=el('input',{type:'text',placeholder:'something else we keep in the house',style:'flex:1;min-width:180px',
-    onkeydown:e=>{ if(e.key==='Enter')addPantry(inp,sel); }});
-  host.append(el('div',{class:'row',style:'margin-top:14px'},inp,sel,
-    el('button',{class:'btn sm',onclick:()=>addPantry(inp,sel)},'Add to pantry')));
+  /* ---- add an item to the house ---- */
+  const dl=el('datalist',{id:'houseVocab'});
+  ingredientVocab().slice(0,800).forEach(n=>dl.append(el('option',{value:n})));
+  const shelf=el('span',{class:'tiny dim shelfhint'},'');
+  const inp=el('input',{type:'text',list:'houseVocab',id:'addHouse',
+    placeholder:'Add an item to the house — start typing',
+    style:'flex:1;min-width:220px',
+    oninput:e=>{ const v=e.target.value.trim();
+      shelf.textContent=v?('→ '+(CAT_LABEL[categoryOf(v)]||categoryOf(v))):''; },
+    onkeydown:e=>{ if(e.key==='Enter')doAdd(); }});
+  const doAdd=()=>{
+    if(addToHouse(inp.value)){ inp.value=''; shelf.textContent='';
+      renderStockHost(); renderPantrySide(); renderCouldGet(); refreshMatches(); }
+  };
+  host.append(dl);
+  host.append(h('h3','addhead','Add an item to the house'));
+  host.append(el('div',{class:'row addrow'},inp,shelf,
+    el('button',{class:'btn sm pri',onclick:doAdd},'Add')));
+  host.append(h('p','tiny dim','It works out which shelf on its own. Different kinds of the same thing — bread flour, 00 tipo pizza flour, rye — are kept as separate items and grouped together under the one they are a kind of.'));
 }
-function addPantry(inp,sel){
-  const name=inp.value.trim(); if(!name)return;
-  const g=S.pantry.groups.find(x=>x.name===sel.value)||S.pantry.groups[0];
-  if(g.items.some(i=>sameThing(i.name,name)))return toast('Already in the pantry.');
-  g.items.push({name,level:'plenty',out:false,qty:null,unit:null,bought:null,key:norm(name)});
-  inp.value='';
-  _stockDirty=true; renderStockHost(); renderPantrySide(); renderCouldGet(); refreshMatches();
-  clearTimeout(_stockTimer); _stockTimer=setTimeout(flushStock,600);
-  toast(name+' added to the pantry.');
+function addPantry(inp){
+  if(addToHouse(inp.value)){ inp.value='';
+    renderStockHost(); renderPantrySide(); renderCouldGet(); refreshMatches(); }
 }
 function render(){
   const v=$('#view'); v.innerHTML='';
@@ -4382,7 +4421,14 @@ function renderPantrySide(){
     side.append(el('div',{class:'pgroup'},CAT_LABEL[c]||c,
       el('span',{style:'float:right;opacity:.6;letter-spacing:0'},String(items.length))));
     items.sort((a,b)=>a.item.name.localeCompare(b.item.name));
-    items.forEach(x=>{ side.append(row(x.item,false,x.group)); shown++; });
+    nestByKind(items,x=>x.item.name).forEach(nst=>{
+      if(nst.solo){ side.append(row(nst.solo.item,false,nst.solo.group)); shown++; return; }
+      side.append(el('div',{class:'kindhead'},CAT_LABEL[nst.head]||nst.head,
+        el('span',{class:'tiny dim'},String(nst.items.length))));
+      const box=el('div',{class:'kindnest'});
+      nst.items.forEach(x=>{ box.append(row(x.item,false,x.group)); shown++; });
+      side.append(box);
+    });
   });
   if(!shown) side.append(h('p','small dim',q?'Nothing matches “'+q+'”.':'Nothing in the house.'));
 
@@ -6320,6 +6366,104 @@ function renderCouldGet(){
     host.append(box);
   });
   if(!shown)host.append(h('p','tiny dim','Nothing matches.'));
+}
+
+/* ============================================================
+   PUTTING THINGS IN THE HOUSE BY HAND
+   ------------------------------------------------------------
+   Three things were wrong with this. It asked which shelf, which
+   the app can work out. Its label described the contents of the
+   cupboard rather than saying "add an item". And it refused
+   00 tipo pizza flour on the grounds that flour is flour
+   — using the loose matcher, which is right for "can I cook this"
+   and wrong for "is this a new thing to keep track of".
+   ============================================================ */
+
+/* Everything we have ever seen called an ingredient, commonest first.
+   Feeds the type-ahead, so most things are two keystrokes and a click. */
+let _vocab=null,_vocabStamp='';
+function ingredientVocab(){
+  const stamp=(S.recipes||[]).length+'|'+S.pantry.groups.reduce((a,g)=>a+g.items.length,0)
+             +'|'+((S.prices&&S.prices.buy)||[]).length;
+  if(_vocab&&_vocabStamp===stamp)return _vocab;
+  const m=new Map();
+  const add=n=>{
+    const k=norm(n); if(!k)return;
+    const e=m.get(k);
+    if(!e)m.set(k,{name:String(n).trim(),n:1});
+    else { e.n++; if(String(n).trim().length<e.name.length)e.name=String(n).trim(); }
+  };
+  (S.recipes||[]).forEach(r=>(r.ingredients||[]).forEach(i=>{ if(i.key&&!isFree(i.item))add(i.item); }));
+  S.pantry.groups.forEach(g=>g.items.forEach(i=>add(i.name)));
+  ((S.prices&&S.prices.buy)||[]).forEach(b=>add(b.item));
+  _vocab=[...m.values()].sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name)).map(x=>x.name);
+  _vocabStamp=stamp;
+  return _vocab;
+}
+/* Which shelf does this belong on — worked out, not asked. */
+function groupFor(name){
+  const gs=S.pantry.groups;
+  if(!gs.length)return null;
+  const cat=categoryOf(name);
+  const direct=gs.find(x=>categoryOf(x.name,x.name)===cat);
+  if(direct)return direct;
+  const where={vegetable:/produce|veg|garden|fridge/i, fruit:/produce|fruit|fridge/i,
+    meat:/freezer|meat|butcher|fridge/i, dairy:/fridge|dairy|cold/i,
+    staples:/pantry|cupboard|staple|dry|shelf/i, seasonings:/season|spice|pantry|cupboard/i,
+    snacks:/snack|treat|pantry|cupboard/i, other:/pantry|cupboard|shelf/i};
+  return gs.find(x=>(where[cat]||/pantry|cupboard/i).test(x.name))||gs[0];
+}
+/* Is this literally already here? Deliberately an exact match. The loose
+   matcher would say we already have 00 tipo pizza flour because we have
+   flour, which is true for cooking and false for the cupboard. */
+function alreadyInHouse(name){
+  const k=norm(name);
+  if(!k)return null;
+  for(const g of S.pantry.groups)
+    for(const i of g.items) if(i.key===k)return {item:i,group:g};
+  return null;
+}
+/* Varieties of one thing, gathered under it. "flour", "bread flour" and
+   "00 tipo pizza flour" all share a head noun, so they sit together without
+   anyone having to declare a hierarchy. */
+function headNoun(name){
+  const w=norm(name).split(' ').filter(Boolean);
+  return w.length?w[w.length-1]:'';
+}
+function nestByKind(entries,nameOf){
+  const by=new Map();
+  entries.forEach(e=>{
+    const hd=headNoun(nameOf(e));
+    if(!by.has(hd))by.set(hd,[]);
+    by.get(hd).push(e);
+  });
+  const out=[];
+  by.forEach((list,hd)=>{
+    if(list.length<2||!hd){ list.forEach(e=>out.push({solo:e})); return; }
+    list.sort((a,b)=>nameOf(a).length-nameOf(b).length);
+    out.push({head:hd,label:list.find(e=>norm(nameOf(e))===hd)?nameOf(list[0]):hd,items:list});
+  });
+  return out.sort((a,b)=>{
+    const an=a.solo?nameOf(a.solo):a.label, bn=b.solo?nameOf(b.solo):b.label;
+    return String(an).localeCompare(String(bn));
+  });
+}
+
+function addToHouse(name,opts){
+  opts=opts||{};
+  const n=String(name||'').trim();
+  if(!n)return false;
+  const dup=alreadyInHouse(n);
+  if(dup){ toast(n+' is already in the house.'); return false; }
+  const g=groupFor(n);
+  if(!g){ toast('No shelves set up yet — add one on the Groceries tab.'); return false; }
+  g.items.push({name:n,level:'plenty',out:false,qty:opts.qty||null,unit:opts.unit||null,
+                bought:null,key:norm(n)});
+  S.grocery.manual=(S.grocery.manual||[]).filter(x=>!sameThing(x,n));
+  const near=pantryHave(S.pantry).filter(i=>i.key!==norm(n)&&headNoun(i.name)===headNoun(n));
+  toast(n+' → '+g.name+(near.length?'  (kept with your other '+headNoun(n)+')':''));
+  markStockDirty();
+  return true;
 }
 /* ---------------- boot ---------------- */
 $('#btnSync').addEventListener('click',async()=>{ await syncAll(); render(); });
