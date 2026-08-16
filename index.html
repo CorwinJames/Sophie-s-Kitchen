@@ -366,6 +366,11 @@ button.ia:hover{background:var(--hot);border-color:var(--hot);color:#1a120c}
 button.disc{background:none;border:none;color:var(--ink);font:inherit;font-weight:600;font-size:15px;
   cursor:pointer;padding:0;text-align:left}
 button.disc:hover{color:var(--hot2)}
+
+.costbreak{margin:8px 0;border-left:2px solid var(--line);padding-left:10px}
+.brow{display:flex;gap:8px;align-items:baseline;padding:2px 0}
+.brow .bq{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.brow .bi{flex:1;min-width:0;color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -397,7 +402,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.0'
+  VER: '3.1'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -480,7 +485,8 @@ const UNIT_CANON={
   sprig:'sprig',sprigs:'sprig',piece:'piece',pieces:'piece',handful:'handful',
   dash:'dash',dashes:'dash',package:'pkg',packages:'pkg',pkg:'pkg',package_:'pkg',
   floz:'floz',flozs:'floz','fl oz':'floz','fluid ounce':'floz','fluid ounces':'floz',
-  gallon:'gal',gallons:'gal',gal:'gal'
+  gallon:'gal',gallons:'gal',gal:'gal',
+  dozen:'dozen',dozens:'dozen',doz:'dozen'
 };
 /* "2 lb", "1 1/2 cups", "12" — a bare amount with no ingredient after it */
 function parseAmount(str){
@@ -502,7 +508,10 @@ const PREP=['fresh','freshly','chopped','finely','roughly','diced','minced','sli
  'leftover','any','good','quality','plus','more','for','serving','garnish','divided','about','approximately',
  'frozen','thawed','defrosted',
  'leaves','leaf','sprigs','sprig','stalks','stalk','fronds','tops','needed','required',
- 'a','little','few','extra','best','your','favourite','favorite','preferably','of'];
+ 'a','an','little','few','extra','best','your','favourite','favorite','preferably','of',
+ /* amounts that arrive as words rather than numbers */
+ 'pinch','pinches','handful','handfuls','splash','splashes','knob','knobs','dash','dashes',
+ 'drizzle','glug','squeeze','sprinkling','grating','generous','scant','heaped','heaping','level'];
 const SYN={
   'scallion':'green onion','scallions':'green onion','spring onion':'green onion',
   'coriander leaf':'cilantro','yellow onion':'onion','white onion':'onion','red onion':'onion',
@@ -625,6 +634,15 @@ const DISTINCT=new Set(['green','spring','sesame','olive','avocado','coconut','a
  /* modifiers that turn tap water into something you have to go and buy */
  'rose','tonic','sparkling','seltzer','soda','mineral','blossom','orange','barley','tamarind',
  'chinese','sichuan','szechuan','napa']);
+/* A word that makes a different product, not just a described version of the
+   same one. The built-in set below plus anything the user has added under
+   "## Different product" in classes.md. */
+function isDistinctWord(w){
+  if(DISTINCT.has(w))return true;
+  if(typeof classIndex!=='function')return false;
+  const d=classIndex().distinct;
+  return !!(d&&d.has(w));
+}
 /* do two ingredient names refer to the same thing? */
 function sameThing(a,b){
   const x=norm(a),y=norm(b);
@@ -635,7 +653,7 @@ function sameThing(a,b){
   if(!longS.join(' ').includes(shortS.join(' ')))return false;
   if(shortS[shortS.length-1]!==longS[longS.length-1])return false;   // must share the head noun
   const extra=longS.filter(w=>!shortS.includes(w));
-  if(extra.some(w=>DISTINCT.has(w)))return false;                    // "green" onion / "sesame" oil
+  if(extra.some(isDistinctWord))return false;                        // "green" onion / "quail" egg
   return true;
 }
 
@@ -904,7 +922,7 @@ function serializePantry(p){
    ============================================================ */
 const UNIT_G={g:1,kg:1000,oz:28.3495,lb:453.592};
 const UNIT_ML={ml:1,l:1000,tsp:4.92892,tbsp:14.7868,cup:236.588,pint:473.176,qt:946.353,floz:29.5735,gal:3785.41};
-const COUNT_UNITS=new Set(['clove','can','bunch','slice','stick','sprig','piece','head','pkg','handful','pinch','dash','']);
+const COUNT_UNITS=new Set(['clove','can','bunch','slice','stick','sprig','piece','head','pkg','handful','pinch','dash','dozen','']);
 function unitFamily(u){
   const k=(u||'').toLowerCase();
   if(UNIT_G[k])return 'weight';
@@ -915,6 +933,7 @@ function unitFamily(u){
 function toBase(qty,unit){
   const n=fracToNum(qty); if(n==null)return null;
   const k=(unit||'').toLowerCase();
+  if(k==='dozen')return {fam:'count',n:n*12};   // "2 dozen quail eggs" is 24 of them
   if(UNIT_G[k])return {fam:'weight',n:n*UNIT_G[k]};
   if(UNIT_ML[k])return {fam:'volume',n:n*UNIT_ML[k]};
   if(COUNT_UNITS.has(k))return {fam:'count',n:n};
@@ -1690,6 +1709,15 @@ beef plus 250 g ground pork becomes 750 g ground beef.
 - black mushroom <-> button mushroom
 - green onion <-> leek
 - spinach <-> bok choy <-> chinese cabbage
+
+## Different product
+
+Words that change what a thing IS rather than just describing it. Quail eggs
+are not eggs; dried shrimp are not shrimp. One word per line or all on one
+line, separated by spaces or commas.
+
+- quail, duck, goose, pigeon, pheasant, century, salted, preserved, pickled
+- dried, glutinous, sticky, wild, baby, instant, candied, crystal, roasted
 `,
 'flours.md':`# Flours
 
@@ -2241,7 +2269,14 @@ function crossConvert(item,base,targetFam){
   if(!base)return null;
   if(base.fam===targetFam)return {n:base.n,est:false};
   const w=typicalWeight(item);
-  if(base.fam==='count'&&targetFam==='weight'&&w!=null)return {n:base.n*w,est:true};
+  if(base.fam==='count'&&targetFam==='weight'&&w!=null){
+    const n=base.n*w;
+    /* "20 pieces small green cabbage" is twenty leaves, not twenty heads —
+       but the only bridge we have is what one whole one weighs, so it comes
+       out as 40 lb of cabbage. We cannot tell which meaning was intended, so
+       flag it rather than quietly reporting the number. */
+    return {n,est:true,wild:(base.n>=6 && n>2270)};
+  }
   if(base.fam==='weight'&&targetFam==='count'&&w)return {n:base.n/w,est:true};
   if(base.fam==='count'&&targetFam==='volume'&&w!=null)return {n:base.n*w,est:true};
   /* for anything wet, a millilitre weighs about a gram. Wrong for flour,
@@ -2264,14 +2299,22 @@ function recipeCost(recipe,servingsMultiplier){
     const c=up.per*conv.n*mult;
     total+=c;
     if(conv.est)estimated.push(i.item);
-    priced.push({item:i.item,cost:c,on:up.on,store:up.store,est:conv.est});
+    priced.push({item:i.item,cost:c,on:up.on,store:up.store,est:conv.est,wild:!!conv.wild,
+                 asked:(i.qty?i.qty+' ':'')+(i.unit?i.unit+' ':'')});
   });
-  return {total,priced,unpriced,skipped,estimated,
+  /* One guess can swamp everything else. When it does, say so instead of
+     printing a confident-looking figure that is mostly that guess. */
+  const guesses=priced.filter(x=>x.est).sort((a,b)=>b.cost-a.cost);
+  const worst=guesses[0]||null;
+  const shaky=(worst&&total>0&&(worst.wild||(worst.cost/total>0.5&&total>=20)))?worst:null;
+  return {total,priced:priced.slice().sort((a,b)=>b.cost-a.cost),unpriced,skipped,estimated,shaky,
+    firm: total-guesses.reduce((a,x)=>a+x.cost,0),
     complete:unpriced.length===0,
     confidence: priced.length+unpriced.length ? priced.length/(priced.length+unpriced.length) : 0};
 }
 function costLabel(c){
   if(!c.priced.length)return null;
+  if(c.shaky)return 'maybe '+money(c.total);
   if(!c.complete)return 'from '+money(c.total);
   return (c.estimated.length?'about ':'')+money(c.total);
 }
@@ -3651,12 +3694,14 @@ function parseClasses(text){
     const parts=l.split(/\s*=\s*/).map(x=>x.trim()).filter(Boolean);
     if(parts.length>1)same.push(parts);
   });
+  const distinct=bullets(S2['different product'])
+    .flatMap(l=>l.split(/[,\s]+/)).map(x=>norm(x)).filter(Boolean);
   const swap=[];
   bullets(S2['interchangeable']).forEach(l=>{
     const parts=l.split(/\s*(?:<->|<>|~)\s*/).map(x=>x.trim()).filter(Boolean);
     if(parts.length>1)swap.push(parts);
   });
-  return {classes,same,swap,raw:text};
+  return {classes,same,swap,distinct,raw:text};
 }
 function serializeClasses(c){
   const out=['# Ingredient Classes','',
@@ -3675,6 +3720,11 @@ function serializeClasses(c){
     'Not the same thing, but either will do. Written with <->. On a recipe',
     'page you can cross one off and its amount moves onto the other.','');
   (c.swap||[]).forEach(g=>out.push('- '+g.join(' <-> ')));
+  out.push('','## Different product','',
+    'Words that change what a thing IS rather than just describing it. Quail',
+    'eggs are not eggs; dried shrimp are not shrimp. One word per line or all',
+    'on one line, separated by spaces or commas.','');
+  if((c.distinct||[]).length)out.push('- '+c.distinct.join(', '));
   out.push('');
   return out.join('\n');
 }
@@ -3705,13 +3755,14 @@ function classIndex(){
   src.classes.forEach(c=>flat.set(norm(c.name),uniq(expand(c,new Set()))));
   const gid=new Map();
   src.same.forEach((g,i)=>g.forEach(x=>gid.set(norm(x),i)));
+  const distinct=new Set((S.classes&&S.classes.distinct)||[]);
   const swapBy=new Map();
   src.swap.forEach(g=>g.forEach(x=>{
     const k=norm(x);
     swapBy.set(k,uniq((swapBy.get(k)||[]).concat(g.filter(y=>norm(y)!==k))));
   }));
   _cxSrc=src;
-  _cx={src,byName,flat,gid,swapBy,ans:new Map()};
+  _cx={src,byName,flat,gid,swapBy,distinct,ans:new Map()};
   return _cx;
 }
 function classByName(n){
@@ -4230,9 +4281,32 @@ function openRecipe(r){
         +sp.map(c=>c.item).join(' or ')+', but we can make '
         +(sp.length>1?'them':'it')+' — “Make it” folds the steps in.');})(),
     (()=>{const c=recipeCost(r); if(!c.priced.length)return null;
-      return h('div','small',el('b',{},costLabel(c)),' to make',
-        c.unpriced.length?h('span','dim','  — no price yet for '+c.unpriced.join(', ')):null,
-        h('span','dim','  · from what we actually paid'));})(),
+      const line=h('div','small');
+      line.append(el('b',{},costLabel(c)),' to make');
+      if(c.unpriced.length)line.append(h('span','dim','  — no price yet for '+c.unpriced.join(', ')));
+      line.append(' ',el('button',{class:'link',onclick:e=>{
+        const box=e.target.closest('.small').querySelector('.costbreak');
+        box.classList.toggle('hide');
+        e.target.textContent=box.classList.contains('hide')?'show the maths':'hide the maths';
+      }},'show the maths'));
+      if(c.shaky){
+        line.append(h('div','alert soft',
+          money(c.shaky.cost)+' of that — most of it — is a guess at "'+c.shaky.asked+c.shaky.item+'". '+
+          (c.shaky.wild
+            ? 'A count times what one whole one weighs came out at an implausible amount, which usually means the recipe is counting leaves or pieces rather than whole ones. '
+            : '')+
+          'Without that line it is '+money(c.firm)+'. Fix it by putting a realistic weight for this in the Typical weights section of prices.md, or by rewording the ingredient.'));
+      }
+      const brk=h('div','costbreak hide');
+      c.priced.forEach(x=>brk.append(h('div','brow',
+        h('span','bq',money(x.cost)),
+        h('span','bi',x.asked+x.item),
+        x.est?h('span','tiny warnline','estimated'):null,
+        h('span','tiny dim',x.on?('paid '+x.on):''))));
+      if(c.skipped.length)brk.append(h('div','tiny dim','not counted: '+c.skipped.join(', ')));
+      line.append(brk);
+      line.append(h('span','dim','  · from what we actually paid'));
+      return line;})(),
     h('div','split',
       ingredientPanel(r,()=>openRecipe(r)),
       h('div',null,h('h3',null,'Steps'),
