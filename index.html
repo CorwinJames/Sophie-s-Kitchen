@@ -371,6 +371,9 @@ button.disc:hover{color:var(--hot2)}
 .brow{display:flex;gap:8px;align-items:baseline;padding:2px 0}
 .brow .bq{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .brow .bi{flex:1;min-width:0;color:var(--ink2)}
+
+.ia.listed{background:none;border-color:transparent;color:var(--ok);cursor:default;opacity:.85}
+.ingrow .ia.listed{opacity:1}
 </style>
 </head>
 <body>
@@ -402,7 +405,7 @@ const APP = {
   NAME: 'Sophie’s Kitchen',
   FOLDER: 'Recipes',            // top-level folder name in My Drive
   DINNER_HOUR: 18,              // used for thaw math
-  VER: '3.1'
+  VER: '3.2'
 };
 
 /* ---------- tiny store (degrades if storage is blocked) ---------- */
@@ -5934,10 +5937,12 @@ function rxToggle(r,key){
 function rxClear(r){ delete RX[rxKey(r)]; LS.set('crossedOff',RX); }
 
 /* ---------- putting things on the list, and into the house ---------- */
+function onList(name){
+  return (S.grocery.need||[]).concat(S.grocery.manual||[]).some(x=>sameThing(x,name));
+}
 async function addToList(name){
   const n=String(name||'').trim(); if(!n)return;
-  const already=(S.grocery.need||[]).concat(S.grocery.manual||[]).some(x=>sameThing(x,n));
-  if(already){ toast(n+' is already on the list.'); return; }
+  if(onList(n)){ toast(n+' is already on the list.'); return; }
   S.grocery.manual=(S.grocery.manual||[]).concat([n]);
   toast(n+' → shopping list');
   try{ await saveFile('grocery-list.md',serializeGrocery(S.grocery)); }
@@ -5991,11 +5996,21 @@ function ingredientList(r,redraw){
       if(cls.length)li.append(el('span',{class:'tiny dim'},'  counts as '+cls[0]));
     }
 
-    /* the hover controls */
+    /* the hover controls. The shopping button is on EVERY line, not just the
+       ones we are short of — leaving something out of tonight's cooking is
+       the moment you most want to buy it for next time, and "we have it but
+       barely" is just as good a reason. Only water and its like are exempt,
+       since you are never going to buy those. */
     const acts=el('span',{class:'ingacts'});
-    if(!got&&!free&&!i._off){
-      acts.append(el('button',{class:'ia',title:'Put '+i.item+' on the shopping list',
-        onclick:async e=>{ e.stopPropagation(); await addToList(i.item); redraw&&redraw(); }},'+ list'));
+    if(!free){
+      if(onList(i.item)){
+        acts.append(el('span',{class:'ia listed',title:i.item+' is already on the shopping list'},'on list'));
+      }else{
+        acts.append(el('button',{class:'ia',
+          title:i._off?'Leaving it out tonight — put '+i.item+' on the list for next time'
+                      :'Put '+i.item+' on the shopping list',
+          onclick:async e=>{ e.stopPropagation(); await addToList(i.item); redraw&&redraw(); }},'+ list'));
+      }
     }
     if(i.key){
       const partner=i._off?null:absorbTarget({ingredients:rows.filter(x=>!x._off&&!x._absorbedFrom)},i);
